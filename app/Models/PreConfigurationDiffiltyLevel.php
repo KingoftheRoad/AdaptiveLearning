@@ -21,7 +21,6 @@ class PreConfigurationDiffiltyLevel extends Model
         cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_COLOR_COL,
         cn::PRE_CONFIGURE_DIFFICULTY_TITLE_COL,
         cn::PRE_CONFIGURE_DIFFICULTY_STATUS_COL,
-        cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL
     ];
 
     public $timestamps = true;

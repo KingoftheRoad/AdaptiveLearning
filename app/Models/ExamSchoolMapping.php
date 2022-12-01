@@ -18,7 +18,6 @@ class ExamSchoolMapping extends Model{
         cn::EXAM_SCHOOL_MAPPING_SCHOOL_ID_COL,
         cn::EXAM_SCHOOL_MAPPING_EXAM_ID_COL,
         cn::EXAM_SCHOOL_MAPPING_STATUS_COL,
-        cn::EXAM_SCHOOL_MAPPING_CURRICULUM_YEAR_ID_COL
      ];
  
      public $timestamps = true;

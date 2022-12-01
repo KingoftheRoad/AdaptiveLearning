@@ -171,11 +171,11 @@ class QuestionsRepository
      */
     public function objectivesMapping($request){
         $objectivesMapping = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,$request->grade_id)
-                            ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,$request->subject_id)
-                            ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL, $request->strand_id)
-                            ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL, $request->learning_unit_id)
-                            ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$request->learning_objective_id)
-                            ->first();
+                                ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,$request->subject_id)
+                                ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL, $request->strand_id)
+                                ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL, $request->learning_unit_id)
+                                ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$request->learning_objective_id)
+                                ->first();
         return $objectivesMapping;
     }
 

@@ -21,17 +21,6 @@ use App\Models\Grades;
 use App\Models\GradeClassMapping;
 use App\Models\AttemptExams;
 use App\Models\Exam;
-use App\Models\ClassPromotionHistory;
-use App\Models\AuditLogs;
-use App\Models\ClassSubjectMapping;
-use App\Models\ExamCreditPointRulesMapping;
-use App\Models\ExamGradeClassMappingModel;
-use App\Models\ExamSchoolMapping;
-use App\Models\IntelligentTutorVideos;
-use App\Models\UploadDocuments;
-use App\Models\UserCreditPoints;
-use App\Models\UserCreditPointHistory;
-use App\Models\MyTeachingReport;
 use App\Models\PeerGroup;
 use App\Models\ExamConfigurationsDetails;
 use Illuminate\Support\Facades\Session;
@@ -42,7 +31,6 @@ use Illuminate\Support\Facades\DB;
 use App\Models\SubjectSchoolMappings;
 use App\Models\TeachersClassSubjectAssign;
 use App\Models\PeerGroupMember;
-use App\Models\CurriculumYearStudentMappings;
 use App\Helpers\Helper;
 use App\Models\AttemptExamStudentMapping;
 
@@ -64,8 +52,8 @@ class CommonController extends Controller
         $UsersData = User::All();
         if(!empty($UsersData)){
             foreach($UsersData as $user){
-                $classId = $user->{cn::USERS_CLASS_ID_COL};
-                User::where(cn::USERS_ID_COL,$user->{cn::USERS_ID_COL})->update([cn::USERS_CLASS_ID_COL => $classId]);
+                $classId = $user->class_name;
+                User::where(cn::USERS_ID_COL,$user->id)->update([cn::USERS_CLASS_ID_COL => $classId]);
             }
         }
     }
@@ -90,8 +78,7 @@ class CommonController extends Controller
             }else if($this->isTeacherLogin()){
                 $subjectIds = SubjectSchoolMappings::where(cn::SUBJECT_MAPPING_SCHOOL_ID_COL,$this->isTeacherLogin())->pluck(cn::SUBJECT_MAPPING_SUBJECT_ID_COL);
             }else{
-                $subjectIds =   StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,$request->grade_id)
-                                ->pluck(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL);
+                $subjectIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,$request->grade_id)->pluck(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL);
             }
             if(!empty($subjectIds)){
                 $subjectIds = array_unique($subjectIds->toArray());
@@ -108,6 +95,7 @@ class CommonController extends Controller
             $SubjectsData = Subjects::where(cn::SUBJECTS_CODE_COL,cn::CODEMATHEMATICS)->first();
             $strandsIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,$request->grade_id)
                             ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,$SubjectsData->{cn::SUBJECTS_ID_COL})
+                            //->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,$request->subject_id)
                             ->pluck(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL);
             if(!empty($strandsIds)){
                 $strandsIds = array_unique($strandsIds->toArray());
@@ -136,6 +124,7 @@ class CommonController extends Controller
             return $this->sendError($ex->getMessage(), 404);
         }
     }
+
 
     public function getMultiLearningUnitFromStrands(Request $request){
         try{
@@ -463,8 +452,7 @@ class CommonController extends Controller
         if($this->isSchoolLogin() || $this->isTeacherLogin()){
             $Query->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL});
             if(isset($request->classIds) && !empty($request->classIds)){
-                // $Query->whereIn(cn::USERS_CLASS_ID_COL,$request->classIds);
-                $Query->whereIn(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids('',$request->classIds,Auth::user()->{cn::USERS_SCHOOL_ID_COL}));
+                $Query->whereIn(cn::USERS_CLASS_ID_COL,$request->classIds);
             }
         }else{
             // If the current login is admin
@@ -475,14 +463,12 @@ class CommonController extends Controller
                         $classIdArray[] = explode(',',$classIdsArray);
                     }
                     $classIds = $this->array_flatten($classIdArray);
-                    // $Query->whereIn(cn::USERS_CLASS_ID_COL,$classIds);
-                    $Query->whereIn(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids('',$request->classIds,''));
+                    $Query->whereIn(cn::USERS_CLASS_ID_COL,$classIds);
                 }
             }
         }
         if(isset($request->gradeId) && !empty($request->gradeId)){
-            // $Query->where(cn::USERS_GRADE_ID_COL,$request->gradeId);
-            $Query->where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($request->gradeId,'',''));
+            $Query->where(cn::USERS_GRADE_ID_COL,$request->gradeId);
         }
         $StudentIds = $Query->get()->pluck(cn::USERS_ID_COL);
         if(!$StudentIds->isEmpty()){
@@ -611,22 +597,13 @@ class CommonController extends Controller
 
     public function getRoleBasedPeerGroupData($peerGroupIds){
         $peerGroupDataArray = array();
-        $peerGroupData = PeerGroup::select(cn::PEER_GROUP_ID_COL,cn::PEER_GROUP_GROUP_NAME_COL)
-                        ->whereIn(cn::PEER_GROUP_ID_COL,$peerGroupIds)
-                        ->where(cn::PEER_GROUP_STATUS_COL,1);
+        $peerGroupData = PeerGroup::select(cn::PEER_GROUP_ID_COL,cn::PEER_GROUP_GROUP_NAME_COL)->whereIn(cn::PEER_GROUP_ID_COL,$peerGroupIds)->where(cn::PEER_GROUP_STATUS_COL,1);
         if($this->isAdmin()){
             $peerGroupData = $peerGroupData->get();
         }else if($this->isTeacherLogin()){
-            $peerGroupData = $peerGroupData->select(cn::PEER_GROUP_ID_COL,cn::PEER_GROUP_GROUP_NAME_COL)
-                            ->where([
-                                cn::PEER_GROUP_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                                cn::PEER_GROUP_CREATED_BY_USER_ID_COL => Auth::user()->{cn::USERS_ID_COL}
-                            ])->get();
+            $peerGroupData = $peerGroupData->select(cn::PEER_GROUP_ID_COL,cn::PEER_GROUP_GROUP_NAME_COL)->where(cn::PEER_GROUP_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::PEER_GROUP_CREATED_BY_USER_ID_COL,Auth::user()->{cn::USERS_ID_COL})->get();
         }else if($this->isSchoolLogin() || isPrincipalLogin()){
-            $peerGroupData = $peerGroupData->select(cn::PEER_GROUP_ID_COL,cn::PEER_GROUP_GROUP_NAME_COL)
-                            ->where([
-                                cn::PEER_GROUP_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}
-                            ])->get();
+            $peerGroupData = $peerGroupData->select(cn::PEER_GROUP_ID_COL,cn::PEER_GROUP_GROUP_NAME_COL)->where(cn::PEER_GROUP_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->get();
         }
         return $peerGroupData;
     }
@@ -660,18 +637,8 @@ class CommonController extends Controller
         {
             if(isset($request->peerGroupId) && !empty($request->peerGroupId)){
                 $studentListType="PeerGroup_".$request->peerGroupId;
-                // $getStudentFromGroupIds =  PeerGroupMember::where('peer_group_id',$request->peerGroupId)->pluck('member_id')->unique()->toArray();
-                $getStudentFromGroupIds =  PeerGroupMember::where([
-                                                                    cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL=> $request->peerGroupId,
-                                                                    cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL =>$this->GetCurriculumYear()
-                                                                ])->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->unique()->toArray();
-                                                                
-                // $studentList = User::where([cn::USERS_SCHOOL_ID_COL=>Auth::user()->{cn::USERS_SCHOOL_ID_COL},cn::USERS_ROLE_ID_COL=>cn::STUDENT_ROLE_ID])->whereIn(cn::USERS_ID_COL,$getStudentFromGroupIds)->get();
-                $studentList = User::where([
-                                                cn::USERS_SCHOOL_ID_COL=>Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                                                cn::USERS_ROLE_ID_COL=>cn::STUDENT_ROLE_ID,
-                                            ])
-                                            ->whereIn(cn::USERS_ID_COL,$getStudentFromGroupIds)->get();
+                $getStudentFromGroupIds =  PeerGroupMember::where('peer_group_id',$request->peerGroupId)->pluck('member_id')->unique()->toArray();
+                $studentList = User::where([cn::USERS_SCHOOL_ID_COL=>Auth::user()->{cn::USERS_SCHOOL_ID_COL},cn::USERS_ROLE_ID_COL=>cn::STUDENT_ROLE_ID])->whereIn(cn::USERS_ID_COL,$getStudentFromGroupIds)->get();
             }
         }
         else
@@ -692,30 +659,21 @@ class CommonController extends Controller
                 $GradeClassId = explode(',',$GradeClassId);
                 $isTeacher = 1;
             }
-            // $studentList = User::where([cn::USERS_SCHOOL_ID_COL=>Auth::user()->{cn::USERS_SCHOOL_ID_COL},cn::USERS_ROLE_ID_COL=>cn::STUDENT_ROLE_ID])
-            $studentList = User::where([
-                                            cn::USERS_SCHOOL_ID_COL =>  Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                                            cn::USERS_ROLE_ID_COL   =>  cn::STUDENT_ROLE_ID,
-                                        ])
+            $studentList = User::where([cn::USERS_SCHOOL_ID_COL=>Auth::user()->{cn::USERS_SCHOOL_ID_COL},cn::USERS_ROLE_ID_COL=>cn::STUDENT_ROLE_ID])
             ->where(function ($query) use ($request,$gradesListId,$GradeClassId,$isTeacher){
                 if(!isset($request->gradeIds) && !isset($request->classIds)){
-                    // $query->whereIn(cn::USERS_GRADE_ID_COL,$request->gradeIds)->whereIn(cn::USERS_CLASS_ID_COL,$request->classIds);
-                    $query->whereIn(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($request->gradeIds,$request->classIds,Auth::user()->{cn::USERS_SCHOOL_ID_COL}));
+                    $query->whereIn(cn::USERS_GRADE_ID_COL,$request->gradeIds)->whereIn(cn::USERS_CLASS_ID_COL,$request->classIds);
                 }else{
                     if(isset($request->gradeIds) && !empty($request->gradeIds)){
-                        // $query->whereIn(cn::USERS_GRADE_ID_COL,$request->gradeIds);
-                        $query->whereIn(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($request->gradeIds,'',Auth::user()->{cn::USERS_SCHOOL_ID_COL}));
+                        $query->whereIn(cn::USERS_GRADE_ID_COL,$request->gradeIds);
                     }else if($isTeacher==1){
-                        // $query->whereIn(cn::USERS_GRADE_ID_COL,$gradesListId);
-                        $query->whereIn(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($request->gradesListId,'',Auth::user()->{cn::USERS_SCHOOL_ID_COL}));
+                        $query->whereIn(cn::USERS_GRADE_ID_COL,$gradesListId);
                     }
 
                     if(isset($request->classIds) && !empty($request->classIds)){
-                        // $query->whereIn(cn::USERS_CLASS_ID_COL,$request->classIds);
-                        $query->whereIn(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids('',$request->classIds,''));
+                        $query->whereIn(cn::USERS_CLASS_ID_COL,$request->classIds);
                     }else if($isTeacher==1){
-                        // $query->whereIn(cn::USERS_CLASS_ID_COL,$GradeClassId);
-                        $query->whereIn(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids('',$GradeClassId,Auth::user()->{cn::USERS_SCHOOL_ID_COL}));
+                        $query->whereIn(cn::USERS_CLASS_ID_COL,$GradeClassId);
                     }
                 }
             })->get();
@@ -744,67 +702,12 @@ class CommonController extends Controller
         $AttemptExams = AttemptExams::get();
         if(isset($AttemptExams) && !empty($AttemptExams)){
             foreach($AttemptExams as $Data){
-                if(AttemptExamStudentMapping::where([cn::ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL => $Data->exam_id, cn::ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL => $Data->student_id])->exists()){
-                    AttemptExamStudentMapping::find($Data->id)->Update([cn::ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL => $Data->exam_id, cn::ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL => $Data->student_id]);
+                if(AttemptExamStudentMapping::where(['exam_id' => $Data->exam_id, 'student_id' => $Data->student_id])->exists()){
+                    AttemptExamStudentMapping::find($Data->id)->Update(['exam_id' => $Data->exam_id, 'student_id' => $Data->student_id]);
                 }else{
-                    AttemptExamStudentMapping::Create([cn::ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL => $Data->exam_id, cn::ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL => $Data->student_id]);
+                    AttemptExamStudentMapping::Create(['exam_id' => $Data->exam_id, 'student_id' => $Data->student_id]);
                 }
             }
         }
     }
-
-    public function AjaxSetCurriculumYear(Request $request){
-        $this->SetCurriculumYear($request->CurriculumYearId);
-    }
-
-    /**
-     * USE : Set Null Column of Curriculum YEar Student Mapping in Student Number With in class,Class and permanent Reference number
-     */
-    public function setClassStudentNumberColumnValue(){
-        $curriculumMappingData = CurriculumYearStudentMappings::all();
-        if(!empty($curriculumMappingData)){
-            foreach($curriculumMappingData as $curriculumMappingDataValue){
-                $userData = User::find($curriculumMappingDataValue->user_id);
-                CurriculumYearStudentMappings::where(cn::CURRICULUM_YEAR_STUDENT_MAPPING_ID_COL,$curriculumMappingDataValue->id)
-                ->update([
-                    cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => $userData->student_number_within_class ?? null,
-                    cn::CURRICULUM_YEAR_STUDENT_CLASS=> $userData->class ?? null,
-                    cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER =>$userData->class_student_number ?? null
-                ]);
-            }
-            echo "Successfully Updated...";
-        }  
-    }
-
-    /**
-     * USE : Update in All Table of Curriculum Year Id
-     */
-    public function UpdateInAllTableCurriculumYearId(){
-        GradeSchoolMappings::query()->update([cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        GradeClassMapping::query()->update([cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        ClassPromotionHistory::query()->update([cn::CLASS_PROMOTION_HISTORY_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        AttemptExams::query()->update([cn::ATTEMPT_EXAMS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        AttemptExamStudentMapping::query()->update([cn::ATTEMPT_EXAM_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        AuditLogs::query()->update([cn::AUDIT_LOGS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        ClassSubjectMapping::query()->update([cn::CLASS_SUBJECT_MAPPING_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        ExamConfigurationsDetails::query()->update([cn::EXAM_CONFIGURATIONS_DETAILS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        ExamCreditPointRulesMapping::query()->update([cn::EXAM_CREDIT_POINT_RULES_MAPPING_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        ExamGradeClassMappingModel::query()->update([cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        ExamSchoolMapping::query()->update([cn::EXAM_SCHOOL_MAPPING_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        IntelligentTutorVideos::query()->update([cn::INTELLIGENT_TUTOR_VIDEOS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        PeerGroup::query()->update([cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        PeerGroupMember::query()->update([cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        PreConfigurationDiffiltyLevel::query()->update([cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        SubjectSchoolMappings::query()->update([cn::SUBJECT_MAPPING_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        TeachersClassSubjectAssign::query()->update([cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        MyTeachingReport::query()->update([cn::TEACHING_REPORT_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        UploadDocuments::query()->update([cn::UPLOAD_DOCUMENTS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        UserCreditPoints::query()->update([cn::USER_CREDIT_POINTS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        UserCreditPointHistory::query()->update([cn::USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        Exam::query()->Update([cn::EXAM_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        User::query()->Update([cn::USERS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-
-        echo "Successfully Updated.";
-    }
-
 }

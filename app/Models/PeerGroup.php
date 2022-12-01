@@ -14,7 +14,6 @@ use App\Models\ExamGradeClassMappingModel;
 class PeerGroup extends Model
 {
     use SoftDeletes, HasFactory, Sortable;
-    
     protected $table = cn::PEER_GROUP_TABLE_NAME;
 
     protected $fillable = [
@@ -26,8 +25,7 @@ class PeerGroup extends Model
         cn::PEER_GROUP_SUBJECT_ID_COL,
         cn::PEER_GROUP_STATUS_COL,
         cn::PEER_GROUP_CREATED_TYPE_COL,
-        cn::PEER_GROUP_AUTO_GROUP_BY_COL,
-        cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL
+        cn::PEER_GROUP_AUTO_GROUP_BY_COL
     ];
 
     public $sortable = [

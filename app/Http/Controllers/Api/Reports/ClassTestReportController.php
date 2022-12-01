@@ -65,8 +65,6 @@ class ClassTestReportController extends Controller
                             $students[$studentKey]['countStudent'] = (++$studentCount);
                             $students[$studentKey]['total_correct_answer'] = $AttemptExamData->total_correct_answers;
                             $students[$studentKey]['exam_status'] = (($AttemptExamData->status) && $AttemptExamData->status == 1) ? 'Complete' : 'Pending';
-
-                            
                             if(!empty($ExamData->question_ids)){
                                 $questionIds = explode(',',$ExamData->question_ids);
                                 $QuestionList = Question::with('answers')->whereIn('id',$questionIds)->get();
@@ -74,7 +72,6 @@ class ClassTestReportController extends Controller
                                     $totalQuestions = count($QuestionList);
                                     $students[$studentKey]['countQuestions'] = count($QuestionList);
                                     foreach($QuestionList as $questionKey => $question){
-                                        $countanswer = [];
                                         if(isset($question)){
                                             if(isset($AttemptExamData['question_answers'])){
                                                 $filterattempQuestionAnswer = array_filter(json_decode($AttemptExamData['question_answers']), function ($var) use($question){
@@ -127,7 +124,7 @@ class ClassTestReportController extends Controller
             $ResultList['skills'] = $QuestionSkills;
 
             return $this->sendResponse($ResultList);
-        }catch (\Exception $ex) {
+        }catch (Exception $ex) {
             return $this->sendError($ex->getMessage(), 404);
         }
     }
@@ -331,9 +328,6 @@ class ClassTestReportController extends Controller
         return $levelName;
     }
 
-
-
-
     public function ClassDifficultyDetection(Request $request){
         $SchoolReports = [];
         $Reports = [];
@@ -383,8 +377,6 @@ class ClassTestReportController extends Controller
         }
         return $this->sendResponse($Reports);
     }
-
-
 
     public function GetReportData($examIds, $schoolid, $testSetName){
         $ResultList = [];
@@ -471,8 +463,6 @@ class ClassTestReportController extends Controller
                         'QuestionNo' => $Question->{cn::QUESTION_TABLE_ID_COL},
                         'DifficultyLevel' => $this->getDifficultyName($Question->{cn::QUESTION_DIFFICULTY_LEVEL_COL})
                     ];
-                    // $QuestionDifficulties[$Question->{cn::QUESTION_TABLE_ID_COL}]['QuestionNo'] = $Question->{cn::QUESTION_TABLE_ID_COL};
-                    // $QuestionDifficulties[$Question->{cn::QUESTION_TABLE_ID_COL}]['DifficultyLevel'] = $this->getDifficultyName($Question->{cn::QUESTION_DIFFICULTY_LEVEL_COL});
                 }
             }
             $ResultList['NoOfAnswerDetail'] = $QuestionsAnswerDetails ?? [];
@@ -782,7 +772,7 @@ class ClassTestReportController extends Controller
                         $attemptedStudents[$studentKey]['student_selected_answers'] = $newArrayStudentAnserDetail;
                     }
                 }
-                // Store Sttemptedstudents all data
+                // Store Attempted Students all data
                 $ResultList['attemptedStudents'] = isset($attemptedStudents) ? array_values($attemptedStudents) : [];
             }
         }

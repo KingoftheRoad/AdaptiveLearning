@@ -42,14 +42,11 @@ use App\Models\ExamSchoolMapping;
 use App\Models\PeerGroupMember;
 use App\Models\PeerGroup;
 use App\Models\AttemptExamStudentMapping;
-use App\Models\CurriculumYear;
-use App\Models\CurriculumYearStudentMappings;
 
 class ExamController extends Controller
 {
     // Load Common Traits
     use Common, ResponseFormat;
-
     protected $AIApiService, $CronJobController, $TeacherGradesClassService, $ExamGradeClassMappingModel, $StudentService;
 
     public function __construct(){
@@ -88,35 +85,35 @@ class ExamController extends Controller
     /**
      * USE : Delete multiple exams
      */
-    // public function deleteMultipleExams(Request $request){
-    //     try{
-    //         $AttemptExams = AttemptExams::whereIn(cn::ATTEMPT_EXAMS_EXAM_ID,$request->examIds)->get();
-    //         if(isset($AttemptExams) && !$AttemptExams->isEmpty()){
-    //             $this->StoreAuditLogFunction('','AttemptExams','','','Delete Attempt Exams ID '.implode(',',array_unique($request->examIds)),cn::ATTEMPT_EXAMS_TABLE_NAME,'');
-    //             $DeleteAttemptExams = AttemptExams::whereIn(cn::ATTEMPT_EXAMS_EXAM_ID,$request->examIds)->delete();
-    //             if($DeleteAttemptExams){
-    //                 $DeleteExams = Exam::whereIn(cn::EXAM_TABLE_ID_COLS,$request->examIds)->delete();
-    //                 if($DeleteExams){
-    //                     return $this->sendResponse([], __('languages.exam_deleted_successfully'));
-    //                 }else{
-    //                     return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
-    //                 }
-    //             }else{
-    //                 return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
-    //             }
-    //         }else{
-    //             $this->StoreAuditLogFunction('','','','','Delete Exam ID '.implode(',',array_unique($request->examIds)),cn::EXAM_TABLE_NAME,'');
-    //             $DeleteExams = Exam::whereIn(cn::EXAM_TABLE_ID_COLS,$request->examIds)->delete();
-    //             if($DeleteExams){
-    //                 return $this->sendResponse([], __('languages.exam_deleted_successfully'));
-    //             }else{
-    //                 return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
-    //             }
-    //         }
-    //     }catch(Exception $exception) {
-    //         return $this->sendError($exception->getMessage(), 404);
-    //     }
-    // }
+    public function deleteMultipleExams(Request $request){
+        try{
+            $AttemptExams = AttemptExams::whereIn(cn::ATTEMPT_EXAMS_EXAM_ID,$request->examIds)->get();
+            if(isset($AttemptExams) && !$AttemptExams->isEmpty()){
+                $this->StoreAuditLogFunction('','AttemptExams','','','Delete Attempt Exams ID '.implode(',',array_unique($request->examIds)),cn::ATTEMPT_EXAMS_TABLE_NAME,'');
+                $DeleteAttemptExams = AttemptExams::whereIn(cn::ATTEMPT_EXAMS_EXAM_ID,$request->examIds)->delete();
+                if($DeleteAttemptExams){
+                    $DeleteExams = Exam::whereIn(cn::EXAM_TABLE_ID_COLS,$request->examIds)->delete();
+                    if($DeleteExams){
+                        return $this->sendResponse([], __('languages.exam_deleted_successfully'));
+                    }else{
+                        return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
+                    }
+                }else{
+                    return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
+                }
+            }else{
+                $this->StoreAuditLogFunction('','','','','Delete Exam ID '.implode(',',array_unique($request->examIds)),cn::EXAM_TABLE_NAME,'');
+                $DeleteExams = Exam::whereIn(cn::EXAM_TABLE_ID_COLS,$request->examIds)->delete();
+                if($DeleteExams){
+                    return $this->sendResponse([], __('languages.exam_deleted_successfully'));
+                }else{
+                    return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
+                }
+            }
+        }catch(Exception $exception) {
+            return $this->sendError($exception->getMessage(), 404);
+        }
+    }
 
     /**
      * USE : Get the all assigned exams list for students
@@ -128,21 +125,22 @@ class ExamController extends Controller
             $roleId = Auth::user()->{cn::USERS_ROLE_ID_COL};
             $ExamList = array();
             $active_tab = "";
-            $difficultyLevels = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get();
+            $difficultyLevels = PreConfigurationDiffiltyLevel::all();
             if(isset($request->active_tab) && !empty($request->active_tab)){
                 $active_tab = $request->active_tab;
             }
             $data = array();
+
             // Get Student assigned exam ids
             $GetStudentAssignedExamsIds = [];
             $GetStudentAssignedExamsIds = $this->StudentService->GetStudentAssignedExamsIds(Auth::user()->{cn::USERS_ID_COL});
+            
             // Get Exercise Exams List
             $data['exerciseExam'] = Exam::with(['attempt_exams' => fn($query) => $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, Auth::user()->{cn::USERS_ID_COL})])
                                     ->with(['ExamGradeClassConfigurations' => function($q){
-                                        $q->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,Auth::user()->CurriculumYearGradeId)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,Auth::user()->CurriculumYearClassId)
+                                        $q->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,Auth::user()->school_id)
+                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,Auth::user()->grade_id)
+                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,Auth::user()->class_id)
                                         ->orWhereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$this->getStudentPeerGroupIds());
                                     }])
                                     ->with('examSchoolGradeClass', function($q) use($userId){
@@ -150,19 +148,19 @@ class ExamController extends Controller
                                     })
                                     ->whereRaw("find_in_set($userId,student_ids)")
                                     ->where(cn::EXAM_TYPE_COLS,2)
-                                    ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                     ->where(cn::EXAM_TABLE_IS_GROUP_TEST_COL,0)
                                     ->whereIn(cn::EXAM_TABLE_ID_COLS,$GetStudentAssignedExamsIds)
                                     ->where(cn::EXAM_TABLE_STATUS_COLS,'publish')
                                     ->orderBy(cn::EXAM_TABLE_CREATED_AT,'DESC')
                                     ->get();
                                     
+            
             // Get Test Exams List
             $data['testExam'] = Exam::with(['attempt_exams' => fn($query) => $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, Auth::user()->{cn::USERS_ID_COL})])
                                 ->with(['ExamGradeClassConfigurations' => function($q){
-                                    $q->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
-                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,Auth::user()->CurriculumYearGradeId)
-                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,Auth::user()->CurriculumYearClassId)
+                                    $q->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,Auth::user()->school_id)
+                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,Auth::user()->grade_id)
+                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,Auth::user()->class_id)
                                     ->orWhereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$this->getStudentPeerGroupIds());
                                 }])
                                 ->with('examSchoolGradeClass', function($q) use($userId){
@@ -170,7 +168,6 @@ class ExamController extends Controller
                                 })
                                 ->whereRaw("find_in_set($userId,student_ids)")
                                 ->where(cn::EXAM_TYPE_COLS,3)
-                                ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                 ->where(cn::EXAM_TABLE_IS_GROUP_TEST_COL,0)
                                 ->whereIn(cn::EXAM_TABLE_ID_COLS,$GetStudentAssignedExamsIds)
                                 ->where(cn::EXAM_TABLE_STATUS_COLS,'publish')
@@ -186,18 +183,13 @@ class ExamController extends Controller
      * USE : Store Exam Student Mapping entry while attempting the exams.
      */
     public function CreateExamStudentMapping($examId){
-        if(AttemptExamStudentMapping::where([
-            cn::ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL => $examId,
-            cn::ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL => $this->LoggedUserId()
-        ])->exists()){
+        if(AttemptExamStudentMapping::where([cn::ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL => $examId, cn::ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL => $this->LoggedUserId()])->exists()){
             AttemptExamStudentMapping::where([
-                cn::ATTEMPT_EXAM_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                 cn::ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL => $examId,
                 cn::ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL => $this->LoggedUserId()
             ])->Update([cn::ATTEMPT_EXAM_STUDENT_MAPPING_STATUS_COL => '1']);
         }else{
             AttemptExamStudentMapping::Create([
-                cn::ATTEMPT_EXAM_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                 cn::ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL => $examId,
                 cn::ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL => $this->LoggedUserId(),
                 cn::ATTEMPT_EXAM_STUDENT_MAPPING_STATUS_COL => '1'
@@ -225,11 +217,7 @@ class ExamController extends Controller
                     return redirect('student/exam')->with('error_msg', __('validation.you_are_already_attempt_this_exams'));
                 }
                 
-                if(AttemptExamStudentMapping::where([
-                    cn::ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL => $examId,
-                    cn::ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL => $this->LoggedUserId(),
-                    cn::ATTEMPT_EXAM_STUDENT_MAPPING_STATUS_COL => '1'
-                ])->exists()){
+                if(AttemptExamStudentMapping::where([cn::ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL => $examId, cn::ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL => $this->LoggedUserId(),cn::ATTEMPT_EXAM_STUDENT_MAPPING_STATUS_COL => '1'])->exists()){
                     return redirect('student/exam')->with('error_msg', __("languages.sorry_you_cant_attempt_exam_after_page_refresh"));
                 }
             }
@@ -252,22 +240,16 @@ class ExamController extends Controller
             Exam::find($examId)->update([cn::EXAM_TABLE_IS_TEACHING_REPORT_SYNC =>'true']);
 
             $examDetail = Exam::where(cn::EXAM_TABLE_ID_COLS,$examId)->first();
-            $totalSeconds = Exam::where(cn::EXAM_TABLE_ID_COLS,$examId)
-                            ->where(cn::EXAM_TABLE_IS_UNLIMITED,0)
-                            ->sum(cn::EXAM_TABLE_TIME_DURATIONS_COLS);
+            $totalSeconds = Exam::where(cn::EXAM_TABLE_ID_COLS,$examId)->where(cn::EXAM_TABLE_IS_UNLIMITED,0)->sum(cn::EXAM_TABLE_TIME_DURATIONS_COLS);
             if(empty($totalSeconds)){
                 $totalSeconds = 'unlimited_time';
             }
             if(isset($examDetail) && !empty($examDetail->{cn::EXAM_TABLE_QUESTION_IDS_COL})){
                 $question_ids = explode(',',$examDetail->{cn::EXAM_TABLE_QUESTION_IDS_COL});
-                $questionSize = sizeof($question_ids);
+                $questionSize=sizeof($question_ids);
             }
             
-            $Questions = Question::with('answers')
-                        ->whereIn(cn::QUESTION_TABLE_ID_COL,$question_ids)
-                        ->orderByRaw('FIELD(id,'.$examDetail->question_ids.')')
-                        ->limit(1)
-                        ->get();
+            $Questions = Question::with('answers')->whereIn(cn::QUESTION_TABLE_ID_COL,$question_ids)->orderByRaw('FIELD(id,'.$examDetail->question_ids.')')->limit(1)->get();
             $UploadDocumentsData = array();
             if($examLanguage == 'en'){
                 if(isset($Questions[0]->{cn::QUESTION_GENERAL_HINTS_VIDEO_ID_EN}) && $Questions[0]->{cn::QUESTION_GENERAL_HINTS_VIDEO_ID_EN}!=""){
@@ -324,8 +306,7 @@ class ExamController extends Controller
             $arrayQuestionsIds = '';
             $wrong_ans_position = array();
             $examType = 'single';
-            $allQuestionIds = Exam::where(cn::EXAM_TABLE_ID_COLS,$examId)
-                                ->select(cn::EXAM_TABLE_QUESTION_IDS_COL)->first();
+            $allQuestionIds = Exam::where(cn::EXAM_TABLE_ID_COLS,$examId)->select(cn::EXAM_TABLE_QUESTION_IDS_COL)->first();
             if(!empty($allQuestionIds)){
                 $arrayQuestionsIds = explode(',',$allQuestionIds->question_ids);
             }
@@ -368,9 +349,9 @@ class ExamController extends Controller
             $Questionsdesc = Question::with('answers')->whereIn(cn::QUESTION_TABLE_ID_COL,$question_ids)->orderByRaw('FIELD(id,'.$questionIdsList.')')->get()->toArray();
             $Questionsfirstid = $question_ids[0];
             $Questionslastid = end($question_ids);
-
             if($request->examaction == 'Next'){
-                $NextQuestionKey = array_search($request->currentid, $question_ids);
+                
+                $NextQuestionKey=array_search($request->currentid, $question_ids);
                 if(isset($question_ids[$NextQuestionKey+1])){
                     $Questions = Question::with('answers')->where(cn::QUESTION_TABLE_ID_COL,$question_ids[$NextQuestionKey+1])->limit(1)->get();
                 }
@@ -479,10 +460,7 @@ class ExamController extends Controller
         try{
             $examId = $request->exam_id;
             if(isset($examId)){
-                $checkAlreadyAttemptExams = AttemptExams::where([
-                                                cn::ATTEMPT_EXAMS_EXAM_ID => $examId,
-                                                cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $this->LoggedUserId()
-                                            ])->count();
+                $checkAlreadyAttemptExams = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$this->LoggedUserId())->count();
                 if($checkAlreadyAttemptExams){
                     return redirect('student/exam')->with('error_msg', __('validation.you_are_already_attempt_this_exams'));
                 }
@@ -516,7 +494,7 @@ class ExamController extends Controller
                                 }
                             }
                         }
-                        $questions_ans_data = json_encode($questions_ans_data);
+                        $questions_ans_data=json_encode($questions_ans_data);
                         $request['questions_ans'] = $questions_ans_data;
                     }
 
@@ -571,8 +549,8 @@ class ExamController extends Controller
             $PostData = [
                 cn::ATTEMPT_EXAMS_EXAM_ID => $examId,
                 cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $this->LoggedUserId(),
-                cn::ATTEMPT_EXAMS_STUDENT_GRADE_ID => Auth::user()->CurriculumYearGradeId,
-                cn::ATTEMPT_EXAMS_STUDENT_CLASS_ID => Auth::user()->CurriculumYearClassId,
+                cn::ATTEMPT_EXAMS_STUDENT_GRADE_ID => Auth::user()->grade_id,
+                cn::ATTEMPT_EXAMS_STUDENT_CLASS_ID => Auth::user()->class_id,
                 cn::ATTEMPT_EXAMS_LANGUAGE_COL => $request->language,
                 cn::ATTEMPT_EXAMS_QUESTION_ANSWER_COL => (!empty($request->questions_ans)) ? $request->questions_ans : null,
                 cn::ATTEMPT_EXAMS_WRONG_ANSWER_COL => '',
@@ -599,7 +577,7 @@ class ExamController extends Controller
 
                 if($examDetail->exam_type == 2 || ($examDetail->exam_type == 1 && $examDetail->self_learning_test_type == 1)){
                     /** Update Student Credit Points via cron job */
-                    $this->CronJobController->UpdateStudentCreditPoints($examId, Auth::user()->{cn::USERS_ID_COL});
+                    $this->CronJobController->UpdateStudentCreditPoints($examId, Auth::user()->id);
                 }
                 
                 /** End Update overall ability for the student **/
@@ -640,10 +618,7 @@ class ExamController extends Controller
             $studentList = [];
             $attemptedExamStudentIds = [];
             $items = $request->items ?? 10;
-            $AttemptedChildExams =  Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$id)
-                                    ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
-                                    ->pluck(cn::EXAM_TABLE_ID_COLS)
-                                    ->toArray();
+            $AttemptedChildExams = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$id)->pluck(cn::EXAM_TABLE_ID_COLS)->toArray();
             if($this->isAdmin()){
                 if(!empty($AttemptedChildExams)){
                     $examsData = Exam::with('attempt_exams')->whereIn(cn::EXAM_TABLE_ID_COLS,$AttemptedChildExams)->get();
@@ -668,27 +643,15 @@ class ExamController extends Controller
             }
             $countStudentData = 0;
             if(isset($examsData) && !empty($examsData->{cn::EXAM_TABLE_STUDENT_IDS_COL})){
-                $countStudentData = User::whereIn(cn::USERS_ID_COL,explode(',',$examsData->{cn::EXAM_TABLE_STUDENT_IDS_COL}))
-                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                    ->with('grades')
-                                    ->count();                
+                $countStudentData = User::whereIn(cn::USERS_ID_COL,explode(',',$examsData->{cn::EXAM_TABLE_STUDENT_IDS_COL}))->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->with('grades')->count();
                 if($this->isAdmin()){
-                    $studentList = User::whereIn(cn::USERS_ID_COL,explode(',',$examsData->{cn::EXAM_TABLE_STUDENT_IDS_COL}))
-                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                    ->with('grades')
-                                    ->paginate($items);
+                    $studentList = User::whereIn(cn::USERS_ID_COL,explode(',',$examsData->{cn::EXAM_TABLE_STUDENT_IDS_COL}))->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->with('grades')->paginate($items);
                 }
                 if($this->isTeacherLogin() || $this->isSchoolLogin() || $this->isPrincipalLogin() ){
-                    $studentList = User::whereIn(cn::USERS_ID_COL,explode(',',$examsData->{cn::EXAM_TABLE_STUDENT_IDS_COL}))
-                                    ->where([
-                                        cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
-                                        cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}
-                                    ])
-                                    ->with('grades')
-                                    ->paginate($items);
+                    $studentList = User::whereIn(cn::USERS_ID_COL,explode(',',$examsData->{cn::EXAM_TABLE_STUDENT_IDS_COL}))->where([cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID, cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}])->with('grades')->paginate($items);
                 }
             }
-            $Grades = Grades::all();
+            $Grades = Grades::all();            
             return view('backend/exams/list_attemped_exams_student',compact('studentList','Grades','attemptedExamStudentIds','examsData','countStudentData','items'));
         }catch(Exception $exception){
             return back()->withError($exception->getMessage());
@@ -704,8 +667,7 @@ class ExamController extends Controller
 
             ini_set('max_execution_time', -1);
             $totalQuestionDifficulty = ['Level1' => 0,'Level2' => 0,'Level3' => 0,'Level4' => 0,'Level5' => 0,'correct_Level1' => 0,'correct_Level2' => 0,'correct_Level3' => 0,'correct_Level4' => 0,'correct_Level5' => 0];
-            // $difficultyLevels = PreConfigurationDiffiltyLevel::all();
-            $difficultyLevels = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get();
+            $difficultyLevels = PreConfigurationDiffiltyLevel::all();
             $arrayOfExams = explode(',',$examId);
             // Get the per question speed to attempt student
             $PerQuestionSpeed = Helper::getQuestionPerSpeed($examId, $studentId);
@@ -739,8 +701,7 @@ class ExamController extends Controller
                             if(isset($AttemptExamData) && !empty($AttemptExamData)){
                                 $StudentDetail = User::find($studentIds);
                                 $students[$studentKey]['student_id'] = $StudentDetail->{cn::USERS_ID_COL};
-                                //$students[$studentKey]['student_grade'] = $StudentDetail->{cn::USERS_GRADE_ID_COL} ?? 0;
-                                $students[$studentKey]['student_grade'] = $StudentDetail->CurriculumYearGradeId ?? 0;
+                                $students[$studentKey]['student_grade'] = $StudentDetail->{cn::USERS_GRADE_ID_COL} ?? 0;
                                 $students[$studentKey]['student_number'] = $StudentDetail->{cn::USERS_ID_COL};
                                 $students[$studentKey]['student_name'] = $StudentDetail->{cn::USERS_NAME_EN_COL};
                                 $students[$studentKey]['student_status'] = 'Active';
@@ -803,6 +764,7 @@ class ExamController extends Controller
                                                         }else if($question->dificulaty_level == 5){
                                                             $totalQuestionDifficulty['correct_Level5'] = $totalQuestionDifficulty['correct_Level5'] + 1;
                                                         }
+
                                                     }else{
                                                         $answers_node_id_check = $question->answers->{'answer'.$fanswer->answer.'_node_relation_id_'.$fanswer->language};
                                                         if($answers_node_id_check != ""){
@@ -893,8 +855,7 @@ class ExamController extends Controller
     public function getAjaxExamSingleResult(Request $request, $examId, $studentId = 0){
         try {
             $totalQuestionDifficulty = ['Level1' => 0,'Level2' => 0,'Level3' => 0,'Level4' => 0,'Level5' => 0,'correct_Level1' => 0,'correct_Level2' => 0,'correct_Level3' => 0,'correct_Level4' => 0,'correct_Level5' => 0];
-            // $difficultyLevels = PreConfigurationDiffiltyLevel::all();
-            $difficultyLevels = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get();
+            $difficultyLevels = PreConfigurationDiffiltyLevel::all();
             $arrayOfExams = explode(',',$examId);
             // Get the per question speed to attempt student
             $PerQuestionSpeed = Helper::getQuestionPerSpeed($examId, $studentId);
@@ -926,8 +887,7 @@ class ExamController extends Controller
                         if(isset($AttemptExamData) && !empty($AttemptExamData)){
                             $StudentDetail = User::find($studentIds);
                             $students[$studentKey]['student_id'] = $StudentDetail->{cn::USERS_ID_COL};
-                            //$students[$studentKey]['student_grade'] = $StudentDetail->{cn::USERS_GRADE_ID_COL} ?? 0;
-                            $students[$studentKey]['student_grade'] = $StudentDetail->CurriculumYearGradeId ?? 0;
+                            $students[$studentKey]['student_grade'] = $StudentDetail->{cn::USERS_GRADE_ID_COL} ?? 0;
                             $students[$studentKey]['student_number'] = $StudentDetail->{cn::USERS_ID_COL};
                             $students[$studentKey]['student_name'] = $StudentDetail->{cn::USERS_NAME_EN_COL};
                             $students[$studentKey]['student_status'] = 'Active';
@@ -1076,20 +1036,16 @@ class ExamController extends Controller
     public function getExamResult(Request $request, $examId, $studentId = 0){
         try {
             $totalQuestionDifficulty = ['Level1' => 0,'Level2' => 0,'Level3' => 0,'Level4' => 0,'Level5' => 0,'correct_Level1' => 0,'correct_Level2' => 0,'correct_Level3' => 0,'correct_Level4' => 0,'correct_Level5' => 0];
-            // $difficultyLevels = PreConfigurationDiffiltyLevel::all();
-            $difficultyLevels = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get();
+            $difficultyLevels = PreConfigurationDiffiltyLevel::all();
             $speed = 0;
             $arrayOfExams = explode(',',$examId);
-            $studentId = ($studentId) ? $studentId : Auth::user()->{cn::USERS_ID_COL};
+            $studentId = ($studentId) ? $studentId : Auth::user()->{cn::USERS_ID_COL} ;
             $ExamData = Exam::find($examId);
             $isSelfLearningExam = ($ExamData->{cn::EXAM_TYPE_COLS} == '1') ? true : false;
             $isSelfLearningExercise = ($ExamData->{cn::EXAM_TYPE_COLS} == 1 && $ExamData->{cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL} == 1) ? true : false;
             $isSelfLearningTestingZone = ($ExamData->{cn::EXAM_TYPE_COLS} == 1 && $ExamData->{cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL} == 2) ? true : false;
             if(isset($ExamData)){
-                $Questions = Question::with(['answers','PreConfigurationDifficultyLevel'])
-                            ->whereIn(cn::QUESTION_TABLE_ID_COL,explode(',',$ExamData->{cn::EXAM_TABLE_QUESTION_IDS_COL}))
-                            ->orderByRaw('FIELD(id,'.$ExamData->question_ids.')')
-                            ->get();
+                $Questions = Question::with(['answers','PreConfigurationDifficultyLevel'])->whereIn(cn::QUESTION_TABLE_ID_COL,explode(',',$ExamData->{cn::EXAM_TABLE_QUESTION_IDS_COL}))->orderByRaw('FIELD(id,'.$ExamData->question_ids.')')->get();
                 if(isset($Questions) && !empty($Questions)){
                     foreach($Questions as $QueKey => $QuestionsVal){
                         $difficultValue = [
@@ -1103,13 +1059,14 @@ class ExamController extends Controller
             $ResultList = [];
             $SchoolList = School::all();
             $GradeList = Grades::all();
+            $ExamList = Exam::all();
             $QuestionSkills = [];
             $studentCount = 0;
             $totalQuestions = 0;
             $students = [];
             $answerPercentage = [];
             $CountStudentAnswer = [];
-            $AllWeakness = [];
+            $AllWeakness=[];
             $apiData = [];
             /*****************************/
             if(!empty($ExamData)){
@@ -1119,15 +1076,11 @@ class ExamController extends Controller
                     foreach($studentIds as $studentKey => $studentIds){
                         if(Auth::user()->{cn::USERS_ID_COL} == $studentIds){
                             // Get correct answer detail
-                            $AttemptExamData = AttemptExams::where([
-                                                cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $studentIds,
-                                                cn::ATTEMPT_EXAMS_EXAM_ID => $examId
-                                            ])->first();
+                            $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentIds)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->first();
                             if(isset($AttemptExamData) && !empty($AttemptExamData)){
                                 $StudentDetail = User::find($studentIds);
                                 $students[$studentKey]['student_id'] = $StudentDetail->{cn::USERS_ID_COL};
-                                //$students[$studentKey]['student_grade'] = $StudentDetail->{cn::USERS_GRADE_ID_COL} ?? 0;
-                                $students[$studentKey]['student_grade'] = $StudentDetail->CurriculumYearGradeId;
+                                $students[$studentKey]['student_grade'] = $StudentDetail->{cn::USERS_GRADE_ID_COL} ?? 0;
                                 $students[$studentKey]['student_number'] = $StudentDetail->{cn::USERS_ID_COL};
                                 $students[$studentKey]['student_name'] = $StudentDetail->{cn::USERS_NAME_EN_COL};
                                 $students[$studentKey]['student_status'] = 'Active';
@@ -1142,6 +1095,11 @@ class ExamController extends Controller
                                         $totalQuestions = count($QuestionList);
                                         $students[$studentKey]['countQuestions'] = count($QuestionList);
                                         foreach($QuestionList as $questionKey => $question){
+                                            // $difficultValue = [
+                                            //     'natural_difficulty' => $question->PreConfigurationDifficultyLevel->title ?? '',
+                                            //     'normalized_difficulty' => $this->getNormalizedAbility($question->PreConfigurationDifficultyLevel->title)
+                                            // ];
+                                            // $Questions[$questionKey]['difficultyValue'] = $difficultValue ?? [];
                                             // Get Questions Answers and difficulty level
                                             $responseData = $this->GetQuestionNumOfAnswerAndDifficultyValue($question->id);
                                             $apiData['num_of_ans_list'][] = $responseData['noOfAnswers'];
@@ -1197,6 +1155,7 @@ class ExamController extends Controller
                                                                 $AllWeakness[$answers_node_id_check] = 1;   
                                                             }
                                                         }else{
+                                                            //Manoj Changes
                                                             $arrayOfQuestion = explode('-',$question[cn::QUESTION_QUESTION_CODE_COL]);
                                                             if(count($arrayOfQuestion) == 8){
                                                                 unset($arrayOfQuestion[count($arrayOfQuestion)-1]);
@@ -1236,10 +1195,13 @@ class ExamController extends Controller
             }            
             /**************************/
             $percentageOfAnswer = $this->getPercentageOfSelectedAnswer($examId);
-            $AttemptExamData =  AttemptExams::where([
-                                    cn::ATTEMPT_EXAMS_EXAM_ID => $examId,
-                                    cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $studentId
-                                ])->first();
+            $AttemptExamData = AttemptExams:://whereHas('creditPointHistory')
+                                                // ->withSum(['creditPointHistory' => function ($query) use($examId,$studentId){
+                                                //     $query->where(['user_id' => $studentId ,'exam_id' => $examId]);
+                                                // }], 'no_of_credit_point')
+                                            where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)
+                                            ->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentId)
+                                            ->first();
             $nodeList = Nodes::where(cn::NODES_STATUS_COL,'active')->get();
             $nodeWeaknessList = array();
             $nodeWeaknessListCh = array();
@@ -1262,10 +1224,9 @@ class ExamController extends Controller
      * USE : Get Admin Result for exams
      */
     public function getAdminExamResult(Request $request, $examId, $studentId = 0){ 
-        // try {
+        try {
             $totalQuestionDifficulty = ['Level1' => 0,'Level2' => 0,'Level3' => 0,'Level4' => 0,'Level5' => 0,'correct_Level1' => 0,'correct_Level2' => 0,'correct_Level3' => 0,'correct_Level4' => 0,'correct_Level5' => 0];
-            // $difficultyLevels = PreConfigurationDiffiltyLevel::all();
-            $difficultyLevels = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get();
+            $difficultyLevels = PreConfigurationDiffiltyLevel::all();
             $speed = 0;
             $arrayOfExams = explode(',',$examId);
             $ExamData = Exam::find($examId);
@@ -1306,9 +1267,8 @@ class ExamController extends Controller
                             if(isset($AttemptExamData) && !empty($AttemptExamData)){
                                 $StudentDetail = User::find($studentIds);
                                 $students[$studentKey]['student_id'] = $StudentDetail->{cn::USERS_ID_COL};
-                                //$students[$studentKey]['student_grade'] = $StudentDetail->{cn::USERS_GRADE_ID_COL} ?? 0;
-                                $students[$studentKey]['student_grade'] = $StudentDetail->CurriculumYearGradeId ?? 0;
-                                $students[$studentKey]['student_number'] = $StudentDetail->CurriculumYearData->{cn::USERS_ID_COL} ?? 0;
+                                $students[$studentKey]['student_grade'] = $StudentDetail->{cn::USERS_GRADE_ID_COL} ?? 0;
+                                $students[$studentKey]['student_number'] = $StudentDetail->{cn::USERS_ID_COL};
                                 $students[$studentKey]['student_name'] = $StudentDetail->{cn::USERS_NAME_EN_COL};
                                 $students[$studentKey]['student_status'] = 'Active';
                                 $students[$studentKey]['countStudent'] = (++$studentCount);
@@ -1322,6 +1282,11 @@ class ExamController extends Controller
                                         $totalQuestions = count($QuestionList);
                                         $students[$studentKey]['countQuestions'] = count($QuestionList);
                                         foreach($QuestionList as $questionKey => $question){
+                                            // $difficultValue = [
+                                            //     'natural_difficulty' => $question->PreConfigurationDifficultyLevel->title ?? '',
+                                            //     'normalized_difficulty' => $this->getNormalizedAbility($question->PreConfigurationDifficultyLevel->title)
+                                            // ];
+                                            // $Questions[$questionKey]['difficultyValue'] = $difficultValue ?? [];
                                             // Get Questions Answers and difficulty level
                                             $responseData = $this->GetQuestionNumOfAnswerAndDifficultyValue($question->id);
                                             $apiData['num_of_ans_list'][] = $responseData['noOfAnswers'];
@@ -1416,9 +1381,12 @@ class ExamController extends Controller
             }            
             /**************************/
             $percentageOfAnswer = $this->getPercentageOfSelectedAnswer($examId);
-            $AttemptExamData =  AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)
-                                ->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentId)
-                                ->first();
+            $AttemptExamData = AttemptExams:://whereHas('creditPointHistory')
+                                            // ->withSum(['creditPointHistory' => function ($query) use($examId,$studentId){
+                                            //     $query->where(['user_id' => $studentId ,'exam_id' => $examId]);
+                                            // }], 'no_of_credit_point')
+                                            where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)
+                                            ->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentId)->first();
             $nodeList = Nodes::where(cn::NODES_STATUS_COL,'active')->get();
             $nodeWeaknessList = array();
             $nodeWeaknessListCh = array();
@@ -1432,9 +1400,9 @@ class ExamController extends Controller
                 $questionDifficultyGraph = $this->GetPercentageQuestionDifficultyLevel($totalQuestionDifficulty);
                 return view('backend.exams.admin_exams_result',compact('difficultyLevels','isSelfLearningExam','studentId','nodeWeaknessList','nodeWeaknessListCh','Questions','AttemptExamData','ExamData','percentageOfAnswer','AllWeakness','questionDifficultyGraph'));
             }
-        // } catch (Exception $ex) {
-        //     return back()->withError($ex->getMessage());
-        // }
+        } catch (Exception $ex) {
+            return back()->withError($ex->getMessage());
+        }
     }
 
     /***
@@ -1446,74 +1414,30 @@ class ExamController extends Controller
         if(isset($ExamDetails)){
             if(!$this->isAdmin()){
                 $schoolId = Auth::user()->{cn::USERS_SCHOOL_ID_COL};
-                $studentidlist = User::where([
-                                    cn::USERS_SCHOOL_ID_COL => $schoolId,
-                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
-                                ])
-                                ->pluck(cn::USERS_ID_COL)
-                                ->toArray();
+                $studentidlist = User::where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
             }else{
                 $studentidlist = User::where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
             }
            
             if($this->isTeacherLogin()){
                 $gradeClassId = array();
-                $gradesListId = TeachersClassSubjectAssign::where([
-                                    cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                    cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}
-                                ])
-                                ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)
-                                ->toArray();
-                $gradeClass =   TeachersClassSubjectAssign::where([
-                                    cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                    cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}
-                                ])
-                                ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)
-                                ->toArray();
+                $gradesListId = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)->toArray();
+                $gradeClass = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray();
                 if(isset($gradeClass) && !empty($gradeClass)){
                     $gradeClass = implode(',', $gradeClass);
                     $gradeClassId = explode(',',$gradeClass);
                 }
-                // $studentidlist = User::whereIn(cn::USERS_GRADE_ID_COL,$gradesListId)
-                //                 ->whereIn(cn::USERS_CLASS_ID_COL,$gradeClassId)
-                //                 ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                //                 ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                //                 ->pluck(cn::USERS_ID_COL)
-                //                 ->toArray();
-                $studentidlist = User::where([
-                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
-                                    cn::USERS_SCHOOL_ID_COL => $schoolId
-                                ])
-                                ->get()
-                                ->whereIn('CurriculumYearGradeId',$gradesListId)
-                                ->whereIn('CurriculumYearClassId',$gradeClassId)
-                                ->pluck(cn::USERS_ID_COL)
-                                ->toArray();
+                $studentidlist = User::whereIn(cn::USERS_GRADE_ID_COL,$gradesListId)->whereIn(cn::USERS_CLASS_ID_COL,$gradeClassId)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
                 if(isset($isGroupId) && !empty($isGroupId)){
-                    $studentidlist =    PeerGroupMember::where([
-                                            cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                            cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL => $isGroupId
-                                        ])
-                                        ->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)
-                                        ->unique()
-                                        ->toArray();
+                    $studentidlist =  PeerGroupMember::where('peer_group_id',$isGroupId)->pluck('member_id')->unique()->toArray();
                 }
                 $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentidlist)->get();
             }
-
             $Questions = Question::with('answers')->whereIn(cn::QUESTION_TABLE_ID_COL,explode(',',$ExamDetails->{cn::EXAM_TABLE_QUESTION_IDS_COL}))->get();
             if($this->isStudentLogin()){
-                //$studentClassId = Auth::user()->{cn::USERS_GRADE_ID_COL};
-                $studentGradeId = Auth::user()->CurriculumYearGradeId ?? Auth::user()->{cn::USERS_GRADE_ID_COL};
-                $studentidlist = User::where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                    ->get()
-                                    ->where('CurriculumYearGradeId',$studentGradeId)
-                                    ->pluck(cn::USERS_ID_COL)
-                                    ->toArray();
-                $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)
-                                    ->whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentidlist)
-                                    ->get();
+                $studentCurrectClassId = Auth::user()->{cn::USERS_GRADE_ID_COL};
+                $studentidlist = User::where(cn::USERS_GRADE_ID_COL,$studentCurrectClassId)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
+                $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentidlist)->get();
             }
             $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->whereIntegerInRaw(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentidlist)->get();
             $noOfStudentAttemptExam = count($AttemptExamData) ?? 0;
@@ -1565,20 +1489,9 @@ class ExamController extends Controller
         if(isset($ExamDetails)){
             $Questions = Question::with('answers')->whereIn(cn::QUESTION_TABLE_ID_COL,explode(',',$ExamDetails->{cn::EXAM_TABLE_QUESTION_IDS_COL}))->get();
             $schoolId = Auth::user()->{cn::USERS_SCHOOL_ID_COL};
-            $gradesListId = TeachersClassSubjectAssign::where([
-                                cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}
-                            ])
-                            ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)
-                            ->toArray();
-            $studentidlist = User::where([
-                                cn::USERS_SCHOOL_ID_COL => $schoolId,
-                                cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
-                            ])
-                            ->pluck(cn::USERS_ID_COL)
-                            ->toArray();
-            $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)
-                                ->whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentidlist)->get();
+            $gradesListId = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)->toArray();
+            $studentidlist = User::where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
+            $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentidlist)->get();
             $noOfStudentAttemptExam = count($AttemptExamData) ?? 0;
             if(!empty($Questions)){
                 foreach($Questions as $queKey => $question){
@@ -1636,7 +1549,6 @@ class ExamController extends Controller
                     $data[$question->id][2] = 0;
                     $data[$question->id][3] = 0;
                     $data[$question->id][4] = 0;
-
                     if(!empty($question->answers)){
                         for($i=1; $i <= 4; $i++){
                             if(!empty($AttemptExamData)){
@@ -1644,7 +1556,7 @@ class ExamController extends Controller
                                     if(isset($attemptValue[cn::ATTEMPT_EXAMS_QUESTION_ANSWER_COL]) && !empty($attemptValue[cn::ATTEMPT_EXAMS_QUESTION_ANSWER_COL])){
                                         foreach(json_decode($attemptValue[cn::ATTEMPT_EXAMS_QUESTION_ANSWER_COL]) as $answersData){
                                             if(($answersData->question_id == (int)$question->{cn::QUESTION_TABLE_ID_COL}) && ((int)$answersData->answer == $i)){
-                                                $data[$question->{cn::QUESTION_TABLE_ID_COL}][$answersData->answer] = ($data[$question->{cn::QUESTION_TABLE_ID_COL}][$answersData->answer] + 1);                                                
+                                                $data[$question->{cn::QUESTION_TABLE_ID_COL}][$answersData->answer] = ($data[$question->{cn::QUESTION_TABLE_ID_COL}][$answersData->answer] + 1);
                                             }
                                         }
                                     }
@@ -1655,8 +1567,6 @@ class ExamController extends Controller
                 }
             }
         }
-
-        //echo '<pre>';print_r($data);die;
         $percentage = [];
         if(!empty($data)){
             foreach($data as $quesKey => $questionArray){
@@ -1693,18 +1603,38 @@ class ExamController extends Controller
 
     public function getStudentQuestionsByDifficultyAndSpeed($exam_id){
         $studentId = Auth::user()->{cn::USERS_ID_COL};
-        $exam = Exam::with('attempt_exams')
-                ->where(cn::EXAM_TABLE_ID_COLS,$exam_id)
-                ->whereRaw("find_in_set($studentId,student_ids)")
-                ->get()
-                ->toArray();
-        $question_ids = $exam[0]['question_ids'];
-        $exam_taking_timing = $exam[0]['attempt_exams'][0]['exam_taking_timing'];
-        $exam_taking_timing_second = $this->timeToSecond($exam_taking_timing);
-        if($question_ids != ""){
-            $question_ids_size = sizeof(explode(',',$question_ids));
+        $ExamsIds = explode(',',$exam_id);
+        if(count($ExamsIds) == 1){
+            $exam = Exam::with('attempt_exams')
+                    ->where(cn::EXAM_TABLE_ID_COLS,$exam_id)
+                    ->whereRaw("find_in_set($studentId,student_ids)")
+                    ->get()
+                    ->toArray();
+            $question_ids = $exam[0]['question_ids'];
+            $exam_taking_timing = $exam[0]['attempt_exams'][0]['exam_taking_timing'];
+            $exam_taking_timing_second = $this->timeToSecond($exam_taking_timing);
+            if($question_ids != ""){
+                $question_ids_size = sizeof(explode(',',$question_ids));
+            }
+            $per_question_time = round($exam_taking_timing_second / $question_ids_size,2);
+        }else{
+            $exam_taking_timing_second = 0;
+            $question_ids_size = 0;
+            foreach($ExamsIds as $exams){
+                $exam = Exam::with('attempt_exams')
+                            ->where(cn::EXAM_TABLE_ID_COLS,$exams)
+                            ->whereRaw("find_in_set($studentId,student_ids)")
+                            ->get()
+                            ->toArray();
+                $question_ids = $exam[0]['question_ids'];
+                $exam_taking_timing = $exam[0]['attempt_exams'][0]['exam_taking_timing'];
+                $exam_taking_timing_second = $this->timeToSecond($exam_taking_timing);
+                if($question_ids != ""){
+                    $question_ids_size = ($question_ids_size + sizeof(explode(',',$question_ids)));
+                }
+            }
+            $per_question_time = round($exam_taking_timing_second / $question_ids_size,2);
         }
-        $per_question_time = round($exam_taking_timing_second / $question_ids_size,2);
         $progressQuestions = \App\Helpers\Helper::getQuestionDifficultiesLevelPercent($exam_id,$studentId);
         $result['html'] = (string)View::make('backend.student.student_graph',compact('progressQuestions','per_question_time'));
         return $this->sendResponse($result, '');
@@ -1776,8 +1706,9 @@ class ExamController extends Controller
 
     public function updateSchoolAssingStatus(Request $request){
         $updateSchoolAssignStatus = '';
-        $examData = Exam::find($request->examid);
-        if($examData->use_of_mode == 2){
+         $examData= Exam::find($request->examid);
+         
+         if($examData->use_of_mode == 2){
             $updateRecord = Exam::where(cn::EXAM_TABLE_ID_COLS,$request->examid)->update([cn::EXAM_TABLE_ASSIGN_SCHOOL_STATUS => $request->status]);
             if($updateRecord){
                 $updateSchoolAssignStatus = Exam::Where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$request->examid)->update([cn::EXAM_TABLE_ASSIGN_SCHOOL_STATUS => $request->status]);

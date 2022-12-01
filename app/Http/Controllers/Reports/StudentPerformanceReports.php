@@ -68,8 +68,8 @@ class StudentPerformanceReports extends Controller
         }
         //$ExamDetails = Exam::find($examId);
         if(isset($ExamDetails)){
-            $Questions = Question::with('answers')->whereIn(cn::QUESTION_TABLE_ID_COL,explode(',',$ExamDetails->question_ids))->get();
-            $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->get();
+            $Questions = Question::with('answers')->whereIn('id',explode(',',$ExamDetails->question_ids))->get();
+            $AttemptExamData = AttemptExams::where('exam_id',$examId)->get();
             $noOfStudentAttemptExam = count($AttemptExamData) ?? 0;
             if(!empty($Questions)){
                 foreach($Questions as $queKey => $question){

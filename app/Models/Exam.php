@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Constants\DbConstant as cn;
 use App\Models\AttemptExams;
 use App\Models\ExamSchoolMapping;
-use App\Models\CurriculumYear;
 use App\Models\User;
 use Kyslik\ColumnSortable\Sortable;
 
@@ -18,7 +17,6 @@ class Exam extends Model
     protected $table = cn::EXAM_TABLE_NAME;
 
     public $fillable = [
-        cn::EXAM_CURRICULUM_YEAR_ID_COL,
        cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,
        cn::EXAM_TABLE_USE_OF_MODE_COLS,
        cn::EXAM_TYPE_COLS,
@@ -63,7 +61,6 @@ class Exam extends Model
 
     // Enable sortable columns name
     public $sortable = [
-        cn::EXAM_CURRICULUM_YEAR_ID_COL,
         cn::EXAM_TYPE_COLS,
         cn::EXAM_REFERENCE_NO_COL,
         cn::EXAM_TABLE_TITLE_COLS,
@@ -162,18 +159,6 @@ class Exam extends Model
         }
         return $messages;
     }
-    
-    //Get Current Curriculum Year name
-    public function getCurrentCurriculumYear($CurriculumYear = null){
-        $CurrentCurriculumYear = '';
-        if(!empty($CurriculumYear)){
-            $CurriculumData = CurriculumYear::find($CurriculumYear);
-            if(isset($CurriculumData) && !empty($CurriculumData)){
-                $CurrentCurriculumYear = $CurriculumData->year;
-            }
-        }
-        return $CurrentCurriculumYear;
-    }
 
     public function attempt_exams(){
         return $this->hasMany(AttemptExams::class,cn::ATTEMPT_EXAMS_EXAM_ID, cn::EXAM_TABLE_ID_COLS);
@@ -188,7 +173,7 @@ class Exam extends Model
     }
 
     public function ExamSchoolMapping(){
-        return $this->hasMany(ExamSchoolMapping::class,cn::EXAM_SCHOOL_MAPPING_EXAM_ID_COL,cn::EXAM_SCHOOL_MAPPING_ID_COL);
+        return $this->hasMany(ExamSchoolMapping::class,'exam_id','id');
     }
 
     public function ExamGradeClassConfigurations(){
@@ -196,6 +181,6 @@ class Exam extends Model
     }
 
     public function examCreditPointRules(){
-        return $this->hasMany(ExamCreditPointRulesMapping::class,cn::EXAM_CREDIT_POINT_RULES_MAPPING_EXAM_ID_COL,cn::EXAM_TABLE_ID_COLS);
+        return $this->hasMany(ExamCreditPointRulesMapping::class,'exam_id','id');
     }
 }

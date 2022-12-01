@@ -16,7 +16,6 @@ use App\Models\ClassPromotionHistory;
 use App\Models\GradeClassMapping;
 use App\Models\GradeSchoolMappings;
 use App\Models\CurriculumYearStudentMappings;
-use App\Models\RemainderUpdateSchoolYearData;
 use Carbon\Carbon;
 
 class ImportController extends Controller
@@ -93,6 +92,8 @@ class ImportController extends Controller
 
                         $PostRefrenceNumbers = array_column($importData_arr,'4');
 
+                        //echo '<pre>';print_r($importData_arr);die;
+
                         if(isset($importData_arr) && !empty($importData_arr)){
                             // Insert to MySQL database
                             foreach($importData_arr as $importData){
@@ -101,20 +102,15 @@ class ImportController extends Controller
                                     // Check grade is already available or not
                                     $Grade = Grades::where(cn::GRADES_NAME_COL,$importData[5])->first();
                                     if(isset($Grade) && !empty($Grade)){
-                                        $GradeClassMapping = GradeSchoolMappings::where([
-                                                                cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
-                                                                cn::GRADES_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                                                                cn::GRADES_MAPPING_GRADE_ID_COL => $Grade->id
-                                                            ])->first();
+                                        $GradeClassMapping = GradeSchoolMappings::where(cn::GRADES_MAPPING_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::GRADES_MAPPING_GRADE_ID_COL,$Grade->id)->first();
                                         if(isset($GradeClassMapping) && !empty($GradeClassMapping)){
                                             $gradeId = $Grade->id;
                                         }else{
-                                            $GradeSchoolMappings =  GradeSchoolMappings::create([
-                                                                        cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
-                                                                        cn::GRADES_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                                                                        cn::GRADES_MAPPING_GRADE_ID_COL  => $Grade->id,
-                                                                        cn::GRADES_MAPPING_STATUS_COL    => 'active'
-                                                                    ]);
+                                            $GradeSchoolMappings = GradeSchoolMappings::create([
+                                                'school_id' => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                                'grade_id'  => $Grade->id,
+                                                'status'    => 'active'
+                                            ]);
                                             if($GradeSchoolMappings){
                                                 $gradeId = $Grade->id;
                                             }
@@ -122,18 +118,17 @@ class ImportController extends Controller
                                     }else{
                                         // If in the syaytem grade is not available then create new grade first
                                         $Grade = Grades::create([
-                                                    cn::GRADES_NAME_COL => $importData[5],
-                                                    cn::GRADES_CODE_COL => $importData[5],
-                                                    cn::GRADES_STATUS_COL => 1
-                                                ]);
+                                            'name' => $importData[5],
+                                            'code' => $importData[5],
+                                            'status' => 1
+                                        ]);
                                         if($Grade){
                                             // Create grade and school mapping
-                                            $GradeSchoolMappings =  GradeSchoolMappings::create([
-                                                                        cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
-                                                                        cn::GRADES_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                                                                        cn::GRADES_MAPPING_GRADE_ID_COL  => $Grade->id,
-                                                                        cn::GRADES_MAPPING_STATUS_COL    => 'active'
-                                                                    ]);
+                                            $GradeSchoolMappings = GradeSchoolMappings::create([
+                                                'school_id' => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                                'grade_id'  => $Grade->id,
+                                                'status'    => 'active'
+                                            ]);
                                             if($GradeSchoolMappings){
                                                 $gradeId = $Grade->id;
                                             }
@@ -141,27 +136,19 @@ class ImportController extends Controller
                                     }
 
                                     // Check class is already available in this school
-                                    $ClassData = GradeClassMapping::where([
-                                                    cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => Auth::user()->school_id,
-                                                    cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $gradeId,
-                                                    cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
-                                                    cn::GRADE_CLASS_MAPPING_NAME_COL => strtoupper($importData[6])
-                                                ])->first();
+                                    $ClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$this->isSchoolLogin())->where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$gradeId)->where(cn::GRADE_CLASS_MAPPING_NAME_COL,strtoupper($importData[6]))->first();
                                     if(isset($ClassData) && !empty($ClassData)){
                                         $classId = $ClassData->id;
-                                        $className = $ClassData->name;
                                     }else{
                                         // If the class is not available into this school then create new class
-                                        $ClassData =    GradeClassMapping::create([
-                                                            cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
-                                                            cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                                                            cn::GRADE_CLASS_MAPPING_GRADE_ID_COL  => $gradeId,
-                                                            cn::GRADE_CLASS_MAPPING_NAME_COL      => strtoupper($importData[6]),
-                                                            cn::GRADE_CLASS_MAPPING_STATUS_COL    => 'active'
-                                                        ]);
+                                        $ClassData = GradeClassMapping::create([
+                                            'school_id' => $this->isSchoolLogin(),
+                                            'grade_id'  => $gradeId,
+                                            'name'      => $importData[6],
+                                            'status'    => 'active'
+                                        ]);
                                         if($ClassData){
                                             $classId = $ClassData->id;
-                                            $className = $ClassData->name;
                                         }
                                     }
                                 }
@@ -177,10 +164,7 @@ class ImportController extends Controller
                                 }
 
                                 // check user is already exists or not
-                                $checkUserExists =  User::where([
-                                                        cn::USERS_EMAIL_COL => $importData[0],
-                                                        cn::USERS_SCHOOL_ID_COL => Auth()->user()->school_id,
-                                                    ])->first();
+                                $checkUserExists = User::where([cn::USERS_EMAIL_COL => $importData[0],cn::USERS_SCHOOL_ID_COL => Auth()->user()->school_id])->first();
                                 if(!empty($checkUserExists)){                                
                                     // Store variable into student current grade-id
                                     $StudentCurrentGradeId = $checkUserExists->grade_id;
@@ -208,10 +192,7 @@ class ImportController extends Controller
                                     if(CurriculumYearStudentMappings::where([
                                         cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
                                         cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
-                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                                        cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
-                                        cn::CURRICULUM_YEAR_STUDENT_CLASS => $Grade->name.''.$ClassData->name,
-                                        cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => $Grade->name.$ClassData->name.$studentNumberWithInClass
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}
                                     ])->exists()
                                     ){
                                         // Update existing record
@@ -230,10 +211,7 @@ class ImportController extends Controller
                                             cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
                                             cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
                                             cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $gradeId,
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId,
-                                            cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
-                                            cn::CURRICULUM_YEAR_STUDENT_CLASS => $Grade->name.''.$ClassData->name,
-                                            cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => $Grade->name.$ClassData->name.$studentNumberWithInClass
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId
                                         ]);
                                     }
 
@@ -305,21 +283,8 @@ class ImportController extends Controller
                                 }
                             }
                         }
+
                         $this->StoreAuditLogFunction('','User','','','Student Imported successfully. file name '.$filepath,cn::USERS_TABLE_NAME,'');
-
-                        // After Upgrade new student reminder table update for the school
-                        RemainderUpdateSchoolYearData::where([
-                            cn::REMAINDER_UPDATE_SCHOOL_YEAR_DATA_CURRICULUM_YEAR_ID_COL => $this->GetNextCurriculumYearId(),
-                            cn::REMAINDER_UPDATE_SCHOOL_YEAR_DATA_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                            cn::REMAINDER_UPDATE_SCHOOL_YEAR_DATA_STATUS_COL => 'pending'
-                        ])->Update([
-                            cn::REMAINDER_UPDATE_SCHOOL_YEAR_DATA_CURRICULUM_YEAR_ID_COL => $this->GetNextCurriculumYearId(),
-                            cn::REMAINDER_UPDATE_SCHOOL_YEAR_DATA_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                            cn::REMAINDER_UPDATE_SCHOOL_YEAR_DATA_IMPORTED_DATE_COL => $this->CurrentDate(),
-                            cn::REMAINDER_UPDATE_SCHOOL_YEAR_DATA_UPLOADED_BY_COL => Auth::user()->{cn::USERS_ID_COL},
-                            cn::REMAINDER_UPDATE_SCHOOL_YEAR_DATA_STATUS_COL => 'complete'
-                        ]);
-
                         return redirect('Student')->with('success_msg', __('languages.student_upgraded_successfully'));
                     }
                 }

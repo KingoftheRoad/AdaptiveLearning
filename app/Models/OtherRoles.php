@@ -15,7 +15,6 @@ class OtherRoles extends Model
     public $fillable = [
         cn::OTHER_ROLE_ID_COL,
         cn::OTHER_ROLE_NAME_COL,
-        cn::OTHER_ROLE_ACTIVE_STATUS_COL
      ];
      public $timestamps = true;
 

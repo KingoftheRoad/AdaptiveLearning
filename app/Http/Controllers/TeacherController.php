@@ -53,14 +53,14 @@ class TeacherController extends Controller
                 ['id' => 'female',"name" => 'Female'],
                 ['id' => 'other',"name" => 'Other']
             );
-            $UsersList = User::where([cn::USERS_SCHOOL_ID_COL => auth()->user()->school_id,cn::USERS_ROLE_ID_COL => cn::TEACHER_ROLE_ID])->sortable()->orderBy(cn::USERS_ID_COL,'DESC')->paginate($items);
+            $UsersList = User::where(cn::USERS_SCHOOL_ID_COL,'=',auth()->user()->school_id)->where(cn::USERS_ROLE_ID_COL,'=',2)->sortable()->orderBy(cn::USERS_ID_COL,'DESC')->paginate($items);
             if(isset($request->filter)){
                 $Query = User::select('*');
-                $Query->where([cn::USERS_SCHOOL_ID_COL=>auth()->user()->school_id,cn::USERS_ROLE_ID_COL=>cn::TEACHER_ROLE_ID]);
+                $Query->where([cn::USERS_SCHOOL_ID_COL=>auth()->user()->school_id,cn::USERS_ROLE_ID_COL=>2]);
                 
                 //search by teachername
                 if(isset($request->teachername) && !empty($request->teachername)){
-                    $Query->where(cn::USERS_NAME_COL,'like','%'.$this->encrypt($request->teachername).'%');
+                    $Query->where(cn::USERS_NAME_COL,'like','%'.$request->teachername.'%');
                 }
                 //search by email
                 if(isset($request->email) && !empty($request->email)){
@@ -103,7 +103,7 @@ class TeacherController extends Controller
             if ($validator->fails()) {
                 return back()->withErrors($validator)->withInput();
             }
-            $addNewTeacher = array(
+            $school_add_in_user_table = array(
                 cn::USERS_ROLE_ID_COL       => cn::TEACHER_ROLE_ID,
                 cn::USERS_SCHOOL_ID_COL     => $request->school,
                 cn::USERS_NAME_EN_COL       => $this->encrypt($request->name_en),
@@ -117,8 +117,8 @@ class TeacherController extends Controller
                 cn::USERS_PASSWORD_COL      => Hash::make($request->password),
                 cn::USERS_STATUS_COL        => $request->status
             );
-            $this->StoreAuditLogFunction($addNewTeacher,'User','','','Create Teacher',cn::USERS_TABLE_NAME,'');
-            $Users = User::create($addNewTeacher);
+            $this->StoreAuditLogFunction($school_add_in_user_table,'User','','','Create Teacher',cn::USERS_TABLE_NAME,'');
+            $Users = User::create($school_add_in_user_table);
             if($Users){
                 return redirect('teacher')->with('success_msg', __('languages.teacher_added_successfully'));
             }else{
@@ -219,11 +219,7 @@ class TeacherController extends Controller
             $gradesListIdArr = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)->toArray();
             $difficultyLevels = PreConfigurationDiffiltyLevel::all();
 
-            // $studentidlist = User::whereIn(cn::USERS_GRADE_ID_COL,$gradesListIdArr)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
-            $studentidlist = User::whereIn(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($gradesListIdArr,'',$schoolId))
-                                    ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                    ->pluck(cn::USERS_ID_COL)->toArray();
+            $studentidlist = User::whereIn(cn::USERS_GRADE_ID_COL,$gradesListIdArr)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
             foreach($gradesListId as $grades_key => $grades_value) {
                 $GradeClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$grades_key)
                                     ->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
@@ -231,13 +227,9 @@ class TeacherController extends Controller
                                     ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
                                     ->toArray();
                 foreach ($GradeClassData as $class_key => $class_value) {
-                    // $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_key)
-                    //             ->where(cn::USERS_CLASS_ID_COL,$class_key)
-                    //             ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                    //             ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                    //             ->pluck(cn::USERS_ID_COL)
-                    //             ->toArray();
-                    $sexam = User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($grades_key,$class_key,$schoolId))
+                    $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_key)
+                                ->where(cn::USERS_CLASS_ID_COL,$class_key)
+                                ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
                                 ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
                                 ->pluck(cn::USERS_ID_COL)
                                 ->toArray();
@@ -271,11 +263,7 @@ class TeacherController extends Controller
                         ->get()->toArray();
                     if(!empty($GradeClassListDataArr)){
                         foreach($GradeClassListDataArr as $class){
-                            // $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_value)->where(cn::USERS_CLASS_ID_COL,$class[cn::GRADE_CLASS_MAPPING_ID_COL])->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
-                            $sexam = User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($grades_value,$class[cn::GRADE_CLASS_MAPPING_ID_COL],$schoolId))
-                                            ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                            ->pluck(cn::USERS_ID_COL)->toArray();
-                            
+                            $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_value)->where(cn::USERS_CLASS_ID_COL,$class[cn::GRADE_CLASS_MAPPING_ID_COL])->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
                             if(isset($sexam) && !empty($sexam)){
                                 $grades_class_value = $grades_value.'-'.$class[cn::GRADE_CLASS_MAPPING_NAME_COL];
                                 $ExamStrandList[$grades_class_value] = $sexam;
@@ -293,11 +281,7 @@ class TeacherController extends Controller
                     $class_type_id = $request->class_type_id;
                     foreach ($class_type_id as $class_key => $class_value) {
                         $GradeClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$grades_value)->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)->where(cn::GRADE_CLASS_MAPPING_ID_COL,$class_value)->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)->toArray();
-                        // $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_value)->where(cn::USERS_CLASS_ID_COL,$class_value)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
-                        $sexam = User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($grades_key,$class_key,$schoolId))
-                                        ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                        ->pluck(cn::USERS_ID_COL)
-                                        ->toArray();
+                        $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_value)->where(cn::USERS_CLASS_ID_COL,$class_value)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
                         if(isset($sexam) && !empty($sexam)){
                             if(isset($GradeClassData[$class_value])){
                                 $grades_class_value = $grades_value.'-'.$GradeClassData[$class_value];
@@ -379,20 +363,11 @@ class TeacherController extends Controller
             $gradesListIdArr = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)->toArray();
             $difficultyLevels = PreConfigurationDiffiltyLevel::all();
 
-            // $studentidlist = User::whereIn(cn::USERS_GRADE_ID_COL,$gradesListIdArr)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
-            $studentidlist = User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($gradesListIdArr,'',$schoolId))
-                                    ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                    ->pluck(cn::USERS_ID_COL)
-                                    ->toArray();
+            $studentidlist = User::whereIn(cn::USERS_GRADE_ID_COL,$gradesListIdArr)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
             foreach ($gradesListId as $grades_key => $grades_value) {
                 $GradeClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$grades_key)->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,explode(',', $grades_value))->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)->toArray();
                 foreach ($GradeClassData as $class_key => $class_value) {
-                    // $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_key)->where(cn::USERS_CLASS_ID_COL,$class_key)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
-                    $sexam = User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($grades_key,$class_key,$schoolId))
-                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                    ->pluck(cn::USERS_ID_COL)
-                                    ->toArray();
+                    $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_key)->where(cn::USERS_CLASS_ID_COL,$class_key)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
                     if(isset($sexam) && !empty($sexam)){
                        $grades_class_value = $grades_key.'-'.$class_value;
                        $ExamStrandList[$grades_class_value] = $sexam;
@@ -422,11 +397,7 @@ class TeacherController extends Controller
                         ->get()->toArray();
                     if(!empty($GradeClassListDataArr)){
                         foreach($GradeClassListDataArr as $class){
-                            // $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_value)->where(cn::USERS_CLASS_ID_COL,$class[cn::GRADE_CLASS_MAPPING_ID_COL])->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
-                            $sexam = User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($grades_value,$class_key,$schoolId))
-                                            ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                            ->pluck(cn::USERS_ID_COL)
-                                            ->toArray();
+                            $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_value)->where(cn::USERS_CLASS_ID_COL,$class[cn::GRADE_CLASS_MAPPING_ID_COL])->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
                             if(isset($sexam) && !empty($sexam)){
                                 $grades_class_value = $grades_value.'-'.$class[cn::GRADE_CLASS_MAPPING_NAME_COL];
                                 $ExamStrandList[$grades_class_value] = $sexam;
@@ -443,11 +414,7 @@ class TeacherController extends Controller
                     $class_type_id = $request->class_type_id;
                     foreach ($class_type_id as $class_key => $class_value) {
                         $GradeClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$grades_value)->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)->where(cn::GRADE_CLASS_MAPPING_ID_COL,$class_value)->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)->toArray();
-                        // $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_value)->where(cn::USERS_CLASS_ID_COL,$class_value)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
-                        $sexam = User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($grades_value,$class_key,$schoolId))                                   
-                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                    ->pluck(cn::USERS_ID_COL)
-                                    ->toArray();
+                        $sexam = User::where(cn::USERS_GRADE_ID_COL,$grades_value)->where(cn::USERS_CLASS_ID_COL,$class_value)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
                         if(isset($sexam) && !empty($sexam)){
                             if(isset($GradeClassData[$class_value])){
                                 $grades_class_value = $grades_value.'-'.$GradeClassData[$class_value];
@@ -610,15 +577,12 @@ class TeacherController extends Controller
                 foreach($studentIds as $studentId){
                     // Get correct answer detail
                     $User = User::find($studentId);
-                    $AttemptExamData =  AttemptExams::where([
-                                            cn::ATTEMPT_EXAMS_EXAM_ID => $request->examid,
-                                            cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $studentId,
-                                        ])->first();
+                    $AttemptExamData = AttemptExams::where('student_id',$studentId)->where('exam_id',$request->examid)->first();
                     if(isset($User) && !empty($User)){
-                        $u_name = $this->decrypt($User->{cn::USERS_NAME_EN_COL});
-                        $classStudentNumber = ($User->CurriculumYearData[cn::USERS_CLASS_STUDENT_NUMBER]) ?? 'N/A';
+                        $u_name = $this->decrypt($User->name_en);
+                        $classStudentNumber = ($User->class_student_number) ?? 'N/A';
                         if(app()->getLocale() == 'ch'){
-                            $u_name = mb_convert_encoding($this->decrypt($User->{cn::USERS_NAME_CH_COL}), 'UTF-8', 'UTF-8');
+                            $u_name = mb_convert_encoding($this->decrypt($User->name_ch), 'UTF-8', 'UTF-8');
                         }
                         if(isset($AttemptExamData) && !empty($AttemptExamData)){
                             $dataTable.='<tr><td>'.$u_name.'</td><td>'.$classStudentNumber.'</td><td>'.$User->email.'</td><td><span class="badge badge-success">Complete</span></td></tr>';

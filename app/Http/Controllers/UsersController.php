@@ -54,7 +54,7 @@ class UsersController extends Controller
                 $Query = User::select('*');
                 //search by school
                 if(isset($request->school_id) && !empty($request->school_id)){
-                    $Query->where(cn::USERS_SCHOOL_ID_COL,$request->school_id);
+                    $Query->where(cn::USERS_SCHOOL_ID_COL,'=',$request->school_id);
                 }
                 //search by Role
                 if(isset($request->Role) && !empty($request->Role)){
@@ -62,8 +62,7 @@ class UsersController extends Controller
                 }
                 //search by grade
                 if(isset($request->grade_id) && !empty($request->grade_id)){
-                    // $Query->where(cn::USERS_GRADE_ID_COL,$request->grade_id);
-                    $Query->where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($request->grade_id,'',''));
+                    $Query->where(cn::USERS_GRADE_ID_COL,'=',$request->grade_id);
                 }
                 //search by username
                 if(isset($request->username) && !empty($request->username)){
@@ -91,10 +90,10 @@ class UsersController extends Controller
             if(!in_array('user_management_create', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
             }
-            $Grades = Grades::where(cn::GRADES_STATUS_COL,1)->get();
-            $Schools = School::where(cn::SCHOOL_SCHOOL_STATUS,'active')->get();
-            $Roles = Role::where(cn::ROLES_STATUS_COL,'active')->get();
-            $SubRoleList = OtherRoles::where(cn::OTHER_ROLE_ACTIVE_STATUS_COL,'active')->get();
+            $Grades = Grades::all();
+            $Schools = School::all();
+            $Roles = Role::get();
+            $SubRoleList = OtherRoles::all();
             return view('backend.UsersManagement.add',compact('Grades','Schools','Roles','SubRoleList'));
         } catch (\Exception $exception) {
             return back()->withError($exception->getMessage())->withInput();
@@ -141,10 +140,10 @@ class UsersController extends Controller
                 return redirect("/");
             }
             $user = User::find($id);
-            $Grades = Grades::where(cn::GRADES_STATUS_COL,1)->get();
-            $Schools = School::where(cn::SCHOOL_SCHOOL_STATUS,'active')->get();
-            $Roles = Role::where(cn::ROLES_STATUS_COL,'active')->get();
-            $SubRoleList = OtherRoles::where(cn::OTHER_ROLE_ACTIVE_STATUS_COL,'active')->get();
+            $Grades = Grades::all();
+            $Schools = School::all();
+            $Roles = Role::get();
+            $SubRoleList = OtherRoles::all();
             $ParentChildMapping = ParentChildMapping::where(cn::PARANT_CHILD_MAPPING_PARENT_ID_COL,$id)->get()->toArray();
             if(!empty($ParentChildMapping)){
                 $ParentChildMapping = array_column($ParentChildMapping,cn::PARANT_CHILD_MAPPING_STUDENT_ID_COL);
@@ -299,26 +298,14 @@ class UsersController extends Controller
                                 if(!empty($importData[5])){
                                     $getGradeID = Grades::where([cn::GRADES_NAME_COL => $importData[5]])->first();
                                     if(isset($getGradeID) && !empty($getGradeID)){
-                                        $gradeData = GradeSchoolMappings::where([
-                                                                                    cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $this->getGlobalConfiguration('current_curriculum_year'),
-                                                                                    cn::GRADES_MAPPING_GRADE_ID_COL=>$getGradeID->id,
-                                                                                    cn::GRADES_MAPPING_SCHOOL_ID_COL => $school->id
-                                                                                ])->first();
+                                        $gradeData = GradeSchoolMappings::where([cn::GRADES_MAPPING_GRADE_ID_COL=>$getGradeID->id,cn::GRADES_MAPPING_SCHOOL_ID_COL => $school->id])->first();
                                         if(!empty($gradeData)){
-                                            $mappingGradeId = $gradeData->grade_id;
+                                            $mappingGradeId = $gradeData->id;
                                         }
                                         else{
                                             //No Grade available.
                                         }
                                     }
-                                }
-                                // Check class is already available in this school
-                                $ClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$school->id)
-                                ->where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$getGradeID->id)
-                                ->where(cn::GRADE_CLASS_MAPPING_NAME_COL,strtoupper($importData[7]))
-                                ->first();
-                                if(isset($ClassData) && !empty($ClassData)){
-                                    $classId = $ClassData->id;
                                 }
                                 
                                 // Check users already exists or not
@@ -334,9 +321,7 @@ class UsersController extends Controller
                                         cn::USERS_SCHOOL_ID_COL => $school->id,
                                         cn::USERS_GRADE_ID_COL => $mappingGradeId,
                                         cn::USERS_STUDENT_NUMBER => ($importData[6]) ? $importData[6] : null,
-                                        cn::USERS_CLASS_ID_COL     => $classId,
-                                        cn::USERS_CLASS         => $mappingGradeId.ucfirst($className),
-                                        cn::USERS_CLASS_STUDENT_NUMBER => ($classStudentNumber) ? $classStudentNumber : null,
+                                        cn::USERS_CLASS_ID_COL     => $className,
                                         cn::USERS_CLASS_CLASS_STUDENT_NUMBER => ($classStudentNumber) ? $classStudentNumber : null,
                                         cn::USERS_STATUS_COL => 'active'
                                     ]);
@@ -369,11 +354,7 @@ class UsersController extends Controller
 
     public function getstudentdata(Request $request){
         if (isset($request->gid) && !empty($request->gid) && isset($request->scid) && !empty($request->scid)) {
-            // $stdata = User::where(cn::USERS_GRADE_ID_COL,'=',$request->gid)->where(cn::USERS_SCHOOL_ID_COL,'=',$request->scid)->where(cn::USERS_ROLE_ID_COL,'=',3)->get()->toArray();
-            $stdata = User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($request->gid,'',$request->scid))
-                        ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                        ->get()->toArray();
-
+            $stdata = User::where(cn::USERS_GRADE_ID_COL,'=',$request->gid)->where(cn::USERS_SCHOOL_ID_COL,'=',$request->scid)->where(cn::USERS_ROLE_ID_COL,'=',3)->get()->toArray();
             return $this->sendResponse($stdata);
         }
         return $this->sendResponse([], __('languages.no_student_available'));
@@ -381,10 +362,7 @@ class UsersController extends Controller
 
     public function getStudentList(Request $request){
         if (isset($request->gid) && !empty($request->gid) && isset($request->scid) && !empty($request->scid)) {
-            // $st_data = User::where(cn::USERS_GRADE_ID_COL,'=',$request->gid)->where(cn::USERS_SCHOOL_ID_COL,'=',$request->scid)->where(cn::USERS_ROLE_ID_COL,'=',3)->get()->toArray();
-            $st_data = User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($request->gid,'',$request->scid))
-                            ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                            ->get()->toArray();
+            $st_data = User::where(cn::USERS_GRADE_ID_COL,'=',$request->gid)->where(cn::USERS_SCHOOL_ID_COL,'=',$request->scid)->where(cn::USERS_ROLE_ID_COL,'=',3)->get()->toArray();
             $stdata='';
             $stdata.='<option value="">'.__("languages.select_student").'</option>';
             if(isset($st_data) && !empty($st_data)){
@@ -404,13 +382,12 @@ class UsersController extends Controller
         try{
             $Grades = '';
             if($request->isMethod('get')){                
-                // $CurriculumYears = CurriculumYear::IsActiveYear()->get()->toArray();
+                $CurriculumYears = CurriculumYear::IsActiveYear()->get()->toArray();
                 $getMappingGradeId = GradeSchoolMappings::where(cn::GRADES_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->pluck(cn::GRADES_MAPPING_GRADE_ID_COL);
                 if(!empty($getMappingGradeId)){
                     $Grades = Grades::whereIn(cn::GRADES_ID_COL, $getMappingGradeId)->get();
                 }
-                // return view('backend.student.import_student',compact('Grades','CurriculumYears'));
-                return view('backend.student.import_student',compact('Grades'));
+                return view('backend.student.import_student',compact('Grades','CurriculumYears'));
             }
             if($request->isMethod('post')){
                 $file = $request->file('user_file');
@@ -516,10 +493,7 @@ class UsersController extends Controller
                                     }
 
                                     // Check class is already available in this school
-                                    $ClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$this->isSchoolLogin())
-                                                                    ->where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$gradeId)
-                                                                    ->where(cn::GRADE_CLASS_MAPPING_NAME_COL,strtoupper($importData[6]))
-                                                                    ->first();
+                                    $ClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$this->isSchoolLogin())->where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$gradeId)->where(cn::GRADE_CLASS_MAPPING_NAME_COL,strtoupper($importData[6]))->first();
                                     if(isset($ClassData) && !empty($ClassData)){
                                         $classId = $ClassData->id;
                                     }else{
@@ -882,7 +856,8 @@ class UsersController extends Controller
     * USE : Import Assign Student Data
     */
     public function ImportStudentsData(Request $request){
-        // try{
+        try{
+            
             $filepath = "";
             $Grades = '';
             if(isset($request->old_file) && $request->old_file!=""){
@@ -942,25 +917,21 @@ class UsersController extends Controller
 
                     // Default variable
                     $classId = null;
-                    $className= null;
                     
                     if(isset($importData_arr) && !empty($importData_arr)){
                         // Insert to MySQL database
                         foreach($importData_arr as $importData){
+
                             // Find classId by classs name
                             if(isset($importData[5]) && !empty($importData[5])){
                                 // Check grade is already available or not
                                 $Grade = Grades::where(cn::GRADES_NAME_COL,$importData[5])->first();
                                 if(isset($Grade) && !empty($Grade)){
-                                    $GradeClassMapping = GradeSchoolMappings::where(cn::GRADES_MAPPING_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
-                                                                            ->where(cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL,$request->curriculum_year_id)
-                                                                            ->where(cn::GRADES_MAPPING_GRADE_ID_COL,$Grade->id)
-                                                                            ->first();
+                                    $GradeClassMapping = GradeSchoolMappings::where(cn::GRADES_MAPPING_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::GRADES_MAPPING_GRADE_ID_COL,$Grade->id)->first();
                                     if(isset($GradeClassMapping) && !empty($GradeClassMapping)){
                                         $gradeId = $Grade->id;
                                     }else{
                                         $GradeSchoolMappings = GradeSchoolMappings::create([
-                                            cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL=>$request->curriculum_year_id,
                                             cn::GRADES_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
                                             cn::GRADES_MAPPING_GRADE_ID_COL  => $Grade->id,
                                             cn::GRADES_MAPPING_STATUS_COL    => 'active'
@@ -970,7 +941,7 @@ class UsersController extends Controller
                                         }
                                     }
                                 }else{
-                                    // If in the system grade is not available then create new grade first
+                                    // If in the syaytem grade is not available then create new grade first
                                     $Grade = Grades::create([
                                         cn::GRADES_NAME_COL => $importData[5],
                                         cn::GRADES_CODE_COL => $importData[5],
@@ -979,7 +950,6 @@ class UsersController extends Controller
                                     if($Grade){
                                         // Create grade and school mapping
                                         $GradeSchoolMappings = GradeSchoolMappings::create([
-                                            cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL=>$request->curriculum_year_id,
                                             cn::GRADES_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
                                             cn::GRADES_MAPPING_GRADE_ID_COL  => $Grade->id,
                                             cn::GRADES_MAPPING_STATUS_COL    => 'active'
@@ -991,29 +961,19 @@ class UsersController extends Controller
                                 }
 
                                 // Check class is already available in this school
-                                $ClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,Auth::user()->school_id)
-                                                                // where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$this->isSchoolLogin())
-                                                                ->where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$gradeId)
-                                                                ->where(cn::GRADE_CLASS_MAPPING_NAME_COL,strtoupper($importData[6]))
-                                                                ->where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$request->curriculum_year_id)
-                                                                ->first();
+                                $ClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$this->isSchoolLogin())->where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$gradeId)->where(cn::GRADE_CLASS_MAPPING_NAME_COL,strtoupper($importData[6]))->first();
                                 if(isset($ClassData) && !empty($ClassData)){
                                     $classId = $ClassData->id;
-                                    $className = $ClassData->name;
                                 }else{
                                     // If the class is not available into this school then create new class
                                     $ClassData = GradeClassMapping::create([
-                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL=>$request->curriculum_year_id,
-                                        // cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $this->isSchoolLogin(),
-                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL=>Auth::user()->school_id,
+                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $this->isSchoolLogin(),
                                         cn::GRADE_CLASS_MAPPING_GRADE_ID_COL  => $gradeId,
                                         cn::GRADE_CLASS_MAPPING_NAME_COL      => $importData[6],
                                         cn::GRADE_CLASS_MAPPING_STATUS_COL    => 'active'
                                     ]);
-                                    
                                     if($ClassData){
                                         $classId = $ClassData->id;
-                                        $className = $ClassData->name;
                                     }
                                 }
                             }
@@ -1053,14 +1013,11 @@ class UsersController extends Controller
                                     ]);
 
                                     CurriculumYearStudentMappings::create([
-                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
                                         cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
-                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $gradeId,
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
                                         cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId,
-                                        cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
-                                        cn::CURRICULUM_YEAR_STUDENT_CLASS => $gradeId.$className,
-                                        cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => $usersClassStudentNumber
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $gradeId,
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId
                                     ]);
                                 }
                             }
@@ -1085,15 +1042,12 @@ class UsersController extends Controller
                                     cn::USERS_CREATED_BY_COL => Auth::user()->{cn::USERS_ID_COL}
                                 ]);
 
-                               $curriculumStudentMapping = CurriculumYearStudentMappings::create([
-                                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
+                                CurriculumYearStudentMappings::create([
                                     cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $newUserData->id,
+                                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
                                     cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
                                     cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $gradeId,
-                                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId,
-                                    cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
-                                    cn::CURRICULUM_YEAR_STUDENT_CLASS => $gradeId.$className,
-                                    cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => $usersClassStudentNumber    
+                                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId
                                 ]);
                             }
                         }
@@ -1101,9 +1055,9 @@ class UsersController extends Controller
                     $this->StoreAuditLogFunction('','User','','','Student Imported successfully. file name '.$filepath,cn::USERS_TABLE_NAME,'');
                     return redirect('Student')->with('success_msg', __('languages.user_import_successfully'));
             }
-        // }catch(Exception $exception){
-        //     return $this->sendError($exception->getMessage(), 404);
-        // }
+        }catch(Exception $exception){
+            return $this->sendError($exception->getMessage(), 404);
+        }
     }
 
     /**
@@ -1148,11 +1102,11 @@ class UsersController extends Controller
         $userData = User::where(cn::USERS_ID_COL,$params['userId'])->first();
         if(!empty($userData)){
             if(User::find($params['userId'])->update([cn::USERS_PASSWORD_COL => Hash::make($params['newPassword']) ])){
-                $dataSet = [
-                    'email'     => $userData->email,
-                    'password'  => $params['newPassword']
-                ];
-                $sendEmail = $this->sendMails('email.newCredential', $dataSet, $userData->email, $subject='New Login Credential', [], []);
+                // $dataSet = [
+                //     'email'     => $userData->email,
+                //     'password'  => $params['newPassword']
+                // ];
+                // $sendEmail = $this->sendMails('email.newCredential', $dataSet, $userData->email, $subject='New Login Credential', [], []);
                 return $this->sendResponse([], __('languages.password_changed_successfully'));
             }else{
                 return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);

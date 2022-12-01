@@ -2,8 +2,7 @@
 namespace App\Constants;
 
 class DbConstant {
-    const DEFAULT_CURRICULUM_YEAR_ID = 23;
-    
+
     const SUPERADMIN_ROLE_ID        = 1;
     const TEACHER_ROLE_ID           = 2;
     const STUDENT_ROLE_ID           = 3;
@@ -31,7 +30,6 @@ class DbConstant {
     // User Table
     const USERS_TABLE_NAME = 'users';
     const USERS_ID_COL = 'id';
-    const USERS_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const USERS_ALP_CHAT_USER_ID_COL = "alp_chat_user_id";
     const USERS_NAME_COL = 'name';
     const USERS_NAME_EN_COL = 'name_en';
@@ -274,7 +272,6 @@ class DbConstant {
     // Learning Objectives Mappings
     const  OBJECTIVES_MAPPINGS_TABLE_NAME = 'strand_units_objectives_mappings';
     const  OBJECTIVES_MAPPINGS_ID_COL = 'id';
-    const  OBJECTIVES_MAPPINGS_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const  OBJECTIVES_MAPPINGS_GRADE_ID_COL = 'grade_id';
     const  OBJECTIVES_MAPPINGS_SUBJECT_ID_COL = 'subject_id';
     const  OBJECTIVES_MAPPINGS_STRAND_ID_COL = 'strand_id';
@@ -285,10 +282,10 @@ class DbConstant {
 
     const EXAM_TABLE_NAME = 'exam';
     const EXAM_TABLE_ID_COLS = 'id';
-    const EXAM_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const EXAM_TABLE_PARENT_EXAM_ID_COLS = 'parent_exam_id';
     const EXAM_TABLE_USE_OF_MODE_COLS = 'use_of_mode';
     const EXAM_TYPE_COLS = 'exam_type';
+    //const EXAM_UNIQUE_ID_COLS = 'exam_unique_id';
     const EXAM_REFERENCE_NO_COL = 'reference_no';
     const EXAM_TABLE_TITLE_COLS = 'title';
     const EXAM_TABLE_SCHOOL_COLS = 'school_id';
@@ -331,7 +328,6 @@ class DbConstant {
     //Attempt_exam_student
     const ATTEMPT_EXAMS_TABLE_NAME = 'attempt_exams';
     const ATTEMPT_EXAMS_ID_COL = 'id';
-    const ATTEMPT_EXAMS_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const ATTEMPT_EXAMS_EXAM_ID = 'exam_id';
     const ATTEMPT_EXAMS_STUDENT_STUDENT_ID = 'student_id';
     const ATTEMPT_EXAMS_STUDENT_GRADE_ID = 'grade_id';
@@ -404,7 +400,6 @@ class DbConstant {
     // teacher class subject management Table
     const TEACHER_CLASS_SUBJECT_TABLE_NAME = 'teachers_class_subject_assign';
     const TEACHER_CLASS_SUBJECT_ID_COL = 'id';
-    const TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL ='school_id';
     const TEACHER_CLASS_SUBJECT_TEACHER_ID_COL ='teacher_id';
     const TEACHER_CLASS_SUBJECT_CLASS_ID_COL ='class_id';
@@ -438,7 +433,6 @@ class DbConstant {
     // Upload Documents Table
     const UPLOAD_DOCUMENTS_TABLE_NAME = 'upload_documents';
     const UPLOAD_DOCUMENTS_ID_COL = 'id';
-    const UPLOAD_DOCUMENTS_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const UPLOAD_DOCUMENTS_DOCUMENT_MAPPING_ID = 'document_mapping_id';
     const UPLOAD_DOCUMENTS_DOCUMENT_TYPE_COL = 'document_type';
     const UPLOAD_DOCUMENTS_NODE_ID = 'node_id';
@@ -471,7 +465,6 @@ class DbConstant {
     // Class Subject Mapping Table
     const CLASS_SUBJECT_MAPPING_TABLE_NAME = 'class_subject_mapping';
     const CLASS_SUBJECT_MAPPING_ID_COL = 'id';
-    const CLASS_SUBJECT_MAPPING_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const CLASS_SUBJECT_MAPPING_SUBJECT_ID_COL = 'subject_id';
     const CLASS_SUBJECT_MAPPING_CLASS_ID_COL = 'class_id';
     const CLASS_SUBJECT_MAPPING_SCHOOL_ID_COL = 'school_id';
@@ -539,7 +532,6 @@ class DbConstant {
     //Audit Logs Table
     const AUDIT_LOGS_TABLE_NAME = 'audit_logs';
     const AUDIT_LOGS_ID_COL = 'id';
-    const AUDIT_LOGS_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const AUDIT_LOGS_ROLE_TYPE_COL = 'role_type';
     const AUDIT_LOGS_USER_ID_COL = 'logged_user_id';
     const AUDIT_LOGS_NAME_COL = 'log_name';
@@ -556,7 +548,6 @@ class DbConstant {
 
     const GRADES_MAPPING_TABLE_NAME = 'grades_school_mapping';
     const GRADES_MAPPING_ID_COL = 'id';
-    const GRADES_MAPPING_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const GRADES_MAPPING_SCHOOL_ID_COL = 'school_id';
     const GRADES_MAPPING_GRADE_ID_COL = 'grade_id';
     const GRADES_MAPPING_STATUS_COL  ='status';
@@ -569,7 +560,6 @@ class DbConstant {
 
     const SUBJECT_MAPPING_TABLE_NAME = 'subjects_school_mapping';
     const SUBJECT_MAPPING_ID_COL = 'id';
-    const SUBJECT_MAPPING_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const SUBJECT_MAPPING_SCHOOL_ID_COL = 'school_id';
     const SUBJECT_MAPPING_SUBJECT_ID_COL = 'subject_id';
     const SUBJECT_MAPPING_STATUS_COL  ='status';
@@ -581,7 +571,6 @@ class DbConstant {
 
     const PRE_CONFIGURE_DIFFICULTY_TABLE_NAME = 'pre_configured_difficulty';
     const PRE_CONFIGURE_DIFFICULTY_ID_COL     = 'id';
-    const PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_NAME_COL = 'difficulty_level_name';
     const PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_NAME_EN_COL = 'difficulty_level_name_en';
     const PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_NAME_CH_COL = 'difficulty_level_name_ch';
@@ -601,7 +590,6 @@ class DbConstant {
     // Grade Class Mapping Table
     const GRADE_CLASS_MAPPING_TABLE_NAME = 'grade_class_mapping';
     const GRADE_CLASS_MAPPING_ID_COL = 'id';
-    const GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const GRADE_CLASS_MAPPING_SCHOOL_ID_COL = 'school_id';
     const GRADE_CLASS_MAPPING_GRADE_ID_COL = 'grade_id';
     const GRADE_CLASS_MAPPING_NAME_COL = 'name';
@@ -622,7 +610,6 @@ class DbConstant {
     // CLass Promotion History
     const CLASS_PROMOTION_HISTORY_TABLE_NAME = 'class_promotion_history';
     const CLASS_PROMOTION_HISTORY_ID_COL = 'id';
-    const CLASS_PROMOTION_HISTORY_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const CLASS_PROMOTION_HISTORY_SCHOOL_ID_COL = 'school_id';
     const CLASS_PROMOTION_HISTORY_STUDENT_ID_COL = 'student_id';
     const CLASS_PROMOTION_HISTORY_CURRENT_GRADE_ID_COL = 'current_grade_id';
@@ -634,7 +621,6 @@ class DbConstant {
     // Exam Configurations Details
     const EXAM_CONFIGURATIONS_DETAILS_TABLE_NAME = 'exam_configurations_details';
     const EXAM_CONFIGURATIONS_DETAILS_ID_COL = 'id';
-    const EXAM_CONFIGURATIONS_DETAILS_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const EXAM_CONFIGURATIONS_DETAILS_EXAM_ID_COL = 'exam_id';
     const EXAM_CONFIGURATIONS_DETAILS_CREATED_BY_USER_ID_COL = 'created_by_user_id';
     const EXAM_CONFIGURATIONS_DETAILS_STRAND_IDS_COL = 'strand_ids';
@@ -657,7 +643,6 @@ class DbConstant {
     // peer_groups table
     const PEER_GROUP_TABLE_NAME = 'peer_group';
     const PEER_GROUP_ID_COL = 'id';
-    const PEER_GROUP_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const PEER_GROUP_DREAMSCHAT_GROUP_ID = 'dreamschat_group_id';
     const PEER_GROUP_SCHOOL_ID_COL = 'school_id';
     const PEER_GROUP_GROUP_NAME_COL = 'group_name';
@@ -677,7 +662,6 @@ class DbConstant {
     // peer_group_student_mapping
     const PEER_GROUP_MEMBERS_TABLE = 'peer_group_members';
     const PEER_GROUP_MEMBERS_ID_COL = 'id';
-    const PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL = 'peer_group_id';
     const PEER_GROUP_MEMBERS_MEMBER_ID_COL = 'member_id';
     const PEER_GROUP_MEMBERS_STATUS_COL = 'status';
@@ -685,10 +669,23 @@ class DbConstant {
     const PEER_GROUP_MEMBERS_UPDATED_AT_COL = 'updated_at';
     const PEER_GROUP_MEMBERS_DELETED_AT_COL = 'deleted_at';
 
+    // Curriculum Year Student Mapping
+    const CURRICULUM_YEAR_STUDENT_MAPPING_TABLE = 'curriculum_year_student_mapping';
+    const CURRICULUM_YEAR_STUDENT_MAPPING_ID_COL = 'id';
+    const CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL = 'user_id';
+    //const CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULM_YEAR_COL = 'curriculm_year';
+    const CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
+    const CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL = 'school_id';
+    const CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL = 'grade_id';
+    const CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL = 'class_id';
+    const CURRICULUM_YEAR_STUDENT_MAPPING_STATUS_COL = 'status';
+    const CURRICULUM_YEAR_STUDENT_MAPPING_CREATED_AT_COL = 'created_at';
+    const CURRICULUM_YEAR_STUDENT_MAPPING_UPDATED_AT_COL = 'updated_at';
+    const CURRICULUM_YEAR_STUDENT_MAPPING_DELETED_AT_COL = 'deleted_at';
+
     //Teaching Report Table
     const TEACHING_REPORT_TABLE = 'teaching_report';
     const TEACHING_REPORT_ID_COL = 'id';
-    const TEACHING_REPORT_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const TEACHING_REPORT_REPORT_TYPE_COL = 'report_type';
     const TEACHING_REPORT_STUDY_TYPE_COL = 'study_type';
     const TEACHING_REPORT_SCHOOL_ID_COL = 'school_id';
@@ -726,7 +723,6 @@ class DbConstant {
     //Exam Grade Class Mapping Table
     const EXAM_SCHOOL_GRADE_CLASS_MAPPING_TABLE = 'exam_school_grade_class_mapping';
     const EXAM_SCHOOL_GRADE_CLASS_MAPPING_ID_COL = 'id';
-    const EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL = 'school_id';
     const EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL = 'grade_id';
     const EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL = 'class_id';
@@ -743,7 +739,6 @@ class DbConstant {
 
     const EXAM_SCHOOL_MAPPING_TABLE = 'exam_school_mapping';
     const EXAM_SCHOOL_MAPPING_ID_COL = 'id';
-    const EXAM_SCHOOL_MAPPING_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const EXAM_SCHOOL_MAPPING_SCHOOL_ID_COL = 'school_id';
     const EXAM_SCHOOL_MAPPING_EXAM_ID_COL = 'exam_id';
     const EXAM_SCHOOL_MAPPING_STATUS_COL = 'status';
@@ -752,7 +747,6 @@ class DbConstant {
 
     const USER_CREDIT_POINTS_TABLE      = 'user_credit_points';
     const USER_CREDIT_POINTS_ID_COL     = 'id';
-    const USER_CREDIT_POINTS_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const USER_CREDIT_USER_ID_COL       = 'user_id';
     const USER_NO_OF_CREDIT_POINTS_COL  = 'no_of_credit_points';
 
@@ -760,7 +754,6 @@ class DbConstant {
 
     const USER_CREDIT_POINT_HISTORY     = 'user_credit_point_history';
     const USER_CREDIT_POINT_HISTORY_ID_COL = 'id';
-    const USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const USER_CREDIT_POINT_HISTORY_EXAM_ID_COL = 'exam_id';
     const USER_CREDIT_POINT_HISTORY_USER_ID_COL = 'user_id';
     const USER_CREDIT_POINT_HISTORY_TEST_TYPE_COL = 'test_type';
@@ -773,7 +766,6 @@ class DbConstant {
 
     const EXAM_CREDIT_POINT_RULES_MAPPING_TABLE = 'exam_credit_point_rules_mapping';
     const EXAM_CREDIT_POINT_RULES_MAPPING_ID_COL = 'id';
-    const EXAM_CREDIT_POINT_RULES_MAPPING_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const EXAM_CREDIT_POINT_RULES_MAPPING_EXAM_ID_COL = 'exam_id';
     const EXAM_CREDIT_POINT_RULES_MAPPING_SCHOOL_ID_COL = 'school_id';
     const EXAM_CREDIT_POINT_RULES_MAPPING_CREDIT_POINT_RULES_COL = 'credit_point_rules';
@@ -783,7 +775,6 @@ class DbConstant {
     // Intelligent Tutor Video Table
     const INTELLIGENT_TUTOR_VIDEOS_TABLE_NAME = 'intelligent_tutor_videos';
     const INTELLIGENT_TUTOR_VIDEOS_ID_COL = 'id';
-    const INTELLIGENT_TUTOR_VIDEOS_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const INTELLIGENT_TUTOR_VIDEOS_DOCUMENT_MAPPING_ID = 'document_mapping_id';
     const INTELLIGENT_TUTOR_VIDEOS_DOCUMENT_TYPE_COL = 'document_type';
     const INTELLIGENT_TUTOR_VIDEOS_NODE_ID = 'node_id';
@@ -804,7 +795,6 @@ class DbConstant {
     // Attempt Exam Student Mapping
     const ATTEMPT_EXAM_STUDENT_MAPPING_TABLE_NAME = 'attempt_exam_student_mapping';
     const ATTEMPT_EXAM_STUDENT_MAPPING_ID_COL = 'id';
-    const ATTEMPT_EXAM_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
     const ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL = 'exam_id';
     const ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL = 'student_id';
     const ATTEMPT_EXAM_STUDENT_MAPPING_STATUS_COL = 'status';
@@ -814,32 +804,4 @@ class DbConstant {
     const CURRICULUM_YEAR_ID_COL = 'id';
     const CURRICULUM_YEAR_YEAR_COL = 'year';
     const CURRICULUM_YEAR_STATUS_COL = 'status';
-
-    // Curriculum Year Student Mapping
-    const CURRICULUM_YEAR_STUDENT_MAPPING_TABLE = 'curriculum_year_student_mapping';
-    const CURRICULUM_YEAR_STUDENT_MAPPING_ID_COL = 'id';
-    const CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL = 'user_id';
-    const CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
-    const CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL = 'school_id';
-    const CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL = 'grade_id';
-    const CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL = 'class_id';
-    const CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL = 'student_number_within_class';
-    const CURRICULUM_YEAR_STUDENT_CLASS  = 'class';
-    const CURRICULUM_YEAR_CLASS_STUDENT_NUMBER ='class_student_number';
-    const CURRICULUM_YEAR_STUDENT_MAPPING_STATUS_COL = 'status';
-    const CURRICULUM_YEAR_STUDENT_MAPPING_CREATED_AT_COL = 'created_at';
-    const CURRICULUM_YEAR_STUDENT_MAPPING_UPDATED_AT_COL = 'updated_at';
-    const CURRICULUM_YEAR_STUDENT_MAPPING_DELETED_AT_COL = 'deleted_at';
-
-    //Remainder Update School Year Data Table
-    const REMAINDER_UPDATE_SCHOOL_YEAR_DATA_TABLE = 'remainder_update_school_year_data';
-    const REMAINDER_UPDATE_SCHOOL_YEAR_DATA_ID_COL = 'id';
-    const REMAINDER_UPDATE_SCHOOL_YEAR_DATA_CURRICULUM_YEAR_ID_COL = 'curriculum_year_id';
-    const REMAINDER_UPDATE_SCHOOL_YEAR_DATA_SCHOOL_ID_COL = 'school_id';
-    const REMAINDER_UPDATE_SCHOOL_YEAR_DATA_IMPORTED_DATE_COL = 'import_date';
-    const REMAINDER_UPDATE_SCHOOL_YEAR_DATA_UPLOADED_BY_COL ='uploaded_by';
-    const REMAINDER_UPDATE_SCHOOL_YEAR_DATA_STATUS_COL = 'status';
-    const REMAINDER_UPDATE_SCHOOL_YEAR_DATA_CREATED_AT_COL = 'created_at';
-    const REMAINDER_UPDATE_SCHOOL_YEAR_DATA_UPDATED_AT_COL = 'updated_at';
-    const REMAINDER_UPDATE_SCHOOL_YEAR_DATA_DELETED_AT_COL = 'deleted_at';
-}
+} 

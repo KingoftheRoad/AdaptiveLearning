@@ -167,7 +167,7 @@ class ProfileController extends Controller
             $TotalFilterData ='';
             $CreditPointHistoryList = UserCreditPointHistory::with('getExam')->where(cn::USER_CREDIT_POINT_HISTORY_USER_ID_COL,$user_id)
                                                             ->orderBy(cn::USER_CREDIT_POINT_HISTORY_ID_COL,'DESC')
-                                                            ->groupBy(cn::EXAM_CREDIT_POINT_RULES_MAPPING_EXAM_ID_COL)->groupBy(cn::CREATED_AT_COL)
+                                                            ->groupBy('exam_id')->groupBy('created_at')
                                                             ->sortable()
                                                             ->paginate($items);
             return view('backend.profile.credit_point_history',compact('CreditPointHistoryList','items','TotalFilterData','UserData','studentId'));

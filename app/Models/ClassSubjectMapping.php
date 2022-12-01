@@ -17,8 +17,7 @@ class ClassSubjectMapping extends Model
         cn::CLASS_SUBJECT_MAPPING_SUBJECT_ID_COL,
         cn::CLASS_SUBJECT_MAPPING_CLASS_ID_COL,
         cn::CLASS_SUBJECT_MAPPING_SCHOOL_ID_COL,
-        cn::CLASS_SUBJECT_MAPPING_STATUS_COL,
-        cn::CLASS_SUBJECT_MAPPING_CURRICULUM_YEAR_ID_COL
+        cn::CLASS_SUBJECT_MAPPING_STATUS_COL
     ];
 
     public $timestamps = true;

@@ -27,7 +27,7 @@ class GroupsSkillWeeknessReportController extends Controller
      * USE : Get skill weekness reports
      */
     public function getSkillWeeknessReport(Request $request){
-        $Exams = Exam::whereNotNull(cn::EXAM_TABLE_GROUP_IDS_COL)->get();
+        $Exams = Exam::whereNotNull('group_ids')->get();
         if(!isset($request->exam_id)){
             if(isset($request->filter) && !isset($request->exam_id)){
                 return back()->withError(__('languages.please_select_test'));
@@ -53,7 +53,7 @@ class GroupsSkillWeeknessReportController extends Controller
                 foreach($studentArray as $student){
                     $studentData = User::find($student);
                     foreach($ExamList as $Exam){
-                        $AttemptExamDetails = AttemptExams::where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$student)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$Exam->id)->first();
+                        $AttemptExamDetails = AttemptExams::where('student_id',$student)->where('exam_id',$Exam->id)->first();
                         if(isset($AttemptExamDetails) && !empty($AttemptExamDetails)){
                             $totalCorrectAnswer = $AttemptExamDetails->total_correct_answers;
                             $totalNoOfQuestions = count(explode(',',$Exam->question_ids));

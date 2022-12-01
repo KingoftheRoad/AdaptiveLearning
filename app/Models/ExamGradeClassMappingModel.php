@@ -25,13 +25,12 @@ class ExamGradeClassMappingModel extends Model{
         cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_END_TIME_COL,
         cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_START_DATE_COL,
         cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_END_DATE_COL,
-        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,
-        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL
+        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL
      ];
  
      public $timestamps = true;
 
      public function PeerGroup(){
-        return $this->hasOne(PeerGroup::class,cn::PEER_GROUP_ID_COL,cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL);
+        return $this->hasOne(PeerGroup::class,'id','peer_group_id');
      }
 }

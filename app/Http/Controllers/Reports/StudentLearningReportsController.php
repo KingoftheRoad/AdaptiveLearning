@@ -21,8 +21,8 @@ class StudentLearningReportsController extends Controller
     }
 
     /**
-    * USE : Display student learning progress reports (My Study Panel for Student)
-    **/
+     * USE : Display student learning progress reports (My Study Panel for Student)
+     */
     public function StudentLearningReport(Request $request){
         $strandData = Strands::all();
         return view('backend.student-learning-report',compact('strandData'));

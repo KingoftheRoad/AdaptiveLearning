@@ -32,8 +32,7 @@ class AttemptExams extends Model
         cn::ATTEMPT_EXAMS_WRONG_ANSWER_COL,
         cn::ATTEMPT_EXAMS_STATUS_COL,
         cn::ATTEMPT_EXAMS_BEFORE_EXAM_SURVEY_COL,
-        cn::ATTEMPT_EXAMS_AFTER_EXAM_SURVEY_COL,
-        cn::ATTEMPT_EXAMS_CURRICULUM_YEAR_ID_COL
+        cn::ATTEMPT_EXAMS_AFTER_EXAM_SURVEY_COL
     ];
 
     public $timestamps = true;

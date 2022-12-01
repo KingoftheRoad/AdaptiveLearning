@@ -18,6 +18,7 @@ class NodeRelation extends Model
     protected $childOption = '';
     
     public $fillable = [
+
         cn::NODES_RELATION_PARENT_NODE_ID_COL,
         cn::NODES_RELATION_CHILD_NODE_ID_COL,
         cn::NODES_RELATION_STATUS
@@ -34,16 +35,16 @@ class NodeRelation extends Model
         $Nodedata = $NodeModel->all();
         if(isset($Nodedata) && !empty($Nodedata)){
             foreach($Nodedata as $node){
-                if(NodeRelation::where(cn::NODES_RELATION_CHILD_NODE_ID_COL,$node->{cn::NODES_NODE_ID_COL})->doesntExist()){
+                if(NodeRelation::where('child_node_id',$node->id)->doesntExist()){
                     $this->html .= '<ul>';
-                    $this->html .= "<li dataid='".$node->{cn::NODES_NODE_ID_COL}."'>".$node->{cn::NODES_NODEID_COL};
+                    $this->html .= "<li dataid='".$node->id."'>".$node->node_id;
 
-                    $result = NodeRelation::with('nodes')->where(cn::NODES_RELATION_PARENT_NODE_ID_COL,$node->{cn::NODES_NODE_ID_COL})->get();
+                    $result = NodeRelation::with('nodes')->where('parent_node_id',$node->id)->get();
                     if(isset($result) && !empty($result)){
                         $this->html .= '<ul>';
                         foreach($result as $row){
-                            $this->html .= "<li dataid='".$row->nodes->{cn::NODES_NODE_ID_COL}."'>".$row->nodes->{cn::NODES_NODEID_COL};
-                            $this->html .= $this->getChildNodeOption($row->{cn::NODES_RELATION_CHILD_NODE_ID_COL});
+                            $this->html .= "<li dataid='".$row->nodes->id."'>".$row->nodes->node_id;
+                            $this->html .= $this->getChildNodeOption($row->child_node_id);
                             $this->html .= "</li>";
                         }
                         $this->html .= "</li>";
@@ -58,11 +59,11 @@ class NodeRelation extends Model
 
     public function getChildNodeOption($parentid){
         $childOption = '';
-        $result = NodeRelation::with('nodes')->where(cn::NODES_RELATION_PARENT_NODE_ID_COL,$parentid)->get();
+        $result = NodeRelation::with('nodes')->where('parent_node_id',$parentid)->get();
         if(isset($result) && !empty($result)){
             $childOption .= '<ul>';
             foreach($result as $row){
-                $childOption .= "<li dataid='".$row->nodes->{cn::NODES_NODE_ID_COL}."'>".$row->nodes->{cn::NODES_NODEID_COL};
+                $childOption .= "<li dataid='".$row->nodes->id."'>".$row->nodes->node_id;
                 $childOption .= "</li>";
             }
             $childOption .= '</ul>';
@@ -71,6 +72,6 @@ class NodeRelation extends Model
     }
 
     public function nodes(){
-        return $this->hasOne(Nodes::Class, cn::NODES_NODE_ID_COL,cn::NODES_RELATION_CHILD_NODE_ID_COL);
+        return $this->hasOne(Nodes::Class, 'id', 'child_node_id');
     }
 }

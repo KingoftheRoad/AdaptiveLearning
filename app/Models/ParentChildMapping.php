@@ -16,6 +16,7 @@ class ParentChildMapping extends Model
 
         cn::PARANT_CHILD_MAPPING_PARENT_ID_COL,
         cn::PARANT_CHILD_MAPPING_STUDENT_ID_COL
+
     ];
 
 }

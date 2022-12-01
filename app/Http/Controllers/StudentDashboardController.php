@@ -31,13 +31,13 @@ class StudentDashboardController extends Controller
         try{
             $AttemptedExamsIds = collect();
             $ExamList = collect();
-            // $AttemptedExamsIds = AttemptExams::where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,Auth::user()->id)->pluck(cn::ATTEMPT_EXAMS_EXAM_ID);
-            // if(isset($AttemptedExamsIds) && !empty($AttemptedExamsIds)){
-            //     $ExamList = Exam::with('attempt_exams')->whereIn('id',$AttemptedExamsIds)->get();
-            // }
+            $AttemptedExamsIds = AttemptExams::where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,Auth::user()->id)->pluck(cn::ATTEMPT_EXAMS_EXAM_ID);
+            if(isset($AttemptedExamsIds) && !empty($AttemptedExamsIds)){
+                $ExamList = Exam::with('attempt_exams')->whereIn('id',$AttemptedExamsIds)->get();
+            }
             return view('backend.student_dashboard',compact('ExamList'));
         }catch(\Exception $exception){
-            return back()->withError($exception->getMessage());
+            return redirect('exams')->withError($exception->getMessage());
         }
     }
 
@@ -55,8 +55,7 @@ class StudentDashboardController extends Controller
             $subjectList = [];
             $items = $request->items ?? 10;
             $schoolId = Auth::user()->{cn::USERS_SCHOOL_ID_COL};
-            // $studentCurrectClassId = Auth::user()->grade_id;
-            $studentCurrectClassId = Auth::user()->CurriculumYearGradeId;
+            $studentCurrectClassId = Auth::user()->grade_id;
             $SubjectIdsArray = TeachersClassSubjectAssign::where([
                                 cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $schoolId,
                                 cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL  => $studentCurrectClassId
@@ -101,10 +100,8 @@ class StudentDashboardController extends Controller
             //$this->paginationCookie('StudentMyTeachersList',$request);
             $items = $request->items ?? 10;
             $schoolId = Auth::user()->{cn::USERS_SCHOOL_ID_COL};
-            // $GradeId = Auth::user()->grade_id;
-            // $ClassId = Auth::user()->class_id;
-            $GradeId = Auth::user()->CurriculumYearGradeId;
-            $ClassId = Auth::user()->CurriculumYearClassId;
+            $GradeId = Auth::user()->grade_id;
+            $ClassId = Auth::user()->class_id;
             $TeachersList = TeachersClassSubjectAssign::with('teachers')->where([
                                 cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $schoolId,
                                 cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL => $GradeId,
@@ -140,34 +137,28 @@ class StudentDashboardController extends Controller
             //  Laravel Pagination set in Cookie
             //$this->paginationCookie('StudentMyClassesList',$request);
             $items = $request->items ?? 10;
-            // $studentList = User::where([
-            //                         cn::USERS_SCHOOL_ID_COL => Auth()->user()->{CN::USERS_SCHOOL_ID_COL},
-            //                         cn::USERS_GRADE_ID_COL => Auth::user()->{CN::USERS_GRADE_ID_COL},
-            //                         cn::USERS_CLASS_ID_COL => Auth::user()->{CN::USERS_CLASS_ID_COL},
-            //                         cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
-            //                         ])
-            //                     ->where(cn::USERS_ID_COL,'<>',Auth()->user()->{CN::USERS_ID_COL})
-            //                     ->sortable()
-            //                     ->orderBy(cn::USERS_ID_COL,'DESC')
-            //                     ->paginate($items);
-            $studentList = User::where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                    ->where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids(Auth::user()->{CN::USERS_GRADE_ID_COL},Auth::user()->{CN::USERS_CLASS_ID_COL},Auth::user()->{CN::USERS_SCHOOL_ID_COL}))
-                                    ->where(cn::USERS_ID_COL,'<>',Auth()->user()->{CN::USERS_ID_COL})
-                                    ->sortable()
-                                    ->orderBy(cn::USERS_ID_COL,'DESC')
-                                    ->paginate($items);
-            $countSchoolData = User::where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                    ->where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids(Auth::user()->{CN::USERS_GRADE_ID_COL},Auth::user()->{CN::USERS_CLASS_ID_COL},Auth::user()->{CN::USERS_SCHOOL_ID_COL}))
+            $studentList = User::where([
+                                    cn::USERS_SCHOOL_ID_COL => Auth()->user()->{CN::USERS_SCHOOL_ID_COL},
+                                    cn::USERS_GRADE_ID_COL => Auth::user()->{CN::USERS_GRADE_ID_COL},
+                                    cn::USERS_CLASS_ID_COL => Auth::user()->{CN::USERS_CLASS_ID_COL},
+                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
+                                    ])
+                                ->where(cn::USERS_ID_COL,'<>',Auth()->user()->{CN::USERS_ID_COL})
+                                ->sortable()
+                                ->orderBy(cn::USERS_ID_COL,'DESC')
+                                ->paginate($items);
+            $countSchoolData = User::where([
+                                        cn::USERS_SCHOOL_ID_COL => Auth()->user()->{CN::USERS_SCHOOL_ID_COL},
+                                        cn::USERS_GRADE_ID_COL => Auth::user()->{CN::USERS_GRADE_ID_COL},
+                                        cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID])
                                     ->where(cn::USERS_ID_COL,'<>',Auth()->user()->{CN::USERS_ID_COL})
                                     ->count();
             if(isset($request->filter)){
-                // $Query = User::select('*')->where([
-                //                 cn::USERS_SCHOOL_ID_COL => Auth()->user()->{CN::USERS_SCHOOL_ID_COL},
-                //                 cn::USERS_GRADE_ID_COL => Auth::user()->{CN::USERS_GRADE_ID_COL},
-                //                 cn::USERS_CLASS_ID_COL => Auth::user()->{CN::USERS_CLASS_ID_COL},
-                //                 cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID]);
-                $Query = User::select('*')->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                ->where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids(Auth::user()->{CN::USERS_GRADE_ID_COL},Auth::user()->{CN::USERS_CLASS_ID_COL},Auth::user()->{CN::USERS_SCHOOL_ID_COL}));
+                $Query = User::select('*')->where([
+                                cn::USERS_SCHOOL_ID_COL => Auth()->user()->{CN::USERS_SCHOOL_ID_COL},
+                                cn::USERS_GRADE_ID_COL => Auth::user()->{CN::USERS_GRADE_ID_COL},
+                                cn::USERS_CLASS_ID_COL => Auth::user()->{CN::USERS_CLASS_ID_COL},
+                                cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID]);
                 if(isset($request->Search)){
                     $Query->where(function($query) use ($request){
                         $query->Where(cn::USERS_EMAIL_COL,'like','%'.$request->Search.'%')

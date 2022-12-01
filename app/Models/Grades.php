@@ -51,4 +51,7 @@ class Grades extends Model
     public function classes(){
         return $this->hasMany(GradeClassMapping::Class,cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,cn::GRADES_ID_COL);
     }
+    // public function class(){
+    //     return $this->hasOne(GradeClassMapping::Class,cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,cn::GRADES_ID_COL);
+    // }
 }

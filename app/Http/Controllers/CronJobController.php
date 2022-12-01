@@ -17,8 +17,6 @@ use App\Jobs\UpdateMyTeachingTableJob;
 use App\Jobs\UpdateUserCreditPointsJob;
 use App\Jobs\UpdateQuestionEColumnJob;
 use App\Jobs\UpdateExamReferenceNumberJob;
-use App\Jobs\SendRemainderUploadStudentNewSchoolCurriculumYearJob;
-use App\Jobs\CloneSchoolDataNextCurriculumYear;
 use App\Http\Controllers\Reports\AlpAiGraphController;
 use App\Models\GradeClassMapping;
 use App\Models\GradeSchoolMappings;
@@ -29,21 +27,16 @@ use App\Models\Question;
 use Log;
 use App\Helpers\Helper;
 use App\Models\ExamGradeClassMappingModel;
-use App\Models\CurriculumYearStudentMappings;
-use App\Models\ClassPromotionHistory;
-use App\Models\RemainderUpdateSchoolYearData;
 use App\Http\Services\AIApiService;
-use Carbon\Carbon;
 
 class CronJobController extends Controller
 {
     use Common, ResponseFormat;
 
-    protected $AIApiService, $CloneSchoolDataNextCurriculumYear;
-    
+    protected $AIApiService;
+
     public function __construct(){
         $this->AIApiService = new AIApiService();
-        $this->CloneSchoolDataNextCurriculumYear = new CloneSchoolDataNextCurriculumYear;
     }
 
     /**
@@ -135,44 +128,6 @@ class CronJobController extends Controller
     }
 
     /**
-     * USE : Set Default existing student curriculum year
-     */
-    public function SetDefaultCurriculumYear(){
-        $StudentList = User::withTrashed()->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->get();
-        if(isset($StudentList) && !empty($StudentList)){
-            foreach($StudentList as $student){
-                CurriculumYearStudentMappings::updateOrCreate([
-                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $student->{cn::USERS_ID_COL},
-                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID,
-                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => $student->{cn::USERS_SCHOOL_ID_COL},
-                    // cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => (!empty($student->{cn::USERS_GRADE_ID_COL})) ? $student->{cn::USERS_GRADE_ID_COL} : null,
-                    // cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => (!empty($student->{cn::USERS_CLASS_ID_COL})) ? $student->{cn::USERS_CLASS_ID_COL} : null,
-                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => (!empty($student->CurriculumYearGradeId)) ? $student->CurriculumYearGradeId : null,
-                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => (!empty($student->CurriculumYearClassId)) ? $student->CurriculumYearClassId : null,
-                    cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => $student->{cn::STUDENT_NUMBER_WITHIN_CLASS} ?? Null,
-                    cn::CURRICULUM_YEAR_STUDENT_CLASS => $student->{cn::USERS_CLASS} ?? NUll,
-                    cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => $student->{cn::USERS_CLASS_STUDENT_NUMBER} ?? NULL
-                ]);
-
-                ClassPromotionHistory::Create([
-                    //cn::CLASS_PROMOTION_HISTORY_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                    cn::CLASS_PROMOTION_HISTORY_CURRICULUM_YEAR_ID_COL => 23,
-                    cn::CLASS_PROMOTION_HISTORY_SCHOOL_ID_COL => $student->{cn::USERS_SCHOOL_ID_COL},
-                    cn::CLASS_PROMOTION_HISTORY_STUDENT_ID_COL => $student->{cn::USERS_ID_COL},
-                    cn::CLASS_PROMOTION_HISTORY_CURRENT_GRADE_ID_COL => null,
-                    cn::CLASS_PROMOTION_HISTORY_CURRENT_CLASS_ID_COL => null,
-                    // cn::CLASS_PROMOTION_HISTORY_PROMOTED_GRADE_ID_COL => (!empty($student->{cn::USERS_GRADE_ID_COL})) ? $student->{cn::USERS_GRADE_ID_COL} : null,
-                    // cn::CLASS_PROMOTION_HISTORY_PROMOTED_CLASS_ID_COL => (!empty($student->{cn::USERS_CLASS_ID_COL})) ? $student->{cn::USERS_CLASS_ID_COL} : null,
-                    cn::CLASS_PROMOTION_HISTORY_PROMOTED_GRADE_ID_COL => (!empty($student->CurriculumYearGradeId)) ? $student->CurriculumYearGradeId : null,
-                    cn::CLASS_PROMOTION_HISTORY_PROMOTED_CLASS_ID_COL => (!empty($student->CurriculumYearClassId)) ? $student->CurriculumYearClassId : null,
-                    cn::CLASS_PROMOTION_HISTORY_PROMOTED_BY_USER_ID_COL => 1
-                ]);
-            }
-            echo 'Updated successfully';
-        }
-    }
-
-    /**
      * USE : Update Question Option From A to B In Attempted Exam Update Option.
      */
     public function UpdateStudentSelectedAnswer(){
@@ -183,7 +138,7 @@ class CronJobController extends Controller
         if(isset($ExamIds) && !empty($ExamIds)){
             foreach($ExamIds as $ExamId){
                 $examDetail = Exam::find($ExamId);
-                $AttemptedAnswerData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$ExamId)->get();
+                $AttemptedAnswerData = AttemptExams::where('exam_id',$ExamId)->get();
                 if(isset($AttemptedAnswerData) && !empty($AttemptedAnswerData)){
                     foreach($AttemptedAnswerData as $AttemptedAnswer){                                        
                         $questionAnswersData = json_decode($AttemptedAnswer->question_answers,true);                    
@@ -278,8 +233,6 @@ class CronJobController extends Controller
                     }
                 }
             }
-        }else{
-            echo 'No any exams in use this question';
         }
     }
 
@@ -300,31 +253,5 @@ class CronJobController extends Controller
             $StudentAbility = $AIApiResponse[0];
         }
         return $StudentAbility;
-    }
-
-    /**
-     * USE : Run cron-job for email reminder for every schools
-     */
-    public function SendRemainderUploadStudentNewSchoolCurriculumYear(){
-        if(in_array($this->CurrentDate(),$this->getMondayDates(date('Y'),date('09')))){
-            dispatch(new SendRemainderUploadStudentNewSchoolCurriculumYearJob())->delay(now()->addSeconds(1));
-        }
-    }
-
-    /**
-     * USE : Copy & Clone school year data to next curriculum year
-     */
-    public function CopyCloneCurriculumYearSchoolData(){
-        //$this->info('Hourly Update has been send successfully');
-        Log::info('Schedule Run Start: Copy and Clone School Data');
-        dispatch($this->CloneSchoolDataNextCurriculumYear)->delay(now()->addSeconds(1));
-        Log::info('Schedule Run Successfully: Copy and Clone School Data');
-    }
-
-    /**
-     * USE : Update Curriculum year in global configuration automatically after running the cron job
-     */
-    public function UpdateGlobalConfigurationNextCurriculumYear(){
-        $this->UpdateGlobalConfigurationCurriculumYear();
     }
 }

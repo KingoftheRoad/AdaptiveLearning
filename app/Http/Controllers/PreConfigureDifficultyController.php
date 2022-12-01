@@ -28,8 +28,8 @@ class PreConfigureDifficultyController extends Controller
             $items = $request->items ?? 10;
             $TotalFilterData = '';
             // $globalConfigValue = GlobalConfiguration::whereIn(cn::GLOBAL_CONFIGURATION_KEY_COL,['question_difficulty_level1','question_difficulty_level2','question_difficulty_level3','question_difficulty_level4','question_difficulty_level5'])->get();
-            $countAicalculatedData = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->count();
-            $preConfigureLists = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->sortable()->orderBy(cn::PRE_CONFIGURE_DIFFICULTY_ID_COL,'DESC')->paginate($items);
+            $countAicalculatedData = PreConfigurationDiffiltyLevel::all()->count();
+            $preConfigureLists = PreConfigurationDiffiltyLevel::sortable()->orderBy(cn::PRE_CONFIGURE_DIFFICULTY_ID_COL,'DESC')->paginate($items);
             $difficultyLevels = $this->getDifficultyLevel();
             $statusList = $this->getStatusList();
             // Filteration on School code and School Name
@@ -79,7 +79,6 @@ class PreConfigureDifficultyController extends Controller
             return back()->withErrors($validator)->withInput();
         }
         $PostData = array(
-            cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL => $this->getGlobalConfiguration('current_curriculum_year'),
             cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_COL => $request->difficulty_level,
             cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_NAME_EN_COL => $request->difficulty_level_name_en,
             cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_NAME_CH_COL => $request->difficulty_level_name_ch,

@@ -38,14 +38,13 @@ use App\Models\UploadDocuments;
 class RealTimeAIQuestionGeneratorController extends Controller
 {
     use common, ResponseFormat;
-    protected $currentUserSchoolId, $repeated_rate_config, $CronJobController, $CurrentCurriculumYearId;
+    protected $currentUserSchoolId, $repeated_rate_config, $CronJobController;
     
     public function __construct(){
         $this->AIApiService = new AIApiService();
         $this->CronJobController = new CronJobController;
-        $this->CurrentCurriculumYearId = $this->getGlobalConfiguration('current_curriculum_year');
         
-        // Store global variable into current user school id
+        // Store global variable into current user schhol id
         $this->currentUserSchoolId = null;
         $this->repeated_rate_config = Helper::getGlobalConfiguration('repeated_rate') ?? 0.5 ;
         $this->middleware(function ($request, $next) {
@@ -336,22 +335,21 @@ class RealTimeAIQuestionGeneratorController extends Controller
         }
 
         $examData = [
-            cn::EXAM_CURRICULUM_YEAR_ID_COL                 => $this->GetCurriculumYear(), // "CurrentCurriculumYearId" Get value from Global Configuration
-            cn::EXAM_TYPE_COLS                              => 1,
-            cn::EXAM_REFERENCE_NO_COL                       => $this->GetMaxReferenceNumberExam(1,$request->self_learning_test_type),
-            cn::EXAM_TABLE_TITLE_COLS                       => $this->createTestTitle(),
-            cn::EXAM_TABLE_FROM_DATE_COLS                   => Carbon::now(),
-            cn::EXAM_TABLE_TO_DATE_COLS                     => Carbon::now(),
-            cn::EXAM_TABLE_RESULT_DATE_COLS                 => Carbon::now(),
-            cn::EXAM_TABLE_PUBLISH_DATE_COL                 => Carbon::now(),
-            cn::EXAM_TABLE_TIME_DURATIONS_COLS              => $timeduration,
-            cn::EXAM_TABLE_QUESTION_IDS_COL                 => ($questionIds) ?  $questionIds : null,
-            cn::EXAM_TABLE_STUDENT_IDS_COL                  => $this->LoggedUserId(),
-            cn::EXAM_TABLE_SCHOOL_COLS                      => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-            cn::EXAM_TABLE_IS_UNLIMITED                     => ($request->self_learning_test_type == 1) ? 1 : 0,
-            cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL      => $request->self_learning_test_type,
-            cn::EXAM_TABLE_CREATED_BY_COL                   => $this->LoggedUserId(),
-            cn::EXAM_TABLE_CREATED_BY_USER_COL              => 'student',
+            cn::EXAM_TYPE_COLS => 1,
+            cn::EXAM_REFERENCE_NO_COL => $this->GetMaxReferenceNumberExam(1,$request->self_learning_test_type),
+            cn::EXAM_TABLE_TITLE_COLS => $this->createTestTitle(),
+            cn::EXAM_TABLE_FROM_DATE_COLS => Carbon::now(),
+            cn::EXAM_TABLE_TO_DATE_COLS => Carbon::now(),
+            cn::EXAM_TABLE_RESULT_DATE_COLS => Carbon::now(),
+            cn::EXAM_TABLE_PUBLISH_DATE_COL => Carbon::now(),
+            cn::EXAM_TABLE_TIME_DURATIONS_COLS => $timeduration,
+            cn::EXAM_TABLE_QUESTION_IDS_COL => ($questionIds) ?  $questionIds : null,
+            cn::EXAM_TABLE_STUDENT_IDS_COL => $this->LoggedUserId(),
+            cn::EXAM_TABLE_SCHOOL_COLS => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+            cn::EXAM_TABLE_IS_UNLIMITED => ($request->self_learning_test_type == 1) ? 1 : 0,
+            cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL => $request->self_learning_test_type,
+            cn::EXAM_TABLE_CREATED_BY_COL => $this->LoggedUserId(),
+            'created_by_user' => 'student',
             cn::EXAM_TABLE_STATUS_COLS => 'publish'
         ];
         $exams = Exam::create($examData);
@@ -390,21 +388,20 @@ class RealTimeAIQuestionGeneratorController extends Controller
             }
 
             $PostData = [
-                cn::ATTEMPT_EXAMS_CURRICULUM_YEAR_ID_COL        => $this->GetCurriculumYear(),
-                cn::ATTEMPT_EXAMS_EXAM_ID                       => $exams->id,
-                cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID            => $this->LoggedUserId(),
-                cn::ATTEMPT_EXAMS_STUDENT_GRADE_ID              => Auth::user()->grade_id,
-                cn::ATTEMPT_EXAMS_STUDENT_CLASS_ID              => Auth::user()->class_id,
-                cn::ATTEMPT_EXAMS_LANGUAGE_COL                  => 'en',
-                cn::ATTEMPT_EXAMS_QUESTION_ANSWER_COL           => (!empty($AttemptedQuestionAnswers)) ? json_encode($AttemptedQuestionAnswers) : null,
-                cn::ATTEMPT_EXAMS_WRONG_ANSWER_COL              => '',
-                //cn::ATTEMPT_EXAMS_ATTEMPT_FIRST_TRIAL_COL     => $request->attempt_first_trial_data_new,
-                //cn::ATTEMPT_EXAMS_ATTEMPT_SECOND_TRIAL_COL    => $wrong_ans_list_json,
-                cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS         => $NoOfCorrectAnswers,
-                cn::ATTEMPT_EXAMS_TOTAL_WRONG_ANSWERS           => $NoOfWrongAnswers,
-                cn::ATTEMPT_EXAMS_EXAM_TAKING_TIMING            => $request->exam_taking_timing,
-                cn::ATTEMPT_EXAMS_STUDENT_ABILITY_COL           => ($StudentAbility!='') ? $StudentAbility : null,
-                cn::ATTEMPT_EXAMS_SERVER_DETAILS_COL            => json_encode($this->serverData()) ?? null
+                cn::ATTEMPT_EXAMS_EXAM_ID => $exams->id,
+                cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $this->LoggedUserId(),
+                cn::ATTEMPT_EXAMS_STUDENT_GRADE_ID => Auth::user()->grade_id,
+                cn::ATTEMPT_EXAMS_STUDENT_CLASS_ID => Auth::user()->class_id,
+                cn::ATTEMPT_EXAMS_LANGUAGE_COL => 'en',
+                cn::ATTEMPT_EXAMS_QUESTION_ANSWER_COL => (!empty($AttemptedQuestionAnswers)) ? json_encode($AttemptedQuestionAnswers) : null,
+                cn::ATTEMPT_EXAMS_WRONG_ANSWER_COL => '',
+                //cn::ATTEMPT_EXAMS_ATTEMPT_FIRST_TRIAL_COL => $request->attempt_first_trial_data_new,
+                //cn::ATTEMPT_EXAMS_ATTEMPT_SECOND_TRIAL_COL => $wrong_ans_list_json,
+                cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS => $NoOfCorrectAnswers,
+                cn::ATTEMPT_EXAMS_TOTAL_WRONG_ANSWERS => $NoOfWrongAnswers,
+                cn::ATTEMPT_EXAMS_EXAM_TAKING_TIMING => $request->exam_taking_timing,
+                cn::ATTEMPT_EXAMS_STUDENT_ABILITY_COL => ($StudentAbility!='') ? $StudentAbility : null,
+                cn::ATTEMPT_EXAMS_SERVER_DETAILS_COL => json_encode($this->serverData()) ?? null
             ];
             $save = AttemptExams::create($PostData);
             if($save){
@@ -425,6 +422,7 @@ class RealTimeAIQuestionGeneratorController extends Controller
 
                 $response['redirectUrl'] = 'exams/result/'.$exams->id.'/'.Auth::user()->{cn::USERS_ID_COL};
                 return $this->sendResponse($response);exit;
+                //return $response;
             }
         }
     }
@@ -743,22 +741,22 @@ class RealTimeAIQuestionGeneratorController extends Controller
         }
 
         $examData = [
-            cn::EXAM_CURRICULUM_YEAR_ID_COL                 => $this->CurrentCurriculumYearId, // "CurrentCurriculumYearId" Get value from Global Configuration
-            cn::EXAM_TYPE_COLS                              => 1,
-            cn::EXAM_TABLE_TITLE_COLS                       => $this->createTestTitle(),
-            cn::EXAM_TABLE_FROM_DATE_COLS                   => Carbon::now(),
-            cn::EXAM_TABLE_TO_DATE_COLS                     => Carbon::now(),
-            cn::EXAM_TABLE_RESULT_DATE_COLS                 => Carbon::now(),
-            cn::EXAM_TABLE_PUBLISH_DATE_COL                 => Carbon::now(),
-            cn::EXAM_TABLE_TIME_DURATIONS_COLS              => $timeduration,
-            cn::EXAM_TABLE_QUESTION_IDS_COL                 => ($questionIds) ?  $questionIds : null,
-            cn::EXAM_TABLE_STUDENT_IDS_COL                  => $this->LoggedUserId(),
-            cn::EXAM_TABLE_SCHOOL_COLS                      => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-            cn::EXAM_TABLE_IS_UNLIMITED                     => ($request->self_learning_test_type == 1) ? 1 : 0,
-            cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL      => $request->self_learning_test_type,
-            cn::EXAM_TABLE_CREATED_BY_COL                   => $this->LoggedUserId(),
-            cn::EXAM_TABLE_CREATED_BY_USER_COL              => 'student',
-            cn::EXAM_TABLE_STATUS_COLS                      => 'publish'
+            cn::EXAM_TYPE_COLS => 1,
+            
+            cn::EXAM_TABLE_TITLE_COLS => $this->createTestTitle(),
+            cn::EXAM_TABLE_FROM_DATE_COLS => Carbon::now(),
+            cn::EXAM_TABLE_TO_DATE_COLS => Carbon::now(),
+            cn::EXAM_TABLE_RESULT_DATE_COLS => Carbon::now(),
+            cn::EXAM_TABLE_PUBLISH_DATE_COL => Carbon::now(),
+            cn::EXAM_TABLE_TIME_DURATIONS_COLS => $timeduration,
+            cn::EXAM_TABLE_QUESTION_IDS_COL => ($questionIds) ?  $questionIds : null,
+            cn::EXAM_TABLE_STUDENT_IDS_COL => $this->LoggedUserId(),
+            cn::EXAM_TABLE_SCHOOL_COLS => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+            cn::EXAM_TABLE_IS_UNLIMITED => ($request->self_learning_test_type == 1) ? 1 : 0,
+            cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL => $request->self_learning_test_type,
+            cn::EXAM_TABLE_CREATED_BY_COL => $this->LoggedUserId(),
+            'created_by_user' => 'student',
+            cn::EXAM_TABLE_STATUS_COLS => 'publish'
         ];
         $exams = Exam::create($examData);
         if($exams){
@@ -796,20 +794,20 @@ class RealTimeAIQuestionGeneratorController extends Controller
             }
 
             $PostData = [
-                cn::ATTEMPT_EXAMS_EXAM_ID                       => $exams->id,
-                cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID            => $this->LoggedUserId(),
-                cn::ATTEMPT_EXAMS_STUDENT_GRADE_ID              => Auth::user()->grade_id,
-                cn::ATTEMPT_EXAMS_STUDENT_CLASS_ID              => Auth::user()->class_id,
-                cn::ATTEMPT_EXAMS_LANGUAGE_COL                  => 'en',
-                cn::ATTEMPT_EXAMS_QUESTION_ANSWER_COL           => (!empty($AttemptedQuestionAnswers)) ? json_encode($AttemptedQuestionAnswers) : null,
-                cn::ATTEMPT_EXAMS_WRONG_ANSWER_COL              => '',
-                //cn::ATTEMPT_EXAMS_ATTEMPT_FIRST_TRIAL_COL     => $request->attempt_first_trial_data_new,
-                //cn::ATTEMPT_EXAMS_ATTEMPT_SECOND_TRIAL_COL    => $wrong_ans_list_json,
-                cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS         => $NoOfCorrectAnswers,
-                cn::ATTEMPT_EXAMS_TOTAL_WRONG_ANSWERS           => $NoOfWrongAnswers,
-                cn::ATTEMPT_EXAMS_EXAM_TAKING_TIMING            => $request->exam_taking_timing,
-                cn::ATTEMPT_EXAMS_STUDENT_ABILITY_COL           => ($StudentAbility!='') ? $StudentAbility : null,
-                cn::ATTEMPT_EXAMS_SERVER_DETAILS_COL            => json_encode($this->serverData()) ?? null
+                cn::ATTEMPT_EXAMS_EXAM_ID => $exams->id,
+                cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $this->LoggedUserId(),
+                cn::ATTEMPT_EXAMS_STUDENT_GRADE_ID => Auth::user()->grade_id,
+                cn::ATTEMPT_EXAMS_STUDENT_CLASS_ID => Auth::user()->class_id,
+                cn::ATTEMPT_EXAMS_LANGUAGE_COL => 'en',
+                cn::ATTEMPT_EXAMS_QUESTION_ANSWER_COL => (!empty($AttemptedQuestionAnswers)) ? json_encode($AttemptedQuestionAnswers) : null,
+                cn::ATTEMPT_EXAMS_WRONG_ANSWER_COL => '',
+                //cn::ATTEMPT_EXAMS_ATTEMPT_FIRST_TRIAL_COL => $request->attempt_first_trial_data_new,
+                //cn::ATTEMPT_EXAMS_ATTEMPT_SECOND_TRIAL_COL => $wrong_ans_list_json,
+                cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS => $NoOfCorrectAnswers,
+                cn::ATTEMPT_EXAMS_TOTAL_WRONG_ANSWERS => $NoOfWrongAnswers,
+                cn::ATTEMPT_EXAMS_EXAM_TAKING_TIMING => $request->exam_taking_timing,
+                cn::ATTEMPT_EXAMS_STUDENT_ABILITY_COL => ($StudentAbility!='') ? $StudentAbility : null,
+                cn::ATTEMPT_EXAMS_SERVER_DETAILS_COL => json_encode($this->serverData()) ?? null
             ];
             $save = AttemptExams::create($PostData);
             if($save){

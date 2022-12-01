@@ -60,8 +60,7 @@ class UpdateStudentOverAllAbility implements ShouldQueue
         $LearningsUnitsLbl = array();
         $LearningsObjectivesLbl = array();
         $PreConfigurationDifficultyLevel = array();
-        // $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
-        PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get()->toArray();
+        $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
         if(isset($PreConfigurationDiffiltyLevelData)){
             $PreConfigurationDifficultyLevel = array_column($PreConfigurationDiffiltyLevelData,cn::PRE_CONFIGURE_DIFFICULTY_TITLE_COL,cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_COL);
         }
@@ -71,6 +70,8 @@ class UpdateStudentOverAllAbility implements ShouldQueue
             $learningUnitsIds = LearningsUnits::where(cn::LEARNING_UNITS_STRANDID_COL, $strandId)->pluck(cn::LEARNING_UNITS_ID_COL)->toArray();
             if(!empty($learningUnitsIds)){
                 foreach($learningUnitsIds as $learningUnitsId){
+                    // $learningObjectivesIds = LearningsObjectives::where(cn::LEARNING_OBJECTIVES_LEARNING_UNITID_COL, $learningUnitsId)->pluck(cn::LEARNING_OBJECTIVES_ID_COL)->toArray();
+                    // $LearningsObjectivesLbl = LearningsObjectives::where(cn::LEARNING_OBJECTIVES_LEARNING_UNITID_COL, $learningUnitsId)->pluck('title_'.app()->getLocale(),cn::LEARNING_OBJECTIVES_ID_COL)->toArray();
                     $learningObjectivesIds = LearningsObjectives::IsAvailableQuestion()->where(cn::LEARNING_OBJECTIVES_LEARNING_UNITID_COL, $learningUnitsId)->pluck(cn::LEARNING_OBJECTIVES_ID_COL)->toArray();
                     $LearningsObjectivesLbl = LearningsObjectives::IsAvailableQuestion()->where(cn::LEARNING_OBJECTIVES_LEARNING_UNITID_COL, $learningUnitsId)->pluck('title_'.app()->getLocale(),cn::LEARNING_OBJECTIVES_ID_COL)->toArray();
                     if(!empty($learningObjectivesIds)){
