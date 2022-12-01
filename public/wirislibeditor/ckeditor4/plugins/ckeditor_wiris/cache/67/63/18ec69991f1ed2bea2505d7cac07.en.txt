@@ -1,0 +1,1 @@
+{"result":{"text":"left parenthesis fraction numerator 5 p x minus 2 over denominator 7 end fraction right parenthesis left parenthesis fraction numerator 4 x plus 3 over denominator 6 end fraction right parenthesis equals 0"},"status":"ok"}

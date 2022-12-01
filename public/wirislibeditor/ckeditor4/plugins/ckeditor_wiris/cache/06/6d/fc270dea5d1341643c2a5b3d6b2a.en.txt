@@ -1,0 +1,1 @@
+{"result":{"text":"y equals negative 2 x squared plus 7 x plus 3"},"status":"ok"}

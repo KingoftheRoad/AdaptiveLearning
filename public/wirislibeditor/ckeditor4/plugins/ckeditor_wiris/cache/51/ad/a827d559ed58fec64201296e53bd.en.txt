@@ -1,0 +1,1 @@
+{"result":{"text":"alpha equals negative 2"},"status":"ok"}

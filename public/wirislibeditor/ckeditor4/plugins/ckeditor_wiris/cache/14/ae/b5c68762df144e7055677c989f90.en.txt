@@ -1,0 +1,1 @@
+{"result":{"text":"left parenthesis 2 x plus 5 right parenthesis squared minus 5 left parenthesis 2 x plus 5 right parenthesis plus 6 equals 0\n"},"status":"ok"}

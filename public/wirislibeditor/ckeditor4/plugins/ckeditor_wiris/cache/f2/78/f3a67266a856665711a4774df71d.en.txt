@@ -1,0 +1,1 @@
+{"result":{"text":"4 x squared minus 17 x minus 5 k equals 0"},"status":"ok"}

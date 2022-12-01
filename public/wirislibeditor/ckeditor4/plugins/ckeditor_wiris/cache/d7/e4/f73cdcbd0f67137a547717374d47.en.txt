@@ -1,0 +1,1 @@
+{"result":{"text":"y space equals space 2 x squared space plus space 8 x space plus space 8"},"status":"ok"}

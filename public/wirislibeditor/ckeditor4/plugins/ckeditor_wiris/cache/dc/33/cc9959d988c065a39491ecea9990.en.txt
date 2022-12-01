@@ -1,0 +1,1 @@
+{"result":{"text":"alpha squared ＋ beta squared"},"status":"ok"}

@@ -1,0 +1,1 @@
+{"result":{"text":"x equals 3.8"},"status":"ok"}

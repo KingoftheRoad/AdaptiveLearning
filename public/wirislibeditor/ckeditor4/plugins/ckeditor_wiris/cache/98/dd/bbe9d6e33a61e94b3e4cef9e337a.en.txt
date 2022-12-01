@@ -1,0 +1,1 @@
+{"result":{"text":"left parenthesis 3 plus square root of 2 i right parenthesis left parenthesis 3 minus square root of 2 i right parenthesis space equals space 9 minus 2 i squared"},"status":"ok"}

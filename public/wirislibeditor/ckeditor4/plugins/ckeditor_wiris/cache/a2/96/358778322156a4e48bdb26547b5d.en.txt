@@ -1,0 +1,1 @@
+{"result":{"text":"147 minus 49 square root of 2 i"},"status":"ok"}

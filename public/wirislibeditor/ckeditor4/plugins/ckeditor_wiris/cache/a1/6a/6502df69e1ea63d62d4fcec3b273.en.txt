@@ -1,0 +1,1 @@
+{"result":{"text":"left parenthesis x minus p right parenthesis left parenthesis x minus 7 right parenthesis equals negative 48"},"status":"ok"}
