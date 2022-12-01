@@ -1,0 +1,1 @@
+{"result":{"text":"left parenthesis a x minus b right parenthesis squared equals left parenthesis a x right parenthesis squared minus 2 a b x plus b squared\nL e t space y equals x minus 3\n4 y squared minus 4 y plus 1"},"status":"ok"}

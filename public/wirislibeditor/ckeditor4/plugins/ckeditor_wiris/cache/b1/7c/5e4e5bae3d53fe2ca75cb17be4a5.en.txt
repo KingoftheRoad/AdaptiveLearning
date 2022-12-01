@@ -1,0 +1,1 @@
+{"result":{"text":"x equals negative 5"},"status":"ok"}

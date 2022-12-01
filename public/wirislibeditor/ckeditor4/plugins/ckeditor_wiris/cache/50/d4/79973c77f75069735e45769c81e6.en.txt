@@ -1,0 +1,1 @@
+{"result":{"text":"3 over 11 plus fraction numerator square root of 2 over denominator 11 end fraction i"},"status":"ok"}

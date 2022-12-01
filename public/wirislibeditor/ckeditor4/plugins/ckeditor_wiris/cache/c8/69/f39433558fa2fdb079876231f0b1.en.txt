@@ -1,0 +1,1 @@
+{"result":{"text":"left parenthesis 1 minus square root of 2 i right parenthesis squared left parenthesis 1 plus square root of 2 end root i right parenthesis to the power of 3 end exponent"},"status":"ok"}

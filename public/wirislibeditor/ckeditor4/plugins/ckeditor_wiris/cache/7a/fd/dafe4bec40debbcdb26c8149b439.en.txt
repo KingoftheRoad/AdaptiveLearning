@@ -1,0 +1,1 @@
+{"result":{"text":"square root of 2 space plus space square root of 2"},"status":"ok"}

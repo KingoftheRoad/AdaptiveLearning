@@ -1,0 +1,1 @@
+{"result":{"text":"17 over 168 minus 53 over 168 i"},"status":"ok"}

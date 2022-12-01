@@ -1,0 +1,1 @@
+{"result":{"text":"363 minus 121 square root of 2 i"},"status":"ok"}

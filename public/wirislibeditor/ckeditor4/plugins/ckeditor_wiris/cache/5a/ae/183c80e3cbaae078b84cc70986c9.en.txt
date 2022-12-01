@@ -1,0 +1,1 @@
+{"result":{"text":"negative 1 over alpha"},"status":"ok"}

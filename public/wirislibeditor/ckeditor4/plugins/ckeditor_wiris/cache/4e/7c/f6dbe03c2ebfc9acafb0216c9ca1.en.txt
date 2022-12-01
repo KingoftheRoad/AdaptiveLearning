@@ -1,0 +1,1 @@
+{"result":{"text":"left parenthesis 9 minus y right parenthesis left parenthesis y minus 1 right parenthesis"},"status":"ok"}

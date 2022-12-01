@@ -1,0 +1,1 @@
+{"result":{"text":"fraction numerator square root of 2 over denominator square root of 8 end fraction"},"status":"ok"}

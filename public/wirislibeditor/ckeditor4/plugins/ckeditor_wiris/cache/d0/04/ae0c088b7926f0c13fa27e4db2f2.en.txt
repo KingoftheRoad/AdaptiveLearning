@@ -1,0 +1,1 @@
+{"result":{"text":"alpha plus beta equals negative 3"},"status":"ok"}

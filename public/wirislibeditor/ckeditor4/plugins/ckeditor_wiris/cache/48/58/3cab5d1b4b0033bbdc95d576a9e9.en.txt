@@ -1,0 +1,1 @@
+{"result":{"text":"16 a squared x squared plus 24 a c x plus 9 c squared"},"status":"ok"}

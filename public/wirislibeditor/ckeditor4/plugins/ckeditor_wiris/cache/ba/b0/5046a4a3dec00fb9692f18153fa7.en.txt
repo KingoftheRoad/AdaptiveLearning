@@ -1,0 +1,1 @@
+{"result":{"text":"9 left parenthesis x plus 3 right parenthesis squared minus 4 c equals 0"},"status":"ok"}

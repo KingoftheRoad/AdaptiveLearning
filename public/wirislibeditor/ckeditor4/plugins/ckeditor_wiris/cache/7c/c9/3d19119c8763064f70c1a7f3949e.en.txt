@@ -1,0 +1,1 @@
+{"result":{"text":"p equals left parenthesis 12 minus 7 i right parenthesis minus k left parenthesis 9 minus 5 i right parenthesis"},"status":"ok"}

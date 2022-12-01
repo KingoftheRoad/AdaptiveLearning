@@ -1,0 +1,1 @@
+{"result":{"text":"x squared space plus space b x space plus space c space equals space 0"},"status":"ok"}

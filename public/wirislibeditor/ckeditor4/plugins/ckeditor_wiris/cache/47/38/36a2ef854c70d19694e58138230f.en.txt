@@ -1,0 +1,1 @@
+{"result":{"text":"x squared plus 12 x plus 36"},"status":"ok"}

@@ -1,0 +1,1 @@
+{"result":{"text":"x equals negative 3 over 2 space o r space x equals fraction numerator 4 over denominator 3 p end fraction"},"status":"ok"}

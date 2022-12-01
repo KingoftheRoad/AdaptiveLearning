@@ -1,0 +1,1 @@
+{"result":{"text":"alpha space minus space 1"},"status":"ok"}
