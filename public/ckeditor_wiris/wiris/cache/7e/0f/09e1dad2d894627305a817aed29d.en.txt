@@ -1,0 +1,1 @@
+{"result":{"text":"square root of 64 x squared end root"},"status":"ok"}

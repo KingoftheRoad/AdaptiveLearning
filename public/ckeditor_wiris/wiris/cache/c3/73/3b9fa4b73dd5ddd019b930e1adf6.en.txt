@@ -1,0 +1,1 @@
+{"result":{"text":"Let space p equals left parenthesis 12 minus 7 i right parenthesis minus k left parenthesis 9 minus 5 i right parenthesis space comma space where space k space is space real space number. space If space p space is space straight a space real space number comma space find space k comma"},"status":"ok"}

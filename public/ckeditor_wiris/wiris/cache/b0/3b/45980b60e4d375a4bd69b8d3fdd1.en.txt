@@ -1,0 +1,1 @@
+{"result":{"text":"2 x squared minus k x plus 8 equals 0"},"status":"ok"}

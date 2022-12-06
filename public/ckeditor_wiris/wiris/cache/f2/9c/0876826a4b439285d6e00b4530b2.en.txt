@@ -1,0 +1,1 @@
+{"result":{"text":"k x squared space plus space 2 x space minus space 1 space equals space 0"},"status":"ok"}

@@ -1,0 +1,1 @@
+{"result":{"text":"x squared minus 5 x plus k equals 0"},"status":"ok"}

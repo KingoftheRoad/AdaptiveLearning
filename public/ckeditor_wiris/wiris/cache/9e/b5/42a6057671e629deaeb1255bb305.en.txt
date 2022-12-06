@@ -1,0 +1,1 @@
+{"result":{"text":"3 over 4 x squared minus 2 over 3 x minus 1 half equals 0"},"status":"ok"}

@@ -1,0 +1,1 @@
+{"result":{"text":"y equals k x squared minus 4 x plus 1"},"status":"ok"}

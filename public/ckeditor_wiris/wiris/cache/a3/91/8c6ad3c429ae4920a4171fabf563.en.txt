@@ -1,0 +1,1 @@
+{"result":{"text":"x equals negative 2 space or space x equals negative 7"},"status":"ok"}

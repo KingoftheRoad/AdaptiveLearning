@@ -1,0 +1,1 @@
+{"result":{"text":"2 x squared minus 9 x plus c space equals space 0"},"status":"ok"}

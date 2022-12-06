@@ -1,0 +1,1 @@
+{"result":{"text":"6 x squared plus 15 x"},"status":"ok"}

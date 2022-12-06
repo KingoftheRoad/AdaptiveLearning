@@ -1,0 +1,1 @@
+{"result":{"text":"4 x squared plus 12 c x equals 0"},"status":"ok"}

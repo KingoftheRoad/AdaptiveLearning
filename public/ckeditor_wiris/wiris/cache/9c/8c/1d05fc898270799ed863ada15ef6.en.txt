@@ -1,0 +1,1 @@
+{"result":{"text":"left parenthesis alpha plus space 1 right parenthesis left parenthesis beta space plus space 1 right parenthesis"},"status":"ok"}

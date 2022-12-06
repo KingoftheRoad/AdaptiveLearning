@@ -1,0 +1,1 @@
+{"result":{"text":"4 k x squared space minus space 2 x space plus space 6 space equals space 0"},"status":"ok"}

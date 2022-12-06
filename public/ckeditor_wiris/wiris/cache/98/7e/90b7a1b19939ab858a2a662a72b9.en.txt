@@ -1,0 +1,1 @@
+{"result":{"text":"left parenthesis 2 x space minus space 7 right parenthesis left parenthesis 4 x space minus space 12 right parenthesis space equals space 0"},"status":"ok"}

@@ -1,0 +1,1 @@
+{"result":{"text":"x squared plus k x minus 4 equals left parenthesis 2 x plus 1 right parenthesis left parenthesis 2 x minus 1 right parenthesis"},"status":"ok"}

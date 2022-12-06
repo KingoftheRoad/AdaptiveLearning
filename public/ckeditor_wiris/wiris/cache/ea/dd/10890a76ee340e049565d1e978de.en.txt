@@ -1,0 +1,1 @@
+{"result":{"text":"open parentheses 2 x plus 1 close parentheses open parentheses x minus 3 close parentheses equals 0"},"status":"ok"}

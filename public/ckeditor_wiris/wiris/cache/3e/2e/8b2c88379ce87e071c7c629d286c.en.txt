@@ -1,0 +1,1 @@
+{"result":{"text":"square root of left parenthesis x plus 2 right parenthesis squared minus 8 x end root equals 0"},"status":"ok"}

@@ -1,0 +1,1 @@
+{"result":{"text":"47 plus 50 i"},"status":"ok"}

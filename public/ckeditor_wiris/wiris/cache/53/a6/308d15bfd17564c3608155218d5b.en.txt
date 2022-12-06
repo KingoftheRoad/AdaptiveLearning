@@ -1,0 +1,1 @@
+{"result":{"text":"4 x squared minus 20 x plus 13 equals 0"},"status":"ok"}

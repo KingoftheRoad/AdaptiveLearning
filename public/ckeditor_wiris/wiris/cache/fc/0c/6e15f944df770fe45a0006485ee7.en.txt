@@ -1,0 +1,1 @@
+{"result":{"text":"2 x squared minus x minus 6"},"status":"ok"}

@@ -1,0 +1,1 @@
+{"result":{"text":"36 left parenthesis plus 2 right parenthesis squared plus 84 left parenthesis plus 2 right parenthesis plus 49"},"status":"ok"}

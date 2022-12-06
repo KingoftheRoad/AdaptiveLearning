@@ -1,0 +1,1 @@
+{"result":{"text":"2 x squared plus 13 x plus 6 equals 0"},"status":"ok"}

@@ -1,0 +1,1 @@
+{"result":{"text":"2 x squared plus 5 x minus 3 equals 0"},"status":"ok"}

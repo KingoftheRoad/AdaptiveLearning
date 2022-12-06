@@ -1,0 +1,1 @@
+{"result":{"text":"space x equals negative 1.5 space or space x equals 1"},"status":"ok"}

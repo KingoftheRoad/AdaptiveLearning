@@ -1,0 +1,1 @@
+{"result":{"text":"a x squared plus b x plus c equals 0"},"status":"ok"}

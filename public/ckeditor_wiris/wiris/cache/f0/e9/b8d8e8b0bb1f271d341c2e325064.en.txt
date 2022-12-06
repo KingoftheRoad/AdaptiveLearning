@@ -1,0 +1,1 @@
+{"result":{"text":"k x squared minus 3 equals 2 k x plus k"},"status":"ok"}

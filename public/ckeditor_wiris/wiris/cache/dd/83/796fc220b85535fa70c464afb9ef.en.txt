@@ -1,0 +1,1 @@
+{"result":{"text":"2 x squared space plus space 3 x space equals space 6"},"status":"ok"}

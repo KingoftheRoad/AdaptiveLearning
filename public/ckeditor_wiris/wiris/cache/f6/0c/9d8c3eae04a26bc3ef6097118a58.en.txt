@@ -1,0 +1,1 @@
+{"result":{"text":"19 minus 7 i"},"status":"ok"}

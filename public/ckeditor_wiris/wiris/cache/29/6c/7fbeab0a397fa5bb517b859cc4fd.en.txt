@@ -1,0 +1,1 @@
+{"result":{"text":"x minus 5 equals square root of negative 9 end root"},"status":"ok"}

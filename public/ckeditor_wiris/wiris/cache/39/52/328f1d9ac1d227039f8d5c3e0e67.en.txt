@@ -1,0 +1,1 @@
+{"result":{"text":"left parenthesis 3.141592654 right parenthesis x"},"status":"ok"}

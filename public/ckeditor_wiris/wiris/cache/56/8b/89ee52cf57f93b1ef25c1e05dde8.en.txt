@@ -1,0 +1,1 @@
+{"result":{"text":"left parenthesis x space plus space 1 right parenthesis c m"},"status":"ok"}

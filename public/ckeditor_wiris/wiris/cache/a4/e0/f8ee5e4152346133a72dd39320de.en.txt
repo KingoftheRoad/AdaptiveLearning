@@ -1,0 +1,1 @@
+{"result":{"text":"Simplify space and space express space left parenthesis 2 minus 3 i right parenthesis left parenthesis 1 minus 3 i right parenthesis plus left parenthesis 1 plus 4 i right parenthesis squared space in space the space form space of space a plus b i"},"status":"ok"}

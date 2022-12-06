@@ -1,0 +1,1 @@
+{"result":{"text":"48 x squared minus 256 equals 0"},"status":"ok"}

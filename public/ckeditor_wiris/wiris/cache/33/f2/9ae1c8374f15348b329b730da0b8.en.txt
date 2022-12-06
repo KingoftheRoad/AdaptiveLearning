@@ -1,0 +1,1 @@
+{"result":{"text":"6 x squared plus 21 x equals 0"},"status":"ok"}

@@ -1,0 +1,1 @@
+{"result":{"text":"open parentheses x plus b close parentheses squared plus c equals 0"},"status":"ok"}

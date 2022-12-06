@@ -1,0 +1,1 @@
+{"result":{"text":"y equals 2 x squared plus 4 x plus 5"},"status":"ok"}

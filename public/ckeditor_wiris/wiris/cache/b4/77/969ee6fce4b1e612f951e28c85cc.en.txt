@@ -1,0 +1,1 @@
+{"result":{"text":"2 x squared space plus space 5 x space minus space 4 space equals space 0"},"status":"ok"}

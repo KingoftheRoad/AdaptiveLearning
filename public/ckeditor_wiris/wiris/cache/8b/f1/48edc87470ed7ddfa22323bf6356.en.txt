@@ -1,0 +1,1 @@
+{"result":{"text":"Let\na equals x minus 3\nbecause space left parenthesis x minus 3 right parenthesis squared plus 3 left parenthesis x minus 3 right parenthesis minus 4 equals 0\ntherefore space a squared plus 3 a minus 4 equals 0\n\nConsider space the space x minus intercept space of space the space graph space of space\ny equals x squared plus 3 x minus 4"},"status":"ok"}

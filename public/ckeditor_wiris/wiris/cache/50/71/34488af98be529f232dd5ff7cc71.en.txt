@@ -1,0 +1,1 @@
+{"result":{"text":"square root of negative 20 space end root space equals"},"status":"ok"}

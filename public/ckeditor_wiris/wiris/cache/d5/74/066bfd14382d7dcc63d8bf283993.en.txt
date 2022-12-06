@@ -1,0 +1,1 @@
+{"result":{"text":"5 x squared minus 7 x plus k equals 0"},"status":"ok"}

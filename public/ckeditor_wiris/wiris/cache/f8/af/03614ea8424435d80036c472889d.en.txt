@@ -1,0 +1,1 @@
+{"result":{"text":"beta over alpha plus alpha over beta"},"status":"ok"}

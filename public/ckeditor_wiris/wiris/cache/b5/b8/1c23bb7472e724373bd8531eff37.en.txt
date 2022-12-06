@@ -1,0 +1,1 @@
+{"result":{"text":"81 x squared minus 256 y to the power of 4"},"status":"ok"}

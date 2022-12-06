@@ -1,0 +1,1 @@
+{"result":{"text":"x squared minus 11 x plus 18 equals 0"},"status":"ok"}

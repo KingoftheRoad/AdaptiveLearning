@@ -1,0 +1,1 @@
+{"result":{"text":"3 x squared plus 6 x minus 1 equals 0"},"status":"ok"}

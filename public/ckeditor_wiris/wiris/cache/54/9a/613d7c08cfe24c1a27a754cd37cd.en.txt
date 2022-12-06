@@ -1,0 +1,1 @@
+{"result":{"text":"3 x to the power of 2 space end exponent minus 9 x space plus space 2 space equals space 0"},"status":"ok"}
