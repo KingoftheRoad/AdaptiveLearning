@@ -51,7 +51,6 @@
                                                 @endforeach
                                             @endif
                                         </select>
-                                        </fieldset>
                                         <span id="error-status"></span>
                                         @if($errors->has('learning_unit_id'))<span class="validation_error">{{ $errors->first('learning_unit_id') }}</span>@endif
                                     </div>

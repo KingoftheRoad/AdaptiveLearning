@@ -42,10 +42,13 @@ class CreditPointController extends Controller
             $PeerGroupList = PeerGroup::where([cn::PEER_GROUP_CREATED_BY_USER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}, cn::PEER_GROUP_STATUS_COL => '1'])->get();
 
             // get student list
-            $StudentList = User::whereIn(cn::USERS_GRADE_ID_COL,$TeacherGradeClass['grades'])
-                            ->whereIn(cn::USERS_CLASS_ID_COL,$TeacherGradeClass['class'])
-                            ->where([cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,cn::USERS_STATUS_COL => 'active'])
-                            ->get();
+            // $StudentList = User::whereIn(cn::USERS_GRADE_ID_COL,$TeacherGradeClass['grades'])
+            //                 ->whereIn(cn::USERS_CLASS_ID_COL,$TeacherGradeClass['class'])
+            //                 ->where([cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,cn::USERS_STATUS_COL => 'active'])
+            //                 ->get();
+            $StudentList = User::whereIn(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($TeacherGradeClass['grades'],$TeacherGradeClass['class'],$schoolId))
+            ->where([cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,cn::USERS_STATUS_COL => 'active'])
+            ->get();
         }
 
         if($this->isSchoolLogin() || $this->isPrincipalLogin()){    
@@ -69,12 +72,19 @@ class CreditPointController extends Controller
                                 ->whereIn(cn::GRADES_ID_COL,$GradeMapping)->get();
             
             // get student list
-            $StudentList = User::where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+            // $StudentList = User::where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+            //                 ->where(cn::USERS_ROLE_ID_COL,'=',cn::STUDENT_ROLE_ID)
+            //                 ->with('grades')->get();
+            $StudentList = User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids('','',Auth::user()->{cn::USERS_SCHOOL_ID_COL}))
                             ->where(cn::USERS_ROLE_ID_COL,'=',cn::STUDENT_ROLE_ID)
                             ->with('grades')->get();
 
             // Get Peer Group List
-            $PeerGroupList = PeerGroup::where([cn::PEER_GROUP_SCHOOL_ID_COL => $schoolId, cn::PEER_GROUP_STATUS_COL => '1'])->get();
+            $PeerGroupList = PeerGroup::where([
+                                cn::PEER_GROUP_SCHOOL_ID_COL => $schoolId,
+                                cn::PEER_GROUP_STATUS_COL => '1',
+                                cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear()
+                            ])->get();
         }
 
         if($request->isMethod('post')){
@@ -112,6 +122,7 @@ class CreditPointController extends Controller
                     if(isset($userCreditPointHistoryDataArray) && !empty($userCreditPointHistoryDataArray)){
                     foreach ($userCreditPointHistoryDataArray as $studentsData) {
                     UserCreditPointHistory::Create([
+                                                        cn::USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                                                         cn::USER_CREDIT_POINT_HISTORY_EXAM_ID_COL => Null,
                                                         cn::USER_CREDIT_POINT_HISTORY_USER_ID_COL => $studentsData['user_id'],
                                                         cn::USER_CREDIT_POINT_HISTORY_TEST_TYPE_COL => '',
@@ -128,6 +139,7 @@ class CreditPointController extends Controller
                         UserCreditPoints::updateOrCreate(
                             [cn::USER_CREDIT_USER_ID_COL => $studentId],
                             [
+                                cn::USER_CREDIT_POINTS_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                                 cn::USER_CREDIT_USER_ID_COL => $studentId,
                                 cn::USER_NO_OF_CREDIT_POINTS_COL => $GetStudentTotalCreditPoints
                             ]

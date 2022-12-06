@@ -11,9 +11,6 @@
 						<div class="sec-title">
 							<h2 class="mb-4 main-title">{{__('languages.progress_report')}}</h2>
 						</div>
-						<div class="sec-title">
-                            <a href="javascript:void(0);" class="btn-back" id="backButton">{{__('languages.back')}}</a>
-						</div>
 						<hr class="blue-line">
 					</div>
 				</div>
@@ -42,10 +39,6 @@
 						<label>{{__('languages.advanced')}}</label>
 					</div>
 					<div class="study_status_colors-sec">
-						<span class="dot-color" style="background-color: {{ App\Helpers\Helper::getGlobalConfiguration('accomplished_objective')}};border-radius: 50%;display: inline-block;"></span>
-						<label>{{__('languages.accomplished_objectives')}} ({{__('languages.mastered')}})</label>
-					</div>
-					<div class="study_status_colors-sec">
 						<span class="dot-color" style="background-color: {{ App\Helpers\Helper::getGlobalConfiguration('incomplete_color')}};border-radius: 50%;display: inline-block;"></span>
 						<label>{{__('languages.not_available')}}</label>
 					</div>
@@ -56,10 +49,10 @@
 						<div class="col-lg-2 col-md-2">
 							<div class="select-lng pb-2">
 								<label for="users-list-role">{{ __('languages.user_management.grade') }}</label>
-								<select class="form-control" data-show-subtext="true" data-live-search="true" name="grade_id[]" id="student_multiple_grade_id" required >
+								<select class="form-control" data-show-subtext="true" data-live-search="true" name="grade_id[]" id="student_multiple_grade_id" multiple required >
 									@if(!empty($GradesList))
 									@foreach($GradesList as $grade)
-									<option value="{{$grade['id']}}" @if(null !== request()->get('grade_id') && in_array($grade['id'],request()->get('grade_id'))) selected @elseif($loop->index==0) selected @endif>{{$grade['name']}}</option>
+									<option value="{{$grade['id']}}" @if(null !== request()->get('grade_id') && in_array($grade['id'],request()->get('grade_id'))) selected @elseif(null == request()->get('grade_id')) selected @endif>{{$grade['name']}}</option>
 									@endforeach
 									@endif
 								</select>
@@ -68,10 +61,10 @@
 						<div class="col-lg-2 col-md-3">
 							<div class="select-lng pb-2">
 								<label for="users-list-role">{{ __('languages.class') }}</label>
-								<select name="class_type_id[]" class="form-control" id="classType-select-option" >
+								<select name="class_type_id[]" class="form-control" id="classType-select-option" multiple>
 									@if(!empty($teachersClassList))
 									@foreach($teachersClassList as $class)
-									<option value="{{$class['class_id']}}" @if(null !== request()->get('class_type_id') && in_array($class['class_id'],request()->get('class_type_id'))) selected @elseif($classid == $class['class_id']) selected @endif>{{$class['class_name']}}</option>
+									<option value="{{$class['class_id']}}" @if(null !== request()->get('class_type_id') && in_array($class['class_id'],request()->get('class_type_id'))) selected @elseif(null == request()->get('class_type_id')) selected @endif>{{$class['class_name']}}</option>
 									@endforeach
 									@endif
 								</select>
@@ -80,39 +73,19 @@
 						<div class="col-lg-4 col-md-4">
 							<div class="select-lng pb-2">
 								<label for="users-list-role">{{ __('languages.strands') }}</label>
-								<select name="learningReportStrand[]" class="form-control select-option" id="strand_id">
+								<select name="learningReportStrand[]" multiple class="form-control select-option" id="learningReportStrandMuti">
 									@if(!empty($strandData))
 									@foreach($strandData as $strand)
 									<option value="{{$strand->id}}" 
 									@if(null !== request()->get('learningReportStrand') && in_array($strand->id,request()->get('learningReportStrand'))) 
 										selected
-									@elseif($loop->index==0)
+									@elseif(null == request()->get('learningReportStrand')) 
 									selected 
 									@endif
 									>{{ $strand->{'name_'.app()->getLocale()} }}</option>
 									@endforeach
 									@endif
 								</select>
-							</div>
-						</div>
-						<div class="col-lg-4 col-md-4">
-							<div class="select-lng pb-2">
-								<label>{{__('languages.upload_document.learning_units')}}</label>
-                                <select name="learning_unit_id" class="form-control select-option" id="learning_unit" >
-                                    @if(isset($LearningUnits) && !empty($LearningUnits))
-                                        @foreach ($LearningUnits as $learningUnitKey => $learningUnit)
-                                            <option value="{{ $learningUnit->id }}" 
-                                            	@if(null !== request()->get('learning_unit_id') && $learningUnit->id==request()->get('learning_unit_id')) 
-													selected
-												@elseif($loop->index==0)
-												selected 
-												@endif
-											>{{ $learningUnit->{'name_'.app()->getLocale()} }}</option>
-                                        @endforeach
-                                    @else
-                                        <option value="">{{__('languages.no_learning_units_available')}}</option>
-                                    @endif
-                                </select>
 							</div>
 						</div>
 						<div class="select-lng pb-2 col-lg-2 col-md-4">
@@ -151,52 +124,35 @@
 											@endif
 										</h5>
 									</div>
-									<div class="table-responsive learning-progress-report-table-wrapper">
-										<table class="table table-bordered learning-progress-report-table">
-											<thead>
-												<tr>
-													<th>{{__('languages.student_name')}}</th>
-													<th>{{__('languages.mastered')}}</th>
-													@foreach($learningObjectivesList as $learningObjectives)
-														<th>{{ $learningObjectives->foci_number }}</th>
-													@endforeach
-												</tr>
-											</thead>
-											<tbody>
-												@foreach($learningUnits as $class_title => $classes)
-													@foreach($classes as $students)
-														<tr>
-															<td><?php echo  App\Helpers\Helper::decrypt($students['student_data'][0]['name_'.app()->getLocale()]); ?></td>
-															<td>
-																<div class="progress" data-toggle="tooltip" data-placement="top"  title="{{$students['master_objectives']['percentage']}}% ({{$students['master_objectives']['no_of_mastered_learning_objectives']}}/{{$students['master_objectives']['no_of_learning_objectives']}})" style="height: 2rem;}};">
-																<div class="progress-bar" style="background:{{App\Helpers\Helper::getGlobalConfiguration('accomplished_objective')}};width: {{$students['master_objectives']['percentage']}}%" role="progressbar" aria-valuenow="{{$students['master_objectives']['percentage']}}" aria-valuemin="0" aria-valuemax="100"></div>
-																<span class="mt-1 ml-1 h6">{{$students['master_objectives']['percentage']}}% ({{$students['master_objectives']['no_of_mastered_learning_objectives']}}/{{$students['master_objectives']['no_of_learning_objectives']}})</span>
-																</div>
-															</td>
-															@foreach($students['report_data'] as $report_data)
-															<td>
-																@php
-																	$normalizedAbility=0;
-																	$studyStatusColor='background:'.App\Helpers\Helper::getGlobalConfiguration('incomplete_color').';color:#FFF;';
-																@endphp
+									@foreach($learningUnits as $class_title => $classes)
+										<div class="col-md-12 progress-report-class-title font-weight-bold">{{$class_title}}</div>
+										<hr class="blue-line">
+										@foreach($classes as $students)
+										<div class="col-md-12">
+											<div class="main-project-ratio">
+												<hr class="blue-line">
+												<?php $studentName = $students['student_data'][0]['name_'.app()->getLocale()]; ?>
+												<p class="progress-report-student-name font-weight-bold">{{App\Helpers\Helper::decrypt($studentName)}}</p>												
+												@foreach($students['report_data'] as $report_data)
+													<div class="ratio text-center">
+														<div class="project-ratio">
+															<div class="project-ratio-inner" data-toggle="tooltip" data-placement="top"  title="{{$report_data['LearningsObjectives']}}" style="background:{{$report_data['studyStatusColor']}};">
+															<p class="mt-3">
 																@if(!empty($report_data['normalizedAbility']))
-																	@php
-																		$normalizedAbility = $report_data['normalizedAbility'];
-																		$studyStatusColor = '';
-																	@endphp
+																	{{$report_data['normalizedAbility']}}%
+																@else
+																	{{'N/A'}}
 																@endif
-																<div class="progress" data-toggle="tooltip" data-placement="top"  title="{{$report_data['LearningsObjectives']}}" style="height: 2rem;{{ $studyStatusColor  }}">
-																	<div class="progress-bar" style="background:{{ $report_data['studyStatusColor']; }};width: {{ $normalizedAbility }}%" role="progressbar" aria-valuenow="{{ $normalizedAbility }}" aria-valuemin="0" aria-valuemax="100"></div>
-																	<span class="mt-1 ml-1 h6">{{($report_data['ShortNormalizedAbility'] !=0 ? $report_data['ShortNormalizedAbility'].'%' : 'N/A') }}</span>
-																</div>
-															</td>
-															@endforeach		
-														</tr>
-													@endforeach
+															</p>
+														</div>
+													</div>
+													<span class="font-weight-bold" title="{{$report_data['LearningsObjectives']}}">{{$report_data['learning_objective_number']}}</span>
+												</div>
 												@endforeach
-											</tbody>
-										</table>
-									</div>
+											</div>
+										</div>
+										@endforeach
+									@endforeach
 								</div>
 							</div>
 						</div>
@@ -208,53 +164,4 @@
 		</div>
 	</div>
 </div>
-@include('backend.layouts.footer')
-<script type="text/javascript">
-	/**
-	 * USE : Get Learning Units from multiple strands
-	 * **/
-	$(document).on('change', '#strand_id', function() {
-		$strandIds = new Array();
-		$strandIds.push($('#strand_id').val())
-		if($strandIds != ""){
-			$.ajax({
-				url: BASE_URL + '/getLearningUnitFromMultipleStrands',
-				type: 'POST',
-				data: {
-					'_token': $('meta[name="csrf-token"]').attr('content'),
-					'grade_id': $('#grade-id').val(),
-					'subject_id': $('#subject-id').val(),
-					'strands_ids': $strandIds
-				},
-				success: function(response) {
-					$('#learning_unit').html('');
-					$("#cover-spin").hide();
-					var data = JSON.parse(JSON.stringify(response));
-					if(data){
-						if(data.data){
-							$(data.data).each(function() {
-								var option = $('<option />');
-								option.attr('value', this.id).text(this.name);
-								option.attr('selected', 'selected');
-								$('#learning_unit').append(option);
-							});
-						}else{
-							$('#learning_unit').html('<option value="">'+LEARNING_UNITS_NOT_AVAILABLE+'</option>');
-						}
-					}else{
-						$('#learning_unit').html('<option value="">'+LEARNING_UNITS_NOT_AVAILABLE+'</option>');
-					}
-					$('#learning_unit').multiselect("rebuild");
-					$('#learning_unit').trigger("change");
-				},
-				error: function(response) {
-					ErrorHandlingMessage(response);
-				}
-			});
-		}else{
-			$('#learning_unit, #learning_objectives').html('');
-			$('#learning_unit, #learning_objectives').multiselect("rebuild");
-		}
-	});
-</script>
 @endsection

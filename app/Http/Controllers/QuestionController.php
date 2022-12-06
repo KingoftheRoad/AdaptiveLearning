@@ -127,37 +127,45 @@ class QuestionController extends Controller
             $Nodes = new Nodes;
             $NodesList = $Nodes->get_nodelist();
             // Extra changes
-            $subjectIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,4)->groupBy(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL)->pluck(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL);
+            $subjectIds =   StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,4)
+                            ->groupBy(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL)
+                            ->pluck(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL);
             if($subjectIds->isNotEmpty()){
                 $subjectIds = array_unique($subjectIds->toArray());
                 $subjects = Subjects::whereIn(cn::SUBJECTS_ID_COL, $subjectIds)->get();
                 $code['subject'] = $subjects[0]['code'];
                 $code['subject_id'] = $subjects[0]['id'];
             }
-            $strandsIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,4)
-                    ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
-                    ->pluck(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL);
+            $strandsIds = StrandUnitsObjectivesMappings::where([
+                            cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL => 4,
+                            cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL => 1
+                        ])
+                        ->pluck(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL);
             if($strandsIds->isNotEmpty()){
                 $strandsIds = array_unique($strandsIds->toArray());
                 $strands = Strands::whereIn(cn::STRANDS_ID_COL, $strandsIds)->get();
                 $code['strand'] = $strands[0]['code'];
                 $code['strand_id'] = $strands[0]['id'];
             }
-            $learningUnitsIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,4)
-                    ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
-                    ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,1)
-                    ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL);
+            $learningUnitsIds = StrandUnitsObjectivesMappings::where([
+                                    cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL => 4,
+                                    cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL => 1,
+                                    cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL => 1
+                                ])
+                                ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL);
             if($learningUnitsIds->isNotEmpty()){
                 $learningUnitsIds = array_unique($learningUnitsIds->toArray());
                 $LearningUnits = LearningsUnits::whereIn(cn::LEARNING_UNITS_ID_COL, $learningUnitsIds)->get();
                 $code['LearningUnit'] = $LearningUnits[0]['code'];
                 $code['LearningUnit_id'] = $LearningUnits[0]['id'];
             }
-            $learningObjectivesIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,4)
-                    ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
-                    ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,1)
-                    ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,1)
-                    ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL);
+            $learningObjectivesIds = StrandUnitsObjectivesMappings::where([
+                                        cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL => 4,
+                                        cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL => 1,
+                                        cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL => 1,
+                                        cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL => 1
+                                    ])
+                                    ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL);
             if($learningObjectivesIds->isNotEmpty()){
                 $learningObjectivesIds = array_unique($learningObjectivesIds->toArray());
                 // $LearningObjectives = LearningsObjectives::whereIn(cn::LEARNING_OBJECTIVES_ID_COL, $learningObjectivesIds)->get();
@@ -171,14 +179,17 @@ class QuestionController extends Controller
 
             $count = 0;
             if(!empty($code['grade_id']) && !empty($code['subject_id']) && !empty($code['strand_id']) && !empty($code['LearningUnit_id']) && !empty($code['LearningObjective_id'])){
-                $MappingIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,$code['grade_id'])
-                            ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,$code['subject_id'])
-                            ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$code['strand_id'])
-                            ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$code['LearningUnit_id'])
-                            ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$code['LearningObjective_id'])
-                            ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL);
+                $MappingIds =   StrandUnitsObjectivesMappings::where([
+                                    cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL => $code['grade_id'],
+                                    cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL => $code['subject_id'],
+                                    cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL => $code['strand_id'],
+                                    cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL => $code['LearningUnit_id'],
+                                    cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL => $code['LearningObjective_id']
+                                ])
+                                ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL);
                 if($MappingIds->isNotEmpty()){
-                    $count = Question::whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL, $MappingIds->toArray())->where(cn::QUESTION_G_COL,strtolower('f'))->count();
+                    $count =    Question::whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL, $MappingIds->toArray())
+                                ->where(cn::QUESTION_G_COL,strtolower('f'))->count();
                 }
             }
         
@@ -187,7 +198,6 @@ class QuestionController extends Controller
                 $questionCode = $this->getQuestionCode($code,$count);
             }
             return view('backend.question.add',compact("Grades","mainnodeList","subjects","strands","LearningUnits","LearningObjectives","questionCode","schoolList","NodesList"));
-           
         } catch (\Exception $exception) {
             return back()->withError($exception->getMessage())->withInput();
         }
@@ -281,7 +291,6 @@ class QuestionController extends Controller
                     cn::ANSWER_CORRECT_ANSWER_EN_COL    => $request->correct_answer_en,
                     cn::ANSWER_CORRECT_ANSWER_CH_COL    => $request->correct_answer_ch,
                 );
-               
                 $result = Answer::create($StoreAnswerData);
                 if($result){
                     return redirect('questions')->with('success_msg', __('languages.question_added_successfully'));
@@ -371,6 +380,7 @@ class QuestionController extends Controller
         }
     }
 
+    /** USE : Copy and Create new question */
     public function questionCopyAndCreate($id){
         try{
             if(!in_array('question_bank_update', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
@@ -392,18 +402,13 @@ class QuestionController extends Controller
             }
             $NodesParent = new Nodes;
             $NodesList = $NodesParent->get_nodelist();
-            
-
             $QuestionData = Question::with('answers')
                             ->where(cn::QUESTION_TABLE_NAME.'.'.cn::QUESTION_TABLE_ID_COL,$id)
                             ->first();
-        
             if(isset($QuestionData)){
                 $question_type_ids = explode(',',$QuestionData->question_type);
             }
-
             return view('backend.question.copy_create',compact('QuestionData','question_type_ids','nodeWeaknessList','mainnodeList','nodeMainIdList','NodesList','nodeWeaknessChList'));
-           
         } catch (\Exception $exception) {
             return back()->withError($exception->getMessage())->withInput();
         }
@@ -532,8 +537,7 @@ class QuestionController extends Controller
         try{
             if(!in_array('question_bank_delete', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
                 return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
-            } 
-
+            }
             $DeleteAnswer = Answer::where(cn::ANSWER_QUESTION_ID_COL,$id)->delete();
             if($DeleteAnswer){
                 $Question = Question::find($id);
@@ -591,10 +595,9 @@ class QuestionController extends Controller
         if(isset($request->selectedVideoId) && !empty($request->selectedVideoId)){
             $selectedVideoId =  $request->selectedVideoId;
         }
-        $language_code='en';
-        if(isset($request->language) && !empty($request->language))
-        {
-            $language_code=$request->language;
+        $language_code = 'en';
+        if(isset($request->language) && !empty($request->language)){
+            $language_code = $request->language;
         }
         $language=Languages::where(cn::LANGUAGES_CODE_COL,$language_code)->get()->toArray();
         if(!empty($request->question_code)){
@@ -626,7 +629,8 @@ class QuestionController extends Controller
         try{
             $response = [];
             // Get the current student grade
-            $gradeId = Auth::user()->grade_id;
+            // $gradeId = Auth::user()->grade_id;
+            $gradeId = Auth::user()->CurriculumYearGradeId;
             $StrandUnitsObjectivesMappings = StrandUnitsObjectivesMappings::Query();
             if(isset($gradeId) && !empty($gradeId)){
                 $StrandUnitsObjectivesMappings->where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,$gradeId);
@@ -792,7 +796,8 @@ class QuestionController extends Controller
      * USE : Get All Questions Assign In Exam.
      */
     public function getAllAssignQuestions(Request $request){
-       $difficultyLevels = PreConfigurationDiffiltyLevel::all();
+    //    $difficultyLevels = PreConfigurationDiffiltyLevel::all();
+       $difficultyLevels = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get();
        $examId = $request->exam_id;
        $result['html'] = '';
        $Questions = [];
@@ -943,8 +948,8 @@ class QuestionController extends Controller
      */
     public function updateQuestionVerification(Request $request){
         try{
-            $Update =   Question::whereIn('id',$request->QuestionIds)->update([
-                            'is_approved' => $request->verification_status
+            $Update =   Question::whereIn(cn::QUESTION_TABLE_ID_COL,$request->QuestionIds)->update([
+                            cn::QUESTION_IS_APPROVED_COL => $request->verification_status
                         ]);
             if($Update){
                 return $this->sendResponse([], __('languages.question_verification_updated_successfully'));

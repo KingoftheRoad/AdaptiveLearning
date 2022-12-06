@@ -143,7 +143,7 @@ if($user_id){
          </div>
          <div class="row">
             <div class="col-md-12">
-                <div class="question-bank-sec">
+                <div class="question-bank-sec restrict-overflow">
                     <table id="DataTable" class="display" style="width:100%">
                         <thead>
                             <tr>
@@ -277,10 +277,10 @@ if($user_id){
                                     </td>
                                     <td class="btn-edit">
                                         <a href="{{ route('report.class-test-reports.correct-incorrect-answer', ['exam_id' => $assignmentTest->exam_id, 'filter' => 'filter', 'grade_id' => $assignmentTest->grade_id, 'class_type_id' => array($assignmentTest->class_id), 'group_id' => $assignmentTest->peer_group_id]) }}" title="{{__('languages.performance_report')}}"><i class="fa fa-bar-chart" aria-hidden="true"></i></a>
-                                        <a href="javascript:void(0);" title="{{__('languages.ability_analysis')}}" class="getClassAbilityAnalysisReport" data-examid="{{$assignmentTest->exam_id}}" data-studentids="{{$assignmentTest->student_ids}}" data-isGroup="{{!empty($assignmentTest->peer_group_id) ? true : false}}" data-buttonText="{{!empty($assignmentTest->peer_group_id) ? __('languages.My Group') : __('languages.My Class')}}" >
+                                        <a href="javascript:void(0);" title="{{__('languages.ability_analysis')}}" class="getClassAbilityAnalysisReport ml-2" data-examid="{{$assignmentTest->exam_id}}" data-studentids="{{$assignmentTest->student_ids}}" data-isGroup="{{!empty($assignmentTest->peer_group_id) ? true : false}}" data-buttonText="{{!empty($assignmentTest->peer_group_id) ? __('languages.My Group') : __('languages.My Class')}}" >
                                             <i class="fa fa-bar-chart" aria-hidden="true"></i>
                                         </a>
-                                        <a href="javascript:void(0);" title="{{__('languages.difficulty_analysis')}}" class="getTestDifficultyAnalysisReport" data-examid="{{$assignmentTest->exam_id}}">
+                                        <a href="javascript:void(0);" title="{{__('languages.difficulty_analysis')}}" class="getTestDifficultyAnalysisReport ml-2" data-examid="{{$assignmentTest->exam_id}}">
                                             <i class="fa fa-bar-chart" aria-hidden="true"></i>
                                         </a>
                                         @php

@@ -19,11 +19,11 @@ if($user_id){
 		<div class="sm-right-detail-sec pl-5 pr-5">
 			<div class="container-fluid">
 				<div class="row">
-					<div class="col-md-12">
-						<div class="col-md-12 col-lg-12 col-sm-12 sec-title student-test-list-cls">
+					<div class="col-md-12 test-titles">
+						<div class="col-md-6 col-lg-6 col-sm-12 sec-title student-test-list-cls">
 							<h2 class="mb-2 main-title">{{__('languages.self_learning')}}</h2>							
 						</div>
-						<div class="col-md-12 col-lg-12 col-sm-12 test-color-info" style="display:none;">
+						<div class="col-md-6 col-lg-6 col-sm-12 test-color-info" style="display:none;">
 							<div class="exercise-clr">
 								<div class="first-clr"></div>
 								<p>{{__('languages.my_studies.exercise')}}</p>
@@ -33,10 +33,6 @@ if($user_id){
 								<p>{{__('languages.my_studies.test')}}</p>
 							</div>
 						</div>
-						<div class="sec-title back-button-margin">
-							<a href="javascript:void(0);" class="btn-back" id="backButton">{{__('languages.back')}}</a>
-						</div>
-						<hr class="blue-line">
 					</div>
 				</div>
 				@if (session('error'))
@@ -83,6 +79,7 @@ if($user_id){
 					</div>
 				</div>
 				
+
 				<div class="row question_difficulty_level_colors">
 					<div class="question_difficulty_level_colors_sec">
 						<strong>{{__('languages.question_difficulty_levels')}}:</strong>
@@ -111,7 +108,7 @@ if($user_id){
 							</div>
 							<div class="col-lg-3 col-md-3 col-sm-12">
 								<div class="study-setting">
-									<!-- <a href="#" class="setting-button" id="my-study-config-btn"><i class="fa fa-cogs"></i></a> -->
+									<a href="#" class="setting-button" id="my-study-config-btn"><i class="fa fa-cogs"></i></a>
 								</div>
 							</div>
 						</div>
@@ -126,7 +123,7 @@ if($user_id){
 									<table id="exercise-table">
 										<thead>
 											<tr>
-												<th class="selec-opt"><span>{{__('languages.publish_date_time')}}</span></th>
+												<th class="selec-opt"><span>{{__('languages.date')}} & {{__('languages.time')}}</span></th>
 												<th>{{__('languages.report.accuracy')}}</th>
 												<th>{{__('languages.study_status')}}</th>
 												<th>{{__('languages.question_difficulties')}}</th>
@@ -190,7 +187,7 @@ if($user_id){
 														<td class="btn-edit">
 															@if(in_array('attempt_exam_update', $permissions))
 																@if(!isset($examArray['attempt_exams']) || (isset($examArray['attempt_exams']) && !in_array(Auth::id(),array_column($examArray['attempt_exams'],'student_id'))) && $selfLearningExcercise->status == 'publish')
-																<a href="{{ route('studentAttemptExam', $selfLearningExcercise->id) }}" class="" title="{{__('languages.test_text')}}">
+																<a href="{{ route('studentAttemptExam', $selfLearningExcercise->id) }}" class="" title="Test">
 																	<i class="fa fa-book" aria-hidden="true"></i>
 																</a>
 																@endif
@@ -198,7 +195,7 @@ if($user_id){
 
 															@if(in_array('result_management_read', $permissions))	
 																@if((isset($examArray['attempt_exams']) && in_array(Auth::id(),array_column($examArray['attempt_exams'],'student_id'))) && ($examArray['status'] == "publish") && date('Y-m-d',strtotime($examArray['result_date'])) <= date('Y-m-d'))
-																<a href="{{route('exams.result',['examid' => $selfLearningExcercise->id, 'studentid' => Auth::user()->id])}}" class="view-result-btn" title="{{__('languages.result_text')}}">
+																<a href="{{route('exams.result',['examid' => $selfLearningExcercise->id, 'studentid' => Auth::user()->id])}}" class="view-result-btn">
 																	<i class="fa fa-eye" aria-hidden="true" ></i>
 																</a>
 																@endif
@@ -206,11 +203,11 @@ if($user_id){
 
 															@if((isset($examArray['attempt_exams']) && in_array(Auth::id(),array_column($examArray['attempt_exams'],'student_id'))) && ($examArray['status'] == "publish") && date('Y-m-d',strtotime($examArray['result_date'])) <= date('Y-m-d'))
 																{{-- Test Difficulty Analysis Link --}}
-																<a href="javascript:void(0);" title="{{__('languages.difficulty_analysis')}}" class="getTestDifficultyAnalysisReport" data-examid="{{$selfLearningExcercise->id}}">
+																<a href="javascript:void(0);" title="Test Difficulty Analysis" class="getTestDifficultyAnalysisReport" data-examid="{{$selfLearningExcercise->id}}">
 																	<i class="fa fa-bar-chart" aria-hidden="true"></i>
 																</a>
 															@endif
-															<a href="javascript:void(0);" class="exam_info ml-2" data-examid="{{$selfLearningExcercise->id}}" title="{{__('languages.config')}}"><i class="fa fa-gear" aria-hidden="true"></i></a>
+															<a href="javascript:void(0);" class="exam_info ml-2" data-examid="{{$selfLearningExcercise->id}}"><i class="fa fa-gear" aria-hidden="true"></i></a>
 														</td>
 													</tr>
 												@endforeach
@@ -219,7 +216,7 @@ if($user_id){
 									</table>
 									<div class="row pt-2">
 										<div class="col-md-3 col-lg-6 col-sm-2">
-											<button type="button" class="btn btn-success" id="student_create_self_learning_excercise" data-self_learning_type="1">{{__('languages.create_self_learning_exercise')}}</button>
+											<button type="button" class="btn btn-success" id="student_create_self_learning_excercise" data-self_learning_type="1">{{__('Create Self-Learning Excercise')}}</button>
 										</div>
 									</div>
 								</div>
@@ -230,7 +227,7 @@ if($user_id){
 									<table id="test-table">
 										<thead>
 											<tr>
-												<th class="selec-opt"><span>{{__('languages.publish_date_time')}}</span></th>
+												<th class="selec-opt"><span>{{__('languages.date')}} & {{__('languages.time')}}</span></th>
 												<th>{{__('languages.report.accuracy')}}</th>
 												<th>{{__('languages.study_status')}}</th>
 												<th>{{__('languages.question_difficulties')}}</th>
@@ -294,7 +291,7 @@ if($user_id){
 														<td class="btn-edit">
 															@if(in_array('attempt_exam_update', $permissions))
 																@if(!isset($examArray['attempt_exams']) || (isset($examArray['attempt_exams']) && !in_array(Auth::id(),array_column($examArray['attempt_exams'],'student_id'))) && $selfLearningTest->status == 'publish')
-																<a href="{{ route('studentAttemptExam', $selfLearningTest->id) }}" class="" title="{{__('languages.test_text')}}">
+																<a href="{{ route('studentAttemptExam', $selfLearningTest->id) }}" class="" title="Test">
 																	<i class="fa fa-book" aria-hidden="true"></i>
 																</a>
 																@endif
@@ -302,7 +299,7 @@ if($user_id){
 
 															@if(in_array('result_management_read', $permissions))
 																@if((isset($examArray['attempt_exams']) && in_array(Auth::id(),array_column($examArray['attempt_exams'],'student_id'))) && ($examArray['status'] == "publish") && date('Y-m-d',strtotime($examArray['result_date'])) <= date('Y-m-d'))
-																<a href="{{route('exams.result',['examid' => $selfLearningTest->id, 'studentid' => Auth::user()->id])}}" class="view-result-btn" title={{__('languages.result_text')}}>
+																<a href="{{route('exams.result',['examid' => $selfLearningTest->id, 'studentid' => Auth::user()->id])}}" class="view-result-btn">
 																	<i class="fa fa-eye" aria-hidden="true" ></i>
 																</a>
 																@endif
@@ -310,11 +307,11 @@ if($user_id){
 
 															@if((isset($examArray['attempt_exams']) && in_array(Auth::id(),array_column($examArray['attempt_exams'],'student_id'))) && ($examArray['status'] == "publish") && date('Y-m-d',strtotime($examArray['result_date'])) <= date('Y-m-d'))
 																{{-- Test Difficulty Analysis Link --}}
-																<a href="javascript:void(0);" title="{{__('languages.difficulty_analysis')}}" class="getTestDifficultyAnalysisReport" data-examid="{{$selfLearningTest->id}}">
+																<a href="javascript:void(0);" title="Test Difficulty Analysis" class="getTestDifficultyAnalysisReport" data-examid="{{$selfLearningTest->id}}">
 																	<i class="fa fa-bar-chart" aria-hidden="true"></i>
 																</a>
 															@endif
-															<a href="javascript:void(0);" class="exam_info ml-2" data-examid="{{$selfLearningTest->id}}" title="{{__('languages.config')}}"><i class="fa fa-gear" aria-hidden="true"></i></a>
+															<a href="javascript:void(0);" class="exam_info ml-2" data-examid="{{$selfLearningTest->id}}"><i class="fa fa-gear" aria-hidden="true"></i></a>
 														</td>
 													</tr>
 												@endforeach
@@ -323,7 +320,7 @@ if($user_id){
 									</table>
 									<div class="row pt-2">
 										<div class="col-md-3 col-lg-6 col-sm-2">
-											<button type="button" class="btn btn-success" id="student_create_self_learning_test" data-self_learning_type="2">{{__('languages.create_self_learning_test')}}</button>
+											<button type="button" class="btn btn-success" id="student_create_self_learning_test" data-self_learning_type="2">{{__('Create Self-Learning Test')}}</button>
 										</div>
 									</div>
 								</div>
@@ -361,7 +358,7 @@ if($user_id){
 </div>
 
 <!-- My study Configuration Popup -->
-<!-- <div class="modal fade" id="my-study-config" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
+<div class="modal fade" id="my-study-config" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
 			<form method="post">
@@ -395,7 +392,7 @@ if($user_id){
 			</div>
 		</form>
 	</div>
-</div> -->
+</div>
 <!-- My study Configuration Popup -->
 
 <!-- Play Video Popup -->
@@ -490,7 +487,7 @@ if($user_id){
 							<select name="difficulty_lvl[]" class="form-control select-option" id="difficulty_lvl" multiple>
 								@if(!empty($difficultyLevels))
 								@foreach($difficultyLevels as $difficultyLevel)
-								<option value="{{$difficultyLevel->difficulty_level}}">{{$difficultyLevel->{'difficulty_level_name'.'_'.app()->getLocale()} }}</option>
+								<option value="{{$difficultyLevel->difficulty_level}}">{{$difficultyLevel->difficulty_level_name}}</option>
 								@endforeach
 								@endif								
 							</select>
@@ -654,7 +651,7 @@ $(function() {
 						if(data.data){
 							$(data.data).each(function() {
 								var option = $('<option />');
-								option.attr('value', this.id).text(this["name_"+APP_LANGUAGE]);
+								option.attr('value', this.id).text(this.name);
 								option.attr('selected', 'selected');
 								$('#learning_unit').append(option);
 							});
@@ -745,11 +742,7 @@ $(function() {
 			},
 			'difficulty_lvl[]':{
 				required :function(element){
-					if($('#difficulty_mode').value == 'auto'){
-						return false;
-					}else{
-						return true;
-					}
+					($('#difficulty_mode').value == 'auto') ? false : true;
 				}
 			},
 			test_time_duration :{
@@ -933,12 +926,12 @@ $(function() {
 	/*
 	This change display document in exam id
 	*/
-	// var listExamIdDoc = new Array();
-	// $.each($(".main-my-study input[type=checkbox]"), function() {
-	// 	if($(this).val()!='on'){
-	// 		listExamIdDoc.push($(this).val());
-	// 	}
-	// });
+	var listExamIdDoc = new Array();
+	$.each($(".main-my-study input[type=checkbox]"), function() {
+		if($(this).val()!='on'){
+			listExamIdDoc.push($(this).val());
+		}
+	});
 	
 	// if(listExamIdDoc.length!=0){
 	// 	$.ajax({
@@ -960,96 +953,96 @@ $(function() {
 		$("#videoModal #videoDis").attr('src','');
 	});
 
-	// $.each($(".categories-main-list input[type=checkbox][name='strands[]']"), function() {
-	// 	var listConfigIdList = new Array();
-	// 	listConfigIdList.push($(this).val());
-	// 	var MainData = $(this);
-	// 	$.ajax({
-	// 		url: BASE_URL + '/estimate_student_competence_web',
-	// 		type: 'POST',
-	// 		data : {
-	// 			'_token': $('meta[name="csrf-token"]').attr('content'),
-	// 			'list_strands_id' : listConfigIdList
-	// 		},
-	// 		success: function(response) {
-	// 			if(response.data.length!=0){
-	// 				var mainDataVal = MainData.val();
-	// 				var mainDataName = MainData.attr('name');
-	// 				if($(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").length != 0){
-	// 					var classAdd = 'up-50';
-	// 					if(response <= 49){
-	// 						classAdd = 'down-50';
-	// 					}
-	// 					var labelData = $(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").parent();
-	// 					labelData.find('.label-percentage:eq(0)').text(response.data[0]+'%').show();
-	// 					labelData.find('input[type=range]:eq(0)').val(response.data[0]).attr('class',classAdd).show();
-	// 				}
-	// 				$("#cover-spin").hide();
-	// 			}else{
-	// 				var mainDataVal = MainData.val();
-	// 				var mainDataName = MainData.attr('name');
-	// 				if($(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").length!=0){
-	// 					var responseData=0;
-	// 					var classAdd='up-50';
-	// 					if(responseData<=49){
-	// 						classAdd='down-50';
-	// 					}
-	// 					var labelData=$(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").parent();
-	// 					labelData.find('.label-percentage:eq(0)').text('N/A').show();
-	// 					labelData.find('input[type=range]:eq(0)').val(responseData).attr('class',classAdd).hide();
-	// 				}
-	// 			}
-	// 		}
-	// 	});
-	// });
+	$.each($(".categories-main-list input[type=checkbox][name='strands[]']"), function() {
+		var listConfigIdList = new Array();
+		listConfigIdList.push($(this).val());
+		var MainData = $(this);
+		$.ajax({
+			url: BASE_URL + '/estimate_student_competence_web',
+			type: 'POST',
+			data : {
+				'_token': $('meta[name="csrf-token"]').attr('content'),
+				'list_strands_id' : listConfigIdList
+			},
+			success: function(response) {
+				if(response.data.length!=0){
+					var mainDataVal = MainData.val();
+					var mainDataName = MainData.attr('name');
+					if($(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").length != 0){
+						var classAdd = 'up-50';
+						if(response <= 49){
+							classAdd = 'down-50';
+						}
+						var labelData = $(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").parent();
+						labelData.find('.label-percentage:eq(0)').text(response.data[0]+'%').show();
+						labelData.find('input[type=range]:eq(0)').val(response.data[0]).attr('class',classAdd).show();
+					}
+					$("#cover-spin").hide();
+				}else{
+					var mainDataVal = MainData.val();
+					var mainDataName = MainData.attr('name');
+					if($(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").length!=0){
+						var responseData=0;
+						var classAdd='up-50';
+						if(responseData<=49){
+							classAdd='down-50';
+						}
+						var labelData=$(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").parent();
+						labelData.find('.label-percentage:eq(0)').text('N/A').show();
+						labelData.find('input[type=range]:eq(0)').val(responseData).attr('class',classAdd).hide();
+					}
+				}
+			}
+		});
+	});
 	
-	// $(document).on('click',".categories-main-list a.collapse-category", function() {
-	// 	if($(this).hasClass('open')){
-	// 		$(this).parent().find(' > ul > li > input[type=checkbox]').each(function(){
-	// 			$("#cover-spin").show();
-	// 			var var_data = new Array($(this).val());
-	// 			var var_name = $(this).attr('name').replace('[]','');
-	// 			var MainData = $(this);
-	// 			$.ajax({
-	// 				url: BASE_URL + '/estimate_student_competence_web',
-	// 				type: 'POST',
-	// 				data : {
-	// 					'_token': $('meta[name="csrf-token"]').attr('content'),
-	// 					[var_name]: var_data
-	// 				},
-	// 				success: function(response) {
-	// 					if(response.data.length!=0){
-	// 						var mainDataVal = MainData.val();
-	// 						var mainDataName = MainData.attr('name');
-	// 						if($(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").length != 0){
-	// 							var classAdd = 'up-50';
-	// 							if(response <= 49){
-	// 								classAdd = 'down-50';
-	// 							}
-	// 							var labelData = $(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").parent();
-	// 							labelData.find('.label-percentage:eq(0)').text(response.data[0]+'%').show();
-	// 							labelData.find('input[type=range]:eq(0)').val(response.data[0]).attr('class',classAdd).show();
-	// 						}
-	// 					}else{
-	// 						var mainDataVal = MainData.val();
-	// 						var mainDataName = MainData.attr('name');
-	// 						if($(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").length!=0){
-	// 							var responseData = 0;
-	// 							var classAdd='up-50';
-	// 							if(responseData <= 49){
-	// 								classAdd='down-50';
-	// 							}
-	// 							var labelData = $(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").parent();
-	// 							labelData.find('.label-percentage:eq(0)').text('N/A').show();
-	// 							labelData.find('input[type=range]:eq(0)').val(responseData).attr('class',classAdd).hide();
-	// 						}
-	// 					}
-	// 					$("#cover-spin").hide();
-	// 				}
-	// 			});
-	// 		});
-	// 	}
-	// });
+	$(document).on('click',".categories-main-list a.collapse-category", function() {
+		if($(this).hasClass('open')){
+			$(this).parent().find(' > ul > li > input[type=checkbox]').each(function(){
+				$("#cover-spin").show();
+				var var_data = new Array($(this).val());
+				var var_name = $(this).attr('name').replace('[]','');
+				var MainData = $(this);
+				$.ajax({
+					url: BASE_URL + '/estimate_student_competence_web',
+					type: 'POST',
+					data : {
+						'_token': $('meta[name="csrf-token"]').attr('content'),
+						[var_name]: var_data
+					},
+					success: function(response) {
+						if(response.data.length!=0){
+							var mainDataVal = MainData.val();
+							var mainDataName = MainData.attr('name');
+							if($(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").length != 0){
+								var classAdd = 'up-50';
+								if(response <= 49){
+									classAdd = 'down-50';
+								}
+								var labelData = $(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").parent();
+								labelData.find('.label-percentage:eq(0)').text(response.data[0]+'%').show();
+								labelData.find('input[type=range]:eq(0)').val(response.data[0]).attr('class',classAdd).show();
+							}
+						}else{
+							var mainDataVal = MainData.val();
+							var mainDataName = MainData.attr('name');
+							if($(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").length!=0){
+								var responseData = 0;
+								var classAdd='up-50';
+								if(responseData <= 49){
+									classAdd='down-50';
+								}
+								var labelData = $(".categories-main-list input[type=checkbox][name='"+mainDataName+"'][value="+mainDataVal+"]").parent();
+								labelData.find('.label-percentage:eq(0)').text('N/A').show();
+								labelData.find('input[type=range]:eq(0)').val(responseData).attr('class',classAdd).hide();
+							}
+						}
+						$("#cover-spin").hide();
+					}
+				});
+			});
+		}
+	});
 	
 	$(document).on('change', '#AllTabs', function() {
 		if($(this).prop('checked')){
@@ -1059,22 +1052,22 @@ $(function() {
 		}
 	});
 	
-	// $(document).on('change', ".categories-main-list .categories-list input[type=checkbox]", function() {
-	// 	var allCheckLength = $(".categories-main-list .categories-list input[type=checkbox][name='strands[]']:checked").length;
-	// 	var allUnCheckLength = $(".categories-main-list .categories-list input[type=checkbox][name='strands[]']").length;
-	// 	if(allCheckLength == allUnCheckLength){
-	// 		$('#AllTabs').prop('checked',true);
-	// 	}else{
-	// 		$('#AllTabs').prop('checked',false);
-	// 	}
-	// });
+	$(document).on('change', ".categories-main-list .categories-list input[type=checkbox]", function() {
+		var allCheckLength = $(".categories-main-list .categories-list input[type=checkbox][name='strands[]']:checked").length;
+		var allUnCheckLength = $(".categories-main-list .categories-list input[type=checkbox][name='strands[]']").length;
+		if(allCheckLength == allUnCheckLength){
+			$('#AllTabs').prop('checked',true);
+		}else{
+			$('#AllTabs').prop('checked',false);
+		}
+	});
 });
 
 function getRandomNumber(){
 	return Math.floor(Math.random() * 101);
 }
 </script>
-<!-- <script type="text/javascript">
+<script type="text/javascript">
 $.fn.cascadeCheckboxes = function() {
 	$.fn.checkboxParent = function() {
 		//to determine if checkbox has parent checkbox element
@@ -1143,5 +1136,5 @@ $('.collapse-category').on("click", function(){
 		$(this).addClass('close');
 	}
 });
-</script> -->
+</script>
 @endsection

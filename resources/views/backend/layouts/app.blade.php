@@ -10,7 +10,7 @@
     @endphp
     @if(!empty($SettingData))
     <title>{{ $SettingData->site_name }}</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset($SettingData->fav_icon) }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{asset($SettingData->fav_icon)}}">
     @endif
     <link rel="dns-prefetch" href="//fonts.gstatic.com">
     <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"> -->

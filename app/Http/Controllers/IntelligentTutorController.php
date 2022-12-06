@@ -84,7 +84,7 @@ class IntelligentTutorController extends Controller
             if(!$this->isStudentLogin()){
                 $GradeID = (!empty($request->learning_tutor_grade_id)) ? $request->learning_tutor_grade_id : $GradeIdsArray;
             }else{
-                $GradeID = Auth::user()->grade_id;
+                $GradeID = Helper::GetCurriculumDataById($this->LoggedUserId(),$this->GetCurriculumYear(),'grade_id'); ;
             }
             $GradeID = (!empty($request->learning_tutor_grade_id)) ? $request->learning_tutor_grade_id : $GradeIdsArray;
             $StrandID = (!empty($request->learning_tutor_strand_id)) ? $request->learning_tutor_strand_id : $StrandIdsArray;
@@ -104,6 +104,7 @@ class IntelligentTutorController extends Controller
                 $mainUploadDataQuery =  IntelligentTutorVideos::whereIn(cn::INTELLIGENT_TUTOR_VIDEOS_LANGUAGE_ID,$LanguageId)
                                                                 ->whereIntegerInRaw(cn::INTELLIGENT_TUTOR_VIDEOS_STRAND_UNITS_MAPPING_ID_COL,$strandObjectivesMappingId->toArray())
                                                                 ->where(cn::INTELLIGENT_TUTOR_VIDEOS_STATUS_COL,$Status)
+                                                                ->where(cn::INTELLIGENT_TUTOR_VIDEOS_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                                                 ->orderBy(cn::INTELLIGENT_TUTOR_VIDEOS_ID_COL,'DESC');
             }
             
@@ -211,6 +212,7 @@ class IntelligentTutorController extends Controller
                                                                 $filePath=$file_path.'/'.$filename;
                                                             }
                                                             $PostData =[
+                                                                cn::INTELLIGENT_TUTOR_VIDEOS_CURRICULUM_YEAR_ID_COL      => $this->GetCurriculumYear(),
                                                                 cn::INTELLIGENT_TUTOR_VIDEOS_TITLE_COL                   => $request->document_title,
                                                                 cn::INTELLIGENT_TUTOR_VIDEOS_STRAND_UNITS_MAPPING_ID_COL => $StrandUnitsObjectivesMappings->id,
                                                                 cn::INTELLIGENT_TUTOR_VIDEOS_DOCUMENT_TYPE_COL           => $questionType,
@@ -257,6 +259,7 @@ class IntelligentTutorController extends Controller
                                                             }                                                            
                                                             // Create Post Array
                                                             $postData = array(
+                                                                cn::INTELLIGENT_TUTOR_VIDEOS_CURRICULUM_YEAR_ID_COL      => $this->GetCurriculumYear(),
                                                                 cn::INTELLIGENT_TUTOR_VIDEOS_STRAND_UNITS_MAPPING_ID_COL => (!empty($StrandUnitsObjectivesMappings->id)) ? $StrandUnitsObjectivesMappings->id : null,
                                                                 cn::INTELLIGENT_TUTOR_VIDEOS_FILE_NAME_COL               => $file_name,
                                                                 cn::INTELLIGENT_TUTOR_VIDEOS_TITLE_COL                   => $request->document_title,
@@ -362,29 +365,29 @@ class IntelligentTutorController extends Controller
         $AllFileData ="";
         $params = array();
         parse_str($request->formData, $params);
-        
         $GradeIdsArray = $this->GetPluckIds('Grades');
         $StrandIdsArray = $this->GetPluckIds('Strands');
         $LearningsUnitsIdsArray = $this->GetPluckIds('LearningsUnits');
         $LearningsObjectivesIdsArray  = $this->GetPluckIds('LearningsObjectives');
         $LanguagesIdsArray = $this->GetPluckIds('Languages');
-
-        $GradeID = ($params['learning_tutor_grade_id']) ? $params['learning_tutor_grade_id'] : $GradeIdsArray;
-        $StrandID = ($params['learning_tutor_strand_id']) ? $params['learning_tutor_strand_id'] : $StrandIdsArray;
-        $LearningUnitID = ($params['learning_tutor_learning_unit']) ? $params['learning_tutor_learning_unit'] : $LearningsUnitsIdsArray;
-        $LearningObjectivesId = ($params['learning_tutor_learning_objectives']) ? $params['learning_tutor_learning_objectives'] : $LearningsObjectivesIdsArray;
-        $Language = ($params['learning_tutor_language_id']) ? $params['learning_tutor_language_id'] : $LanguagesIdsArray;
-        $Status = ($params['learning_tutor_status']) ? $params['learning_tutor_status'] : 'active';
+        $GradeID = (isset($params['learning_tutor_grade_id'])) ? $params['learning_tutor_grade_id'] : $GradeIdsArray;
+        $StrandID = (isset($params['learning_tutor_strand_id'])) ? $params['learning_tutor_strand_id'] : $StrandIdsArray;
+        $LearningUnitID = (isset($params['learning_tutor_learning_unit'])) ? $params['learning_tutor_learning_unit'] : $LearningsUnitsIdsArray;
+        $LearningObjectivesId = (isset($params['learning_tutor_learning_objectives'])) ? $params['learning_tutor_learning_objectives'] : $LearningsObjectivesIdsArray;
+        $Language = (isset($params['learning_tutor_language_id'])) ? $params['learning_tutor_language_id'] : $LanguagesIdsArray;
+        $Status = (isset($params['learning_tutor_status'])) ? $params['learning_tutor_status'] : 'active';
         $strandObjectivesMappingId = StrandUnitsObjectivesMappings::whereIn(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,$GradeID)
                                                                       ->whereIn(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$StrandID)
                                                                       ->whereIn(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$LearningUnitID)
                                                                       ->whereIn(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$LearningObjectivesId)
                                                                       ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL);
+                                                                     
         if(!empty($strandObjectivesMappingId)){
             $AllFileData =  IntelligentTutorVideos::whereIn(cn::INTELLIGENT_TUTOR_VIDEOS_STRAND_UNITS_MAPPING_ID_COL,$strandObjectivesMappingId)->orderBy('id','DESC');
         }
         $uploadData = IntelligentTutorVideos::whereIntegerInRaw(cn::INTELLIGENT_TUTOR_VIDEOS_STRAND_UNITS_MAPPING_ID_COL,$strandObjectivesMappingId->toArray())
                                             ->where(cn::INTELLIGENT_TUTOR_VIDEOS_STATUS_COL,$Status)
+                                            ->where(cn::INTELLIGENT_TUTOR_VIDEOS_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                             ->whereIn(cn::INTELLIGENT_TUTOR_VIDEOS_LANGUAGE_ID,$LanguagesIdsArray)
                                             ->orderBy(cn::INTELLIGENT_TUTOR_VIDEOS_ID_COL,'DESC')->skip($countUploadData)
                                             ->take(12)

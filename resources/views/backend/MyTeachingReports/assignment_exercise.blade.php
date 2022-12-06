@@ -66,7 +66,7 @@ if($user_id){
 								<select class="form-control" data-show-subtext="true" data-live-search="true" name="grade_id[]" id="student_multiple_grade_id" multiple required >
 									@if(!empty($gradesList))
 									@foreach($gradesList as $grade)
-									<option value="{{$grade->getClass->id}}" @if(!empty($grade_id)) {{ in_array($grade->getClass->id,$grade_id) ? 'selected' : '' }} @endif>{{ $grade->getClass->name}}</option>
+										<option value="{{$grade->getClass->id}}" @if(!empty($gradeId)) {{ in_array($grade->getClass->id,$gradeId) ? 'selected' : '' }} @endif>{{ $grade->getClass->name}}</option>
 									@endforeach
 									@endif
 								</select>
@@ -78,7 +78,7 @@ if($user_id){
                                 <select name="class_type_id[]" class="form-control" id="classType-select-option" multiple >
                                 	@if(!empty($GradeClassListData))
 										@foreach($GradeClassListData as $GradeClassId => $GradeClassValue)
-										<option value="{{$GradeClassId}}" @if(!empty($class_type_id)) {{ in_array($GradeClassId,$class_type_id) ? 'selected' : '' }} @endif>{{ $GradeClassValue }}</option>
+										<option value="{{$GradeClassId}}" @if(!empty($classTypeId)) {{ in_array($GradeClassId,$classTypeId) ? 'selected' : '' }} @endif>{{ $GradeClassValue }}</option>
 										@endforeach
 									@endif
                                 </select>
@@ -144,7 +144,7 @@ if($user_id){
          </div>
          <div class="row">
             <div class="col-md-12">
-                <div class="question-bank-sec">
+                <div class="question-bank-sec restrict-overflow">
                     <table id="DataTable" class="display" style="width:100%">
                         <thead>
                             <tr>
@@ -278,13 +278,13 @@ if($user_id){
                                     </td>
                                     <td class="btn-edit">
                                         <a href="{{ route('report.class-test-reports.correct-incorrect-answer', ['exam_id' => $assignmentExcercise->exam_id, 'filter' => 'filter', 'grade_id' => $assignmentExcercise->grade_id, 'class_type_id' => array($assignmentExcercise->class_id), 'group_id' => $assignmentExcercise->peer_group_id]) }}" title="{{__('languages.performance_report')}}" >
-											<i class="fa fa-bar-chart" aria-hidden="true"></i>
+											<i class="fa fa-bar-chart ml-2" aria-hidden="true"></i>
 										</a>
                                         <a href="javascript:void(0);" title="{{__('languages.ability_analysis')}}" class="getClassAbilityAnalysisReport" data-examid="{{$assignmentExcercise->exam_id}}" data-studentids="{{$assignmentExcercise->student_ids}}" data-isGroup="{{!empty($assignmentTest->peer_group_id) ? true : false}}" data-buttonText="{{!empty($assignmentExcercise->peer_group_id) ? __('languages.My Group') : __('languages.My Class')}}">
-                                            <i class="fa fa-bar-chart" aria-hidden="true"></i>
+                                            <i class="fa fa-bar-chart ml-2" aria-hidden="true"></i>
                                         </a>
                                         <a href="javascript:void(0);" title="{{__('languages.difficulty_analysis')}}" class="getTestDifficultyAnalysisReport" data-examid="{{$assignmentExcercise->exam_id}}">
-                                            <i class="fa fa-bar-chart" aria-hidden="true"></i>
+                                            <i class="fa fa-bar-chart ml-2" aria-hidden="true"></i>
                                         </a>
                                         @php
                                             if(isset($assignmentExcercise->grade_with_class) && !empty($assignmentExcercise->grade_with_class)){

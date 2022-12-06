@@ -2,10 +2,13 @@
     
 use Illuminate\Support\Facades\Route;
 
-/** Cron Job Urls ***/
+/******************************************************************************************************************************
+ *  Start Cron Job Urls **
+ * ****************************************************************************************************************************/
 Route::get('update-students-overall-ability', 'CommonController@UpdateStudentAbility')->name('update-students-overall-ability');
 Route::get('generate-math-formula-image', 'CommonController@GenerateMathFormulaImage')->name('generate-math-formula-image');
 Route::get('updateMyTeachingReports', 'CronJobController@updateMyTeachingReports')->name('updateMyTeachingReports');
+Route::get('updateMyTeachingTable', 'CronJobController@updateMyTeachingTable')->name('updateMyTeachingTable');
 Route::get('remove-duplicate-student', 'CronJobController@RemoveDuplicateStudent')->name('remove-duplicate-student');
 Route::get('updateStudyReports', 'MyStudyController@updateStudyReports')->name('updateStudyReports');
 Route::get('updateClassId','CommonController@updateClassIdAsClassName')->name('updateClassId');
@@ -13,12 +16,29 @@ Route::get('updateQuestionDifficultyValue','CommonController@updateQuestionDiffi
 Route::get('UpdateAttemptedExamStudentMappings','CommonController@UpdateAttemptedExamStudentMappings')->name('UpdateAttemptedExamStudentMappings');
 Route::get('UpdateExamReferenceNumber','CronJobController@UpdateExamReferenceNumber')->name('UpdateExamReferenceNumber');
 
+Route::get('student/set-default-curriculum-year','CronJobController@SetDefaultCurriculumYear')->name('SetDefaultCurriculumYear');
+
 Route::get('updateQuestionEColumn','CronJobController@updateQuestionEColumn')->name('updateQuestionEColumn');
 
 Route::get('UpdateStudentSelectedAnswer','CronJobController@UpdateStudentSelectedAnswer')->name('UpdateStudentSelectedAnswer');
-/** End Cron Job Urls ***/
+
+// Copy & clone current year school data to next curriculum year
+Route::get('CopyCloneCurriculumYearSchoolData','CronJobController@CopyCloneCurriculumYearSchoolData')->name('CopyCloneCurriculumYearSchoolData');
+
+// Update  global configuration next curriculum year
+Route::get('UpdateGlobalConfigurationNextCurriculumYear','CronJobController@UpdateGlobalConfigurationNextCurriculumYear')->name('UpdateGlobalConfigurationNextCurriculumYear');
+
+// Send remainder upgrade student in next curriculum year
+Route::get('SendRemainderUploadStudentNewSchoolCurriculumYear','CronJobController@SendRemainderUploadStudentNewSchoolCurriculumYear')->name('SendRemainderUploadStudentNewSchoolCurriculumYear');
+
+/******************************************************************************************************************************
+ *  End Cron Job Urls **
+ * ****************************************************************************************************************************/
 
 
+Route::get('update_in_all_table_curriculum_year_id','CommonController@UpdateInAllTableCurriculumYearId');
+Route::get('set-curriculum-class_student_number','CommonController@setClassStudentNumberColumnValue');
+Route::get('set-curriculum-year','CommonController@AjaxSetCurriculumYear')->name('set-curriculum-year');
 /**********************************************
  * Frontend Routes
  * ************************************************/
@@ -36,7 +56,7 @@ Route::post('forget-password', 'Auth\ForgotPasswordController@submitForgetPasswo
 Route::get('reset-password/{token}', 'Auth\ForgotPasswordController@showResetPasswordForm')->name('reset.password.get');
 Route::post('reset-password', 'Auth\ForgotPasswordController@submitResetPasswordForm')->name('reset.password.post');
 
-/**********************************************
+/**************************************************
  * Authentication Routes
  * ************************************************/
 Route::get('logout', 'Auth\LoginController@logout')->name('logout');
@@ -69,7 +89,7 @@ Route::post('countQuestionByMapping', 'CommonController@countQuestionByMapping')
 Route::get('check-question-code-exists', 'CommonController@checkQuestionCodeExists')->name('checkQuestionCodeExists');
 
 
-/**********************************************
+/**************************************************
  * Multi language Routes
  * ************************************************/
 Route::get('lang/{lang}', ['as' => 'lang.switch', 'uses' => 'LanguageController@switchLang']);
@@ -87,7 +107,7 @@ Route::group(['middleware'=>['auth']], function () {
     //only for update json parameter in attempt exam table
     Route::get('exam-questions/update', 'CommonController@addLanguageTypeinJsonFormat');
 
-    /**********************************************************************************
+    /***********************************************************************************
      * Backend Routes (Super Admin Panel)
      * *********************************************************************************/
     Route::get('super-admin', 'AdminDashboardController@index')->middleware(['admin'])->name('superadmin');
@@ -136,7 +156,7 @@ Route::group(['middleware'=>['auth']], function () {
     /** End Learning Objectives Module Route **/
 
     /** Strat Exam management Module Route **/
-    Route::post('exams/delete/multiple', 'ExamController@deleteMultipleExams')->name('exam.multiple.delete');
+    // Route::post('exams/delete/multiple', 'ExamController@deleteMultipleExams')->name('exam.multiple.delete');
     Route::get('exams/delete/{id}', 'ExamController@destroy')->name('exam.destroy');
     Route::get('exams/questions/add/{id}', 'ExamController@CreateFormExamQuestions')->name('CreateFormExamQuestions');
     Route::get('exams/students/add/{id}', 'ExamController@CreateFormExamStudents')->name('CreateFormExamStudents');
@@ -198,6 +218,10 @@ Route::group(['middleware'=>['auth']], function () {
         Route::get('reports/class-test-expand-report-student', 'ClassTestReportController@AjaxClassTestExpandReportStudent');
         Route::post('report/getPerformanceGraphCurrentStudent', 'AlpAiGraphController@getPerformanceGraphCurrentStudent');
         Route::post('report/getQuestionGraphCurrentStudent', 'AlpAiGraphController@getQuestionGraphCurrentStudent');
+        
+        Route::get('reports/progress-report', 'ClassTestReportController@ProgressReport');
+        Route::get('reports/class-ability-analysis', 'ClassTestReportController@ClassAbilityAnalysisReport');
+        Route::get('report/test-summary-report', 'ClassTestReportController@TestSummaryReport');
 
         Route::get('report/class-test-reports/student-correct-incorrect-answer', 'ClassTestReportController@StudentClassTestResultCorrectIncorrectAnswers')->name('report.class-test-reports.student-correct-incorrect-answer');
 
@@ -232,6 +256,11 @@ Route::group(['middleware'=>['auth']], function () {
     Route::get('ai-calculated-difficulty/delete/{id}', 'AiCalculatedDifficulty@destroy')->middleware(['admin']);
     /** End Admin Ai Calculated Difficulty Level route **/
 
+    /**Student Profile Start For Admin */
+    Route::get('student-profile/{id}','TeacherDashboardController@studentsProfile')->name('student-profiles');
+    /**Student Profile End For Admin */
+
+
     /***********************************************************************************
      * Backend Routes (Teacher Panel)
      * *********************************************************************************/
@@ -241,7 +270,7 @@ Route::group(['middleware'=>['auth']], function () {
     Route::get('teacher/dashboard', 'TeacherDashboardController@index')->middleware(['teacher'])->name('teacher.dashboard');
     Route::get('teacher/profile','ProfileController@teacher_profile')->name('teacher.profile');
     Route::patch('teacher/update_profile/{id}','ProfileController@update_teacher_profile')->name('teacher.profile.update');
-    Route::get('teacher/students-profile/{id}','TeacherDashboardController@studentsProfile')->middleware(['teacher'])->name('teacher.student-profiles');
+    // Route::get('teacher/students-profile/{id}','TeacherDashboardController@studentsProfile')->middleware(['teacher'])->name('teacher.student-profiles');
     Route::get('my-class', 'TeacherDashboardController@MyClass')->middleware(['teacher'])->name('my-class');
     Route::get('my-subject', 'TeacherDashboardController@MySubject')->middleware(['teacher'])->name('my-subject');
     Route::post('get_studentdata', 'UsersController@getStudentList')->name('getstudentdata')->middleware('teacher');
@@ -261,6 +290,10 @@ Route::group(['middleware'=>['auth']], function () {
     Route::get('GraphTest', 'Reports\AlpAiGraphController@GraphTest')->name('GraphTest');
 
     Route::get('student-result-summary','MyTeachingController@StudentResultSummaryReport')->name('student-result-summary');
+
+
+
+
 
     /***********************************************************************************
      * Backend Routes (Student Panel)
@@ -307,6 +340,8 @@ Route::group(['middleware'=>['auth']], function () {
     Route::post('self-learning/exercise/save', 'RealTimeAIQuestionGeneratorController@SaveSelfLearningExercise');
     Route::post('generate-question/self-learning/exercise/change-language', 'RealTimeAIQuestionGeneratorController@GenerateQuestionSelfLearningExerciseChangeLanguage');
       
+
+
     
     /***********************************************************************************
      * Backend Routes (Parent Panel)
@@ -316,6 +351,10 @@ Route::group(['middleware'=>['auth']], function () {
     Route::get('parent/list', 'ParentDashboardController@ChildList')->middleware(['parent'])->name('parent.list');
     Route::get('parent/child/teacher/{id}','ParentDashboardController@GetTeacherList')->middleware(['parent'])->name('teacher-list');
     Route::get('parent/child/subject/{id}','ParentDashboardController@GetSubjectList')->middleware(['parent'])->name('subject-list');
+
+
+
+
 
     /***********************************************************************************
      * Backend Routes (School Panel)
@@ -335,13 +374,15 @@ Route::group(['middleware'=>['auth']], function () {
     Route::resource('class','ClassController')->middleware(['school']);
     Route::get('class/delete/{id}', 'ClassController@destroy')->middleware(['school'])->name('class.destroy');
     
-    Route::resource('teache-class-subject-assign','TeachersClassSubjectController')->middleware(['school']);
+    Route::resource('teacher-class-subject-assign','TeachersClassSubjectController')->middleware(['school']);
     Route::get('get-class-type','TeachersClassSubjectController@getClassType')->name('get-class-type');
+    Route::get('get-performance-report-class-type','TeachersClassSubjectController@getPerformanceReportClassType')->name('get-performance-report-class-type');
     Route::get('class-promotion-history/{id}','StudentController@ClassPromotionHistory')->name('class-promotion-history');
-    Route::get('teache-class-subject-assign/delete/{id}', 'TeachersClassSubjectController@destroy')->middleware(['school'])->name('teache-class-subject-assign.destroy');
+    Route::get('teacher-class-subject-assign/delete/{id}', 'TeachersClassSubjectController@destroy')->middleware(['school'])->name('teacher-class-subject-assign.destroy');
     Route::post('chechteacherid', 'TeachersClassSubjectController@chechteacherid')->name('chechteacherid')->middleware('school');
 
-    Route::match(['GET', 'POST'],'student/import/upgrade-school-year','ImportController@StudentUpgradeSchoolYear')->middleware(['school'])->name('student.import.upgrade-school-year');
+    // Route::match(['GET', 'POST'],'student/import/upgrade-school-year','ImportController@StudentUpgradeSchoolYear')->middleware(['school'])->name('student.import.upgrade-school-year');\
+    Route::match(['GET', 'POST'],'student/import/upgrade-school-year','ImportController@StudentUpgradeSchoolYear')->name('student.import.upgrade-school-year');
 
     Route::resource('Student','StudentController');
     Route::get('export-student','ExportController@exportStudents')->name('students-export');
@@ -365,10 +406,15 @@ Route::group(['middleware'=>['auth']], function () {
     Route::match(['GET', 'POST'],'school/assignment-exercise', 'PrincipalController@getAssignmentExerciseList')->name('school.assignment-exercise');
     Route::match(['GET', 'POST'],'school/assignment-tests', 'PrincipalController@getAssignmentTestList')->name('school.assignment-tests');
 
-    //Sub Admin 
+    //Sub Admin
     Route::resource('sub-admin','SubAdminController');
     Route::get('sub-admin/delete/{id}','SubAdminController@destroy')->name('sub-admin.destroy');
     
+
+
+
+
+
     /***********************************************************************************
     * Backend Routes (External Resource Panel)
     * *********************************************************************************/
@@ -405,13 +451,12 @@ Route::group(['middleware'=>['auth']], function () {
     
     /**
      * USE : Principal routes
-     */    
+     */
     Route::match(['GET', 'POST'],'principal/selflearning-tests', 'PrincipalController@getSelfLearningTestList')->name('principal.selflearning-tests');
     Route::match(['GET', 'POST'],'principal/selflearning-exercise', 'PrincipalController@getSelfLearningExerciseList')->name('principal.selflearning-exercise');
     Route::match(['GET', 'POST'],'principal/assignment-exercise', 'PrincipalController@getAssignmentExerciseList')->name('principal.assignment-exercise');
     Route::match(['GET', 'POST'],'principal/assignment-tests', 'PrincipalController@getAssignmentTestList')->name('principal.assignment-tests');
     
-
     // Route::get('principal/myteaching/progress-report', 'PrincipalController@LearningProgressReport')->name('principal.myteaching.progress-report');
     Route::get('principal/dashboard', 'PrincipalController@Dashboard')->name('principal.dashboard');
     Route::get('principal/delete/{id}', 'PrincipalController@destroy')->name('principal.destroy');
@@ -431,13 +476,13 @@ Route::group(['middleware'=>['auth']], function () {
     Route::post('exam/status/update', 'QuestionGeneratorController@ExamStatusUpdate')->name('exam.status.update');
     Route::get('question-wizard/update-status-for-grade-class-peer-group', 'QuestionGeneratorController@updateStatusGradeClassPeerGroup')->name('question-wizard.updateStatusGradeClassPeerGroup');
     Route::get('question-wizard', 'QuestionGeneratorController@QuestionWizardList')->name('question-wizard');
-    Route::match(['GET', 'POST'],'super-admin/generate-questions', 'QuestionGeneratorController@superAdminGenerateTestQuestion')->name('super-admin.generate-questions');  
+    Route::match(['GET', 'POST'],'super-admin/generate-questions', 'QuestionGeneratorController@superAdminGenerateTestQuestion')->name('super-admin.generate-questions');
     Route::post('question-generator/get-questions-id-learning-objectives-admin', 'QuestionGeneratorController@getQuestionIdsFromLearningObjectivesByAdmin');
     Route::get('get-question-hint/{id}', 'QuestionController@getQuestionHint');
     Route::post('get-refresh-question', 'QuestionGeneratorController@getRefreshQuestion');
     Route::match(['GET', 'POST'],'super-admin/generate-questions-edit/{id}', 'QuestionGeneratorController@superAdminGenerateTestQuestionEdit')->name('super-admin.generate-questions-edit');
     Route::match(['GET', 'POST'],'generate-questions', 'QuestionGeneratorController@schoolGenerateTestQuestion')->name('school.generate-questions');
-    Route::match(['GET', 'POST'],'generate-questions-edit/{id}', 'QuestionGeneratorController@schoolGenerateTestQuestionEdit')->name('school.generate-questions-edit');  
+    Route::match(['GET', 'POST'],'generate-questions-edit/{id}', 'QuestionGeneratorController@schoolGenerateTestQuestionEdit')->name('school.generate-questions-edit');
     Route::post('question-generator/get-questions-id-learning-objectives-school', 'QuestionGeneratorController@getQuestionIdsFromLearningObjectivesBySchool');
     Route::post('getLearningObjectivesFromMultipleLearningUnitsInGenerateQuestions', 'CommonController@getLearningObjectivesFromMultipleLearningUnitsInGenerateQuestions');
 
@@ -449,7 +494,7 @@ Route::group(['middleware'=>['auth']], function () {
     
     // Credit Point related routes
     Route::get('credit-point-history/{id}', 'ProfileController@creditPointHistory')->name('credit-point-history');
-    Route::get('student/students-profile/{id}','TeacherDashboardController@studentsProfile')->name('student.student-profiles');
+    // Route::get('student/students-profile/{id}','TeacherDashboardController@studentsProfile')->name('student.student-profiles');
 
     // Route::match(['GET', 'POST'],'assign-credit-points','TeacherDashboardController@AssignCreditPoints')->middleware(['teacher'])->name('assign-credit-points');
     Route::match(['GET', 'POST'],'assign-credit-points','CreditPointController@AssignCreditPoints')->middleware(['teacher'])->name('assign-credit-points');

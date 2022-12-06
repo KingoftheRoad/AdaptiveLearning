@@ -36,7 +36,7 @@
                                     <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12 pl-0 pr-0">
                                         <ul class="form-tab">
                                             <li class="step-headings section-step1 admin-tab tab_active" data-tabid="1">1. {{__('languages.question_generators_menu.configuration')}}</li>
-                                            <li class="step-headings section-step2 admin-tab" data-tabid="2">2..{{__('languages.question_generators_menu.to_schools')}}</li>
+                                            <li class="step-headings section-step2 admin-tab" data-tabid="2">2. {{__('languages.question_generators_menu.to_schools')}}</li>
                                             <li class="step-headings section-step3 admin-tab" data-tabid="3">3. {{__('languages.question_generators_menu.select_learning_objectives')}}</li>
                                             <li class="step-headings section-step4 admin-tab" data-tabid="4">4. {{__('languages.question_generators_menu.review_of_questions')}}</li>
                                         </ul>
@@ -597,7 +597,6 @@
             templates: {
                 filter: '<li class="multiselect-item multiselect-filter"><div class="input-group mb-3"><div class="input-group-prepend"><span class="input-group-text"><i class="fa fa-search"></i></span></div><input class="form-control multiselect-search" type="text" /></div></li>',
                 filterClearBtn: '<span class="input-group-btn"><button class="btn btn-default multiselect-clear-filter" type="button"><i class="fa fa-times"></i></button></span>'
-
             },
             column: 1,
             placeholder: "Select difficulty level",
@@ -612,7 +611,6 @@ $(function (){
         var minimum_question_per_skill_single = parseInt($(this).attr('min'));
         var maximum_question_per_skill_single = parseInt($(this).attr('max'));
         var noOfQuestionEntered =parseInt(e.target.value);
-        // alert(noOfQuestionEntered);
         if(noOfQuestionEntered !=""){
             if(noOfQuestionEntered >= minimum_question_per_skill_single && noOfQuestionEntered <= maximum_question_per_skill_single) {
             }else{

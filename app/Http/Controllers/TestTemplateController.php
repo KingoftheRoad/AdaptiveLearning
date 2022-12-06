@@ -25,17 +25,17 @@ class TestTemplateController extends Controller
         try{
             //  Laravel Pagination set in Cookie
             //$this->paginationCookie('TestTemplateList',$request);
-            if(!in_array('test_template_management_read', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-               return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
+            if(!in_array('test_template_management_read', Helper::getPermissions(Auth::user()->id))) {
+               return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->id));
             }
             $items = $request->items ?? 10; //For Pagination
             $TotalFilterData ='';
             $TotalTestTemplatesData = TestTemplates::all()->count();
-            if (Auth::user()->{cn::USERS_ROLE_ID_COL} == 1) {
+            if (Auth::user()->role_id == 1) {
                 $TestTemplatesList = TestTemplates::paginate($items);
-            }else if (Auth::user()->{cn::USERS_ROLE_ID_COL} == 2){
+            }else if (Auth::user()->role_id == 2){
                 $TestTemplatesList = TestTemplates::where(cn::TEST_TEMPLATE_STATUS,'=','active')->paginate($items);
-            }else if (Auth::user()->{cn::USERS_ROLE_ID_COL} == 3){
+            }else if (Auth::user()->role_id == 3){
                 $TestTemplatesList = TestTemplates::where(cn::TEST_TEMPLATE_TYPE,'=',1)->where(cn::TEST_TEMPLATE_STATUS,'=','active')->paginate($items);
             }
             $difficultyLevels = array(
@@ -84,8 +84,8 @@ class TestTemplateController extends Controller
     }
     
     public function create(){
-        if(!in_array('test_template_management_create', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-           return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
+        if(!in_array('test_template_management_create', Helper::getPermissions(Auth::user()->id))) {
+           return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->id));
         }
         $data = [];
         $data['TemplateTypes'] = $this->getTemplateTypes();
@@ -95,8 +95,8 @@ class TestTemplateController extends Controller
 
     public function store(Request $request){
         try{
-            if(!in_array('test_template_management_create', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-               return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
+            if(!in_array('test_template_management_create', Helper::getPermissions(Auth::user()->id))) {
+               return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->id));
             }
             //  Check validation
             $validator = Validator::make($request->all(), TestTemplates::rules($request, 'create'), TestTemplates::rulesMessages('create'));
@@ -124,8 +124,8 @@ class TestTemplateController extends Controller
 
     public function edit($id){
         try{
-            if(!in_array('test_template_management_update', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-               return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
+            if(!in_array('test_template_management_update', Helper::getPermissions(Auth::user()->id))) {
+               return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->id));
             }
             $data = [];
             $data['TemplateTypes'] = $this->getTemplateTypes();
@@ -145,8 +145,8 @@ class TestTemplateController extends Controller
 
     public function update(Request $request, $id){
         try{
-            if(!in_array('test_template_management_update', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-               return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
+            if(!in_array('test_template_management_update', Helper::getPermissions(Auth::user()->id))) {
+               return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->id));
             }
             $validator = Validator::make($request->all(), TestTemplates::rules($request, 'update', $id), TestTemplates::rulesMessages('update'));
             if ($validator->fails()) {
@@ -173,8 +173,8 @@ class TestTemplateController extends Controller
 
     public function destroy($id){
         try{
-            if(!in_array('test_template_management_delete', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-               return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
+            if(!in_array('test_template_management_delete', Helper::getPermissions(Auth::user()->id))) {
+               return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->id));
             }
             $TestTemplates = TestTemplates::find($id);
             $this->StoreAuditLogFunction('','TestTemplates','','','Delete Test Templates ID '.$id,cn::TEST_TEMPLATE_TABLE_NAME,'');

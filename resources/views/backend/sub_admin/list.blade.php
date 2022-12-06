@@ -46,36 +46,36 @@
 					</div>
 					@endif
 				 	 <form class="addNodeFilterForm" id="addNodeFilterForm" method="get">	
-					<div class="row">
- 						<div class="col-lg-4 col-md-4">
-                            <div class="select-lng pt-2 pb-2">
-                                <input type="text" class="input-search-box mr-2" name="Search" value="{{request()->get('Search')}}" placeholder="{{__('languages.search_by_name')}} | {{__('languages.email')}} ">
-								@if($errors->has('Search'))
-                                	<span class="validation_error">{{ $errors->first('Search') }}</span>
-                            	@endif
-                            </div>
-                        </div>
-						<div class="col-lg-2 col-md-4">
-                            <div class="select-lng pt-2 pb-2">
-								<select class="selectpicker form-control" data-show-subtext="true" data-live-search="true" name="Status" id="Status">
-									<option value=''>{{ __('languages.select_status') }}</option>
-									@if(!empty($statusList))
-										@foreach($statusList as $status)
-										<option value="{{$status['id']}}" {{ request()->get('Status') == $status['id'] ? 'selected' : '' }}>{{ $status['name']}}</option>
-										@endforeach
-                                	@endif
-								</select>
-								@if($errors->has('Status'))
-                                	<span class="validation_error">{{ $errors->first('Status') }}</span>
-                            	@endif
-                            </div>
-                        </div>
-                        <div class="col-lg-2 col-md-3">
-                            <div class="select-lng pt-2 pb-2">
-                                <button type="submit" name="filter" value="filter" class="btn-search">{{ __('languages.search') }}</button>
-                            </div>
-                        </div>
-                    </div>
+						<div class="row">
+							<div class="col-lg-4 col-md-4">
+								<div class="select-lng pt-2 pb-2">
+									<input type="text" class="input-search-box mr-2" name="Search" value="{{request()->get('Search')}}" placeholder="{{__('languages.search_by_name')}} | {{__('languages.email')}} ">
+									@if($errors->has('Search'))
+										<span class="validation_error">{{ $errors->first('Search') }}</span>
+									@endif
+								</div>
+							</div>
+							<div class="col-lg-2 col-md-4">
+								<div class="select-lng pt-2 pb-2">
+									<select class="selectpicker form-control" data-show-subtext="true" data-live-search="true" name="Status" id="Status">
+										<option value=''>{{ __('languages.select_status') }}</option>
+										@if(!empty($statusList))
+											@foreach($statusList as $status)
+											<option value="{{$status['id']}}" {{ request()->get('Status') == $status['id'] ? 'selected' : '' }}>{{ $status['name']}}</option>
+											@endforeach
+										@endif
+									</select>
+									@if($errors->has('Status'))
+										<span class="validation_error">{{ $errors->first('Status') }}</span>
+									@endif
+								</div>
+							</div>
+							<div class="col-lg-2 col-md-3">
+								<div class="select-lng pt-2 pb-2">
+									<button type="submit" name="filter" value="filter" class="btn-search">{{ __('languages.search') }}</button>
+								</div>
+							</div>
+						</div>
 					</form> 
 
 					<div class="row">
@@ -126,6 +126,9 @@
 											@if (in_array('sub_admin_management_delete', $permissions))
 												<a href="javascript:void(0);" class="pl-2" id="deleteSubAdmin" data-id="{{$subAdmin->id}}" title="{{__('languages.delete')}}"><i class="fa fa-trash" aria-hidden="true"></i></a>
 											@endif
+											@if(Auth::user()->role_id == 5)
+												<a href="javascript:void(0);" class="pl-2 changeUserPassword" data-id="{{$subAdmin->id}}" title="{{__('languages.change_password')}}"><i class="fa fa-unlock" aria-hidden="true"></i></a>
+											@endif
 											</td>
 										</tr>
 										@endforeach
@@ -167,6 +170,8 @@
 			</div>
 	      </div>
 		</div>
+
+		 
 		<script>
 			/*for pagination add this script added by mukesh mahanto*/ 
 			document.getElementById('pagination').onchange = function() {

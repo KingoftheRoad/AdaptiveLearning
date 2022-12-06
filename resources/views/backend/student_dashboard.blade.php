@@ -69,7 +69,7 @@
           </div> -->
           <hr class="blue-line">
         </div>
-        <div class="student-activity-list">
+        <!-- <div class="student-activity-list">
           <div class="row">
             <div class="col-md-12">
               <strong>{{__('languages.student_dashboard.test_list')}}</strong>
@@ -130,7 +130,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </div> -->
       </div>
     </div> 
   </div>

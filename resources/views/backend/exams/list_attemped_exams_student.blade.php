@@ -4,12 +4,12 @@
             @include('backend.layouts.sidebar')
 	        <div id="content" class="pl-2 pb-5">
             @include('backend.layouts.header')
-            @if (session('error'))
+            @if(session('error'))
             <div class="alert alert-danger">{{ session('error') }}</div>
             @endif
             <div class="sm-right-detail-sec pl-5 pr-5">
 				<div class="container-fluid">
-                <div class="row">
+                    <div class="row">
 						<div class="col-md-12">
 							<div class="sec-title">
 								<h4 class="mb-4">{{__('languages.test.test_name')}} : {{(!empty($examsData) ? $examsData->title : '')}} ({{$examsData->reference_no}})</h4>
@@ -52,7 +52,7 @@
                                                 <label for="email">{{__('languages.email')}} : {{$student->email ?? 'N/A'}}</label>
                                             </div>
                                             <div class="col-lg-3 col-md-3 col-sm-12">
-                                                <label for="class_student_number">{{__('languages.class_student_number')}} : {{$student->class_student_number ?? 'N/A'}}</label>
+                                                <label for="class_student_number">{{__('languages.class_student_number')}} : {{$student->CurriculumYearData->class_student_number ?? 'N/A'}}</label>
                                             </div>
                                             <div class="col-lg-2 col-md-2 col-sm-12">
                                                 <label for="test_status">{{__('languages.test_status')}} :
@@ -64,16 +64,14 @@
                                                 </label>
                                             </div>
                                             @php
-                                                if(App\Helpers\Helper::isAdmin()){
-                                                    $examId = App\Helpers\Helper::getAttemptedChildExamResultStudent($examsData->id,$student->id);
-                                                }else{
-                                                    $examId = $examsData->id;
-                                                }
+                                            if(App\Helpers\Helper::isAdmin()){
+                                                $examId = App\Helpers\Helper::getAttemptedChildExamResultStudent($examsData->id,$student->id);
+                                            }else{
+                                                $examId = $examsData->id;
+                                            }
                                             @endphp
                                             @if(in_array($student->id,$attemptedExamStudentIds))
                                             <div class="col-lg-2 col-md-2 col-sm-12">
-                                                <!-- <button type="button" class="btn btn-primary btn-sm view-result-btn" data-examid="{{$examsData->id}}" data-studentid={{$student->id}}>{{__('View Result')}}</button> -->
-                                                {{-- <a href="{{route('adminexams.result',['examid' => $examsData->id, 'studentid' => $student->id])}}" class="btn btn-primary btn-sm view-result-btn" data-examid="{{$examsData->id}}" data-studentid={{$student->id}}>{{__('languages.view_result')}}</a> --}}
                                                 <a href="{{route('adminexams.result',['examid' => $examId, 'studentid' => $student->id])}}" class="btn btn-primary btn-sm view-result-btn" data-examid="{{$examsData->id}}" data-studentid={{$student->id}}>{{__('languages.view_result')}}</a>
                                             </div>
                                             @endif
@@ -92,24 +90,23 @@
 											{{$studentList->appends(request()->input())->links()}}
 										@else
 											{{$studentList->appends(compact('items'))->links()}}
-										@endif 
+										@endif
 									</div>
 									<div class="col-lg-3 col-md-3 pagintns">
-										<form>
-											<label for="pagination" id="per_page">{{__('languages.per_page')}}</label>
-											<select id="pagination" >
-												<option value="10" @if(app('request')->input('items') == 10) selected @endif >10</option>
-												<option value="20" @if(app('request')->input('items') == 20) selected @endif >20</option>
-												<option value="25" @if(app('request')->input('items') == 25) selected @endif >25</option>
-												<option value="30" @if(app('request')->input('items') == 30) selected @endif >30</option>
-												<option value="40" @if(app('request')->input('items') == 40) selected @endif >40</option>
-												<option value="50" @if(app('request')->input('items') == 50) selected @endif >50</option>
-												<option value="{{$studentList->total()}}" @if(app('request')->input('items') == $studentList->total()) selected @endif >{{__('languages.all')}}</option>
-											</select>
-										</form>
+                                    <form>
+                                        <label for="pagination" id="per_page">{{__('languages.per_page')}}</label>
+                                        <select id="pagination" >
+                                            <option value="10" @if(app('request')->input('items') == 10) selected @endif >10</option>
+                                            <option value="20" @if(app('request')->input('items') == 20) selected @endif >20</option>
+                                            <option value="25" @if(app('request')->input('items') == 25) selected @endif >25</option>
+                                            <option value="30" @if(app('request')->input('items') == 30) selected @endif >30</option>
+                                            <option value="40" @if(app('request')->input('items') == 40) selected @endif >40</option>
+                                            <option value="50" @if(app('request')->input('items') == 50) selected @endif >50</option>
+                                            <option value="{{$studentList->total()}}" @if(app('request')->input('items') == $studentList->total()) selected @endif >{{__('languages.all')}}</option>
+                                        </select>
+                                    </form>
 									</div>
 								</div>
-
                             @else
                             <p>{{__('languages.test.no_attempt_exam')}}</p>
                             @endif
@@ -138,10 +135,10 @@
 </div>
 @if($studentList)
 <script>
-        /*for pagination add this script added by mukesh mahanto*/ 
-        document.getElementById('pagination').onchange = function() {
-            window.location = "{!! $studentList->url(1) !!}&items=" + this.value;	
-        }; 
+/*for pagination add this script added by mukesh mahanto*/ 
+document.getElementById('pagination').onchange = function() {
+    window.location = "{!! $studentList->url(1) !!}&items=" + this.value;	
+};
 </script>
 @endif
 @include('backend.layouts.footer')

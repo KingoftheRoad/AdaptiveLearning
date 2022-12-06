@@ -111,11 +111,11 @@ class Nodes extends Model
         if(isset($Nodedata) && !empty($Nodedata)){
             foreach($Nodedata as $node){
                 $selectedNodeOption='';
-                if(!empty($selectedNodeId) && in_array($node->id,$selectedNodeId)){
+                if(!empty($selectedNodeId) && in_array($node->{cn::NODES_NODE_ID_COL},$selectedNodeId)){
                     $selectedNodeOption = 'selected="selected"';
                 }
-                $this->mainNodesOptionHtml .= "<option  ".$selectedNodeOption." value='".$node->id."' >".$node->node_id."</option>";
-                $this->mainNodesOptionHtml .=$this->getChildNodeList($selectedNodeId,$node->id,'','',$skip);
+                $this->mainNodesOptionHtml .= "<option  ".$selectedNodeOption." value='".$node->{cn::NODES_NODE_ID_COL}."' >".$node->{cn::NODES_NODEID_COL}."</option>";
+                $this->mainNodesOptionHtml .=$this->getChildNodeList($selectedNodeId,$node->{cn::NODES_NODE_ID_COL},'','',$skip);
                 $this->nodesOptionHtml='';
             }
         }
@@ -127,16 +127,14 @@ class Nodes extends Model
      */
     public function findTopParentNodeId($id) {
         if($id != "" || $id != 0){
-            $data = NodeRelation::where('child_node_id',$id)->get()->toArray();
+            $data = NodeRelation::where(cn::NODES_RELATION_CHILD_NODE_ID_COL,$id)->get()->toArray();
             if(!empty($data) ){
-                $this->findTopParentNodeId($data[0]['parent_node_id']);
+                $this->findTopParentNodeId($data[0][cn::NODES_RELATION_PARENT_NODE_ID_COL]);
             }else{
-                $this->parentNodeId=$id;
+                $this->parentNodeId = $id;
             }
-        }
-        else
-        {
-            $this->parentNodeId=$id;
+        }else{
+            $this->parentNodeId = $id;
         }
         return $this->parentNodeId;
     }
@@ -189,18 +187,14 @@ class Nodes extends Model
     /**
      * USE : Get parent node name list based on node id
      */
-    public function getParentNameById()
-    {
-        $subkey=cn::NODES_NODE_ID_COL;
-        if($this->$subkey!="")
-        {
-            $data=NodeRelation::where(cn::NODES_RELATION_CHILD_NODE_ID_COL,explode(',',$this->$subkey))->select(cn::NODES_RELATION_PARENT_NODE_ID_COL)->get()->toArray();
-            if(isset($data) && !empty($data))
-            {
-                $dataParentId=array_column($data,cn::NODES_RELATION_PARENT_NODE_ID_COL);
-                $dataParent=Nodes::select('*')->whereIn(cn::NODES_NODE_ID_COL,$dataParentId)->get()->toArray();
-                if(isset($dataParent) && !empty($dataParent))
-                {
+    public function getParentNameById(){
+        $subkey = cn::NODES_NODE_ID_COL;
+        if($this->$subkey != ""){
+            $data = NodeRelation::where(cn::NODES_RELATION_CHILD_NODE_ID_COL,explode(',',$this->$subkey))->select(cn::NODES_RELATION_PARENT_NODE_ID_COL)->get()->toArray();
+            if(isset($data) && !empty($data)){
+                $dataParentId = array_column($data,cn::NODES_RELATION_PARENT_NODE_ID_COL);
+                $dataParent = Nodes::select('*')->whereIn(cn::NODES_NODE_ID_COL,$dataParentId)->get()->toArray();
+                if(isset($dataParent) && !empty($dataParent)){
                     $dataParent=array_column($dataParent,cn::NODES_NODEID_COL);
                 }
                return implode(',',$dataParent);

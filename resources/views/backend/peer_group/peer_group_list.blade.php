@@ -133,8 +133,9 @@
 													@endif
 												@endif
 
-												<a href="javascript:void(0);" class="alp_chat_icon" data-AlpChatGroupId="{{$peerGroup->dreamschat_group_id}}" title="{{__('languages.peer_group.alp_chat')}}">
-													<img src="{{asset('images/alp_chat.png')}}"/>
+												<a href="javascript:void(0);" class="pl-2 alp_chat_icon" data-AlpChatGroupId="{{$peerGroup->dreamschat_group_id}}" title="{{__('languages.peer_group.alp_chat')}}">
+													{{-- <img src="{{asset('images/alp_chat.png')}}"/> --}}
+													<i class="fa fa-comments" aria-hidden="true"></i>
 												</a>
 											</td>
 										</tr>

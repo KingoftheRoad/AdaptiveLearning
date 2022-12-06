@@ -146,11 +146,12 @@
 											</th>
 											<th>@sortablelink('exam_type',__('languages.test.test_type'))</th>
 							          		<th>@sortablelink('title',__('languages.test.title'))</th>
-											<th>@sortablelink('from_date',__('languages.start_date_time'))</th>
-											<th>@sortablelink('to_date',__('languages.end_date_time'))</th>
+											<th>@sortablelink('from_date',__('languages.test.from_date'))</th>
+											<th>@sortablelink('to_date',__('languages.test.to_date'))</th>
 											<th>@sortablelink('result_date',__('languages.test.result_date'))</th>
+                                            <th>@sortablelink('time_duration',__('languages.time_duration_hh_mm_ss'))</th>
 											@if(Auth::user()->role_id == 1)
-											<th>{{__('languages.update_school_publish_status')}}</th>
+											<th>{{__('Update School Publish Status')}}</th>
 											@endif
 											<th>@sortablelink('status',__('languages.status'))</th>
 											@if(Auth::user()->role_id != 1)
@@ -177,29 +178,30 @@
 												@endif
 											</td>
                                             <td>{{$exam->title}}</td>
-                                            <td>{{date('d/m/Y',strtotime($exam->from_date))}} {{!empty($exam->start_time) ? $exam->start_time.':00' : '00:00:00'}}</td>
-                                            <td>{{date('d/m/Y',strtotime($exam->to_date))}} {{!empty($exam->end_time) ? $exam->end_time.':00' : '00:00:00'}}</td>
-                                            <td>{{!empty($exam->result_date) ? date('d/m/Y',strtotime($exam->result_date)) : 'After Submit'}}</td>
+                                            <td>{{date('d/m/Y',strtotime($exam->from_date))}}</td>
+                                            <td>{{date('d/m/Y',strtotime($exam->to_date))}}</td>
+                                            <td>{{date('d/m/Y',strtotime($exam->result_date))}}</td>
+                                            <td>{{ App\Helpers\Helper::secondToTime($exam->time_duration) ?? 'Unlimited Time'}}</td>
                                             @if(Auth::user()->role_id == 1)
 											<td>
 												<select name="exam_status" id="update_assign_school_status" class="update_assign_school_status" data-examid="{{$exam->id}}" {{ $exam->assign_school_status == 'send_to_school' ? 'disabled' : ''}}>
 													{{-- <option value="">{{__('languages.select_status')}}</option> --}}
-													<option value="draft" {{$exam->assign_school_status == 'draft' ? 'selected' : ''}}>{{__('languages.draft')}}</option>
-													<option value="send_to_school" {{$exam->assign_school_status == 'send_to_school' ? 'selected' : ''}}>{{__('languages.send_to_school')}}</option>
+													<option value="draft" {{$exam->assign_school_status == 'draft' ? 'selected' : ''}}>{{__('Draft')}}</option>
+													<option value="send_to_school" {{$exam->assign_school_status == 'send_to_school' ? 'selected' : ''}}>{{__('Send To School')}}</option>
 												</select>
 											</td>
 											@endif
 											<td class="exams_status_badge_{{$exam->id}}">
 												@if($exam->status == 'active')
-													<span class="badge badge-success">{{__('languages.active')}}</span>
+													<span class="badge badge-success">{{__('Active')}}</span>
 												@elseif($exam->status == 'pending')
-													<span class="badge badge-warning">{{__('languages.pending')}}</span>
+													<span class="badge badge-warning">{{__('Pending')}}</span>
 												@elseif($exam->status == 'complete')
-													<span class="badge badge-info">{{__('languages.complete')}}</span>
+													<span class="badge badge-info">{{__('Complete')}}</span>
 												@elseif($exam->status == 'publish')
-													<span class="badge badge-success">{{__('languages.publish')}}</span>
+													<span class="badge badge-success">{{__('Publish')}}</span>
 												@else
-													<span class="badge badge-danger">{{__('languages.inActive')}}</span>
+													<span class="badge badge-danger">{{__('InActive')}}</span>
 												@endif
 											</td>
 											
@@ -207,8 +209,8 @@
 											<td>
 												<select name="exam_status" id="update_exam_status" class="update_exam_status" data-examid="{{$exam->id}}" data-roleid="{{Auth::user()->role_id}}" {{ $exam->status == 'inactive' ? 'disabled' : ''}} {{ $exam->exam_type == 1 ? 'disabled' : ''}} >
 													<option value="">{{__('languages.select_status')}}</option>
-													<option value="publish" {{$exam->status == 'publish' ? 'selected' : ''}}>{{__('languages.publish')}}</option>
-													<option value="inactive" {{$exam->status == 'inactive' ? 'selected' : ''}}>{{__('languages.inactive')}}</option>
+													<option value="publish" {{$exam->status == 'publish' ? 'selected' : ''}}>{{__('Publish')}}</option>
+													<option value="inactive" {{$exam->status == 'inactive' ? 'selected' : ''}}>{{__('InActive')}}</option>
 												</select>
 											</td>
 											@endif
@@ -216,23 +218,23 @@
 											@if($exam->exam_type !=1)
 												@if(in_array('exam_management_update', $permissions))
 													@if(App\Helpers\Helper::isAdmin())
-														<i class="fa fa-graduation-cap add-more-schools" aria-hidden="true" title="{{__('languages.add_schools')}}" data-id="{{$exam->id}}"></i>
+														<i class="fa fa-graduation-cap add-more-schools" aria-hidden="true" title="{{__('Add School')}}" data-id="{{$exam->id}}"></i>
 														@if( $exam->assign_school_status == 'draft')
-														<a href="{{ route('super-admin.generate-questions-edit', $exam->id) }}" class="btn-edit" title="{{__('languages.edit')}}">
+														<a href="{{ route('super-admin.generate-questions-edit', $exam->id) }}" class="btn-edit" title="{{__('languages.edit_test_details')}}">
 															<i class="fa fa-pencil" aria-hidden="true"></i>
 														</a>
 														@endif
 													@else
 														@if($exam->status != 'publish' && $exam->status != 'inactive')
-														<a href="{{ route('school.generate-questions-edit', $exam->id) }}" class="btn-edit" title="{{__('languages.edit')}}">
+														<a href="{{ route('school.generate-questions-edit', $exam->id) }}" class="btn-edit" title="{{__('languages.edit_test_details')}}">
 															<i class="fa fa-pencil" aria-hidden="true"></i>
 														</a>
 														@endif
 													@endif
 												@endif
 												@if (in_array('exam_management_delete', $permissions))
-													<span><i class="fa fa-user add-peer-group" aria-hidden="true" title="{{__('languages.add_students')}}" data-id={{$exam->id}}></i></span>
-													<a href="javascript:void(0);" class="pl-2 btn-delete" id="deleteExam" data-id="{{$exam->id}}" title="{{__('languages.delete')}}">
+													<span><i class="fa fa-user add-peer-group" aria-hidden="true" title="{{__('Add Student/PeerGroup')}}" data-id={{$exam->id}}></i></span>
+													<a href="javascript:void(0);" class="pl-2 btn-delete" id="deleteExam" data-id="{{$exam->id}}" title="{{__('languages.delete_test')}}">
 														<i class="fa fa-trash" aria-hidden="true"></i>
 													</a>
 												@endif
@@ -258,7 +260,7 @@
 											<!-- If Exams Is Publish then display view student result icon -->
 											@if (in_array('result_management_update', $permissions))
 												@if($exam->status == 'publish')
-												<a href="{{ route('getListAttemptedExamsStudents', $exam->id) }}" data-toggle="tooltip" title="{{__('languages.result_text')}}" class="pl-2">
+												<a href="{{ route('getListAttemptedExamsStudents', $exam->id) }}" data-toggle="tooltip" title="{{__('languages.check_student_exam_result')}}" class="pl-2">
 													<i class="fa fa-eye" aria-hidden="true"></i>
 												</a>
 												@endif
@@ -274,7 +276,7 @@
 										@endif
 									</tbody>
 								</table>
-								<div>{{__('languages.showing')}} {{!empty($examList->firstItem()) ? $examList->firstItem() : 0}} {{__('languages.to')}} {{!empty($examList->lastItem()) ? $examList->lastItem() : 0}}
+								<div>{{__('languages.showing')}} {{($examList->firstItem())}} {{__('languages.to')}} {{$examList->lastItem()}}
 									{{__('languages.of')}}  {{$examList->total()}} {{__('languages.entries')}}
 								</div>
 								<div class="pagination-data">
@@ -474,7 +476,7 @@
 			<div class="modal-dialog modal-lg" role="document">
 				<div class="modal-content">
 					<div class="modal-header">
-						<h5 class="modal-title">{{__('languages.add_student_or_group')}}</h5>
+						<h5 class="modal-title">Add Student/Group</h5>
 						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
 							<span aria-hidden="true">&times;</span>
 						</button>
@@ -483,8 +485,8 @@
 						
 					</div>
 					<div class="modal-footer">
-						<button type="button" class="btn btn-primary saveStudents" data-dismiss="modal">{{__('languages.submit')}}</button>
-						<button type="button" class="btn btn-secondary closeaddStudentsInExamPopup" data-dismiss="modal">{{__('languages.close')}}</button>
+						<button type="button" class="btn btn-primary saveStudents" data-dismiss="modal">Submit</button>
+						<button type="button" class="btn btn-secondary closeaddStudentsInExamPopup" data-dismiss="modal">Close</button>
 					</div>
 				</div>
 			</div>
@@ -758,13 +760,13 @@
 
 						if($(".question-generator-class-chkbox:checked").length==0)
 						{
-							toastr.error(VALIDATIONS.PLEASE_SELECT_GRADE_AND_CLASSES);
+							toastr.error("Please Select  Grade and Classes");
 							return false;
 						}
 						
 						if(studentId.length==0)
 						{
-							toastr.error(VALIDATIONS.PLEASE_SELECT_STUDENT);
+							toastr.error("Please Select  students");
 							return false;
 						}
 						

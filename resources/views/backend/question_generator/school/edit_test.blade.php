@@ -331,6 +331,7 @@
                                         </div>
                                     </div>
                                 </section>
+
                                 @php
                                 $existingSchoolIds = ($exam->school_id) ? explode(',',$exam->school_id) : [];
                                 
@@ -1417,7 +1418,7 @@ function checkValidation(currentStep) {
         $('.question-generator-grade-chkbox').each(function(){
             var classCheckedLength=$(this).closest('.form-grade-select').find('.question-generator-class-chkbox:checked').length;
             var classLength=$(this).closest('.form-grade-select').find('.question-generator-class-chkbox').length;
-            if(classLength==classCheckedLength){
+            if(classLength==classCheckedLength && classCheckedLength != 0){
                 $(this).prop('checked',true);
             }
         });

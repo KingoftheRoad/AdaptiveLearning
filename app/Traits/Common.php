@@ -33,11 +33,56 @@ use Illuminate\Database\Eloquent\QueryException;
 use App\Models\ExamGradeClassMappingModel;
 use App\Models\ExamSchoolMapping;
 use App\Models\PeerGroupMember;
+use App\Models\CurriculumYear;
 use App\Models\PeerGroup;
 use App\Helpers\Helper;
 use App\Models\Languages;
+use Carbon\Carbon;
+use App\Models\CurriculumYearStudentMappings;
 
 trait Common {
+
+    public function curriculum_year_mapping_student_ids($gradeId='',$classId='', $schoolId='', $year=''){
+        if(isset($year) && !empty($year)){
+            $query = CurriculumYearStudentMappings::where([
+                cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => Self::getGlobalConfiguration('current_curriculum_year')
+            ]);
+        }else{
+            $query = CurriculumYearStudentMappings::where([
+                cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear()
+            ]);
+        }
+        
+        if(!empty($schoolId)){
+            $query->where(cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL,$schoolId);
+        }else{
+            if(!Self::isAdmin()){
+                $query->where(cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL,Auth::user()->school_id);
+            }
+        }
+
+        if(!empty($gradeId)){
+            if(is_array($gradeId)){
+                $query->whereIn(cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL,$gradeId);
+            }else{
+                if(!Self::isAdmin()){
+                    $query->where(cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL,$gradeId);
+                }
+            }
+        }
+
+        if(!empty($classId)){
+            if(is_array($classId)){
+                $query->whereIn(cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL,$classId);
+            }else{
+                if(!Self::isAdmin()){
+                    $query->where(cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL,$classId);
+                }
+            }
+        }
+        $studentIdsArray = $query->pluck(cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL)->unique()->toArray();
+        return $studentIdsArray;
+    }
 
     function findCreatedByUserType(){
         switch(Auth::user()->role_id){
@@ -130,7 +175,9 @@ trait Common {
                                 cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL => $StrandVal->{cn::STRANDS_ID_COL},
                                 cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL => $LearningsUnit->{cn::LEARNING_UNITS_ID_COL},
                                 cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL => $LearningsObjective->{cn::LEARNING_OBJECTIVES_ID_COL}
-                            ]);
+                            ],[cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL => $StrandVal->{cn::STRANDS_ID_COL},
+                            cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL => $LearningsUnit->{cn::LEARNING_UNITS_ID_COL},
+                            cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL => $LearningsObjective->{cn::LEARNING_OBJECTIVES_ID_COL}]);
                         }
                     }
                 }
@@ -169,9 +216,41 @@ trait Common {
         return $RoleType ?? 0;
     }
 
+    /**
+     * USE : Set  Default curriculum Year
+     */
+    public static function SetCurriculumYear($CurriculumYearId=''){
+        if(isset($CurriculumYearId) && !empty($CurriculumYearId)){
+           User::find(Auth::user()->id)->Update([
+                cn::USERS_CURRICULUM_YEAR_ID_COL => $CurriculumYearId
+            ]);
+        }else{
+            if(User::where([
+                cn::USERS_ID_COL => Auth::user()->id,
+                cn::USERS_CURRICULUM_YEAR_ID_COL => null
+            ])->exists()){
+                User::find(Auth::user()->id)->Update([
+                    cn::USERS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID
+                ]);
+            }
+        }
+    }
+
+    /**
+     * USE : Get Curriculum Year
+     */
+    public static function GetCurriculumYear(){
+        if(empty(Auth::user()->{cn::USERS_CURRICULUM_YEAR_ID_COL})){            
+            Self::SetCurriculumYear();
+        }        
+        return Auth::user()->{cn::USERS_CURRICULUM_YEAR_ID_COL};        
+    }
+
     protected static function GetRedirectURL(){
         if(Auth::user()){
             $redirectUrl = '';
+            // Set Curriculum Year
+            Self::SetCurriculumYear();
             switch (Auth::user()->roles['role_slug']) {
                 case "superadmin":
                     //$redirectUrl = config()->get('app.url').'admin/dashboard';
@@ -226,7 +305,10 @@ trait Common {
     }
 
     protected static function getSchoolByGradeIds($schoolId = null){
-        $result = GradeSchoolMappings::where(cn::SUBJECT_MAPPING_SCHOOL_ID_COL, $schoolId)->pluck('grade_id');
+        $result = GradeSchoolMappings::where([
+                    cn::SUBJECT_MAPPING_SCHOOL_ID_COL => $schoolId,
+                    cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear()
+                ])->pluck(cn::GRADES_MAPPING_GRADE_ID_COL);
         return $result;
     }
 
@@ -290,8 +372,9 @@ trait Common {
     }
 
     //Get Role Based Classes 
-    public static function getClassesByRoles($examId = NULL){
+    public static function getClassesByRoles($examId = NULL,$SchoolID = NULL,$GradeID = NULL){
         $response = [];
+        
         //Super Admin School Wise All Classes Get
         if(Auth::user()->role_id == cn::SUPERADMIN_ROLE_ID){
             if($examId){
@@ -301,15 +384,33 @@ trait Common {
                 if(!empty($examData->school_id)){
                     $schoolId = explode(',',$examData->school_id);
                 }
-                $School = School::whereIn('id',$schoolId)->get();
+                $School = (!empty($SchoolID)) ? School::where('id',$SchoolID)->get() : School::whereIn(cn::SCHOOL_ID_COLS,$schoolId)->get();
                 $SchoolGradeClassArray = [];
                 if(!empty($School)){
                     foreach($School as $schoolKey => $SchoolValue){
                         $classArray = [];
                         $groupArray = [];
-                        $SchoolGrades  = GradeSchoolMappings::where('school_id',$SchoolValue->id)->pluck('grade_id');
+
+                        if(empty($GradeID)){
+                            $SchoolGrades  = GradeSchoolMappings::where([
+                                                        cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+                                                        cn::GRADES_MAPPING_SCHOOL_ID_COL => $SchoolValue->id
+                                                    ])->pluck(cn::GRADES_MAPPING_GRADE_ID_COL);
+                        }else{
+                            $SchoolGrades  = GradeSchoolMappings::where([
+                                                                        cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+                                                                        cn::GRADES_MAPPING_SCHOOL_ID_COL => $SchoolValue->id,
+                                                                        'grade_id' => $GradeID
+                                                                    ])->pluck(cn::GRADES_MAPPING_GRADE_ID_COL);
+                        }
+                        
                         if(!empty($examData->peer_group_ids)){
-                            $SchoolGroups = PeerGroup::where('school_id',$SchoolValue->id)->whereIn('id',explode(',',$examData->peer_group_ids))->get();
+                            $SchoolGroups = PeerGroup::where([
+                                                cn::PEER_GROUP_SCHOOL_ID_COL => $SchoolValue->id,
+                                                cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear()
+                                            ])
+                                            ->whereIn(cn::PEER_GROUP_ID_COL,explode(',',$examData->peer_group_ids))
+                                            ->get();
                         }
                         
                         if(isset($SchoolGroups) && !empty($SchoolGroups)){
@@ -319,10 +420,31 @@ trait Common {
                         }
                         if(isset($SchoolGrades) && !empty($SchoolGrades)){
                             foreach($SchoolGrades as $gradeId){
-                                $SchoolGradeClass  = GradeClassMapping::with('grade')->where('school_id',$SchoolValue->id)->where('grade_id',$gradeId)->get();
+                                if(empty($examId)){
+                                    $SchoolGradeClass  = GradeClassMapping::with('grade')->where([
+                                                                                cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+                                                                                cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $SchoolValue->id,
+                                                                                cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $gradeId
+                                                                            ])
+                                                                            ->get();
+                                }else{
+                                   $SchoolGradeClass =  ExamGradeClassMappingModel::with('grade','grade_class_mapping')->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,[$examId])
+                                                                                ->where([
+                                                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => self::GetCurriculumYear(),
+                                                                                    'school_id' => $SchoolValue->id,
+                                                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                                                                ])
+                                                                                ->get();
+                                                                                
+                                }
                                 if(isset($SchoolGradeClass) && !empty($SchoolGradeClass)){
                                     foreach($SchoolGradeClass as $class){
-                                        $classArray[] = array('classId' => $class->id,'className' => $class->grade->name.''.$class->name);
+                                        if(empty($class->peer_group_id)){
+                                            $classArray[] = array(
+                                                'classId' => (!empty($class->grade_class_mapping) && isset($class->grade_class_mapping)) ? $class->grade_class_mapping->id : $class->id,
+                                                'className' => (!empty($class->grade_class_mapping) && isset($class->grade_class_mapping)) ?  $class->grade->name.''.$class->grade_class_mapping->name : $class->grade->name.''.$class->name
+                                            );
+                                        }
                                     }
                                     $SchoolGradeClassArray[$SchoolValue->id] = array('schoolName' => $SchoolValue->{'DecryptSchoolName'.ucfirst(app()->getLocale())},'class' => $classArray,'group' => $groupArray);
                                 }
@@ -334,11 +456,18 @@ trait Common {
             return $SchoolGradeClassArray;
         }
         if(Auth::user()->role_id == cn::TEACHER_ROLE_ID){
-            $teacherAssignClasses = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth::user()->{cn::USERS_ID_COL},cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL =>Auth::user()->{cn::USERS_SCHOOL_ID_COL}]);
+            $teacherAssignClasses = TeachersClassSubjectAssign::where([
+                                        cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+                                        cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth::user()->{cn::USERS_ID_COL},
+                                        cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}
+                                    ]);
             $AssignGrades = $teacherAssignClasses->get()->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)->toArray();
             if(!empty($AssignGrades)){
                 foreach($AssignGrades as $grade){
-                    $TeachersClassIds = $teacherAssignClasses->where([cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL => $grade])->get()->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray();
+                    $TeachersClassIds = $teacherAssignClasses->where([cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL => $grade])
+                                        ->get()
+                                        ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)
+                                        ->toArray();
                     if(isset($TeachersClassIds) && !empty($TeachersClassIds)){
                         $TeachersClassIds = explode(',',implode(',',$TeachersClassIds));
                         $gradeData = Grades::find($grade);
@@ -346,7 +475,9 @@ trait Common {
                                                     'id' => $gradeData->id,
                                                     'grade_name' => $gradeData->name
                                                 ];
-                        $classData = GradeClassMapping::whereIn('id',$TeachersClassIds)->get();
+                        $classData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,Self::GetCurriculumYear())
+                                    ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$TeachersClassIds)
+                                    ->get();
                         foreach($classData as $class){
                             $response['class'][] = [
                                 'classId'    => $class->id,
@@ -359,7 +490,11 @@ trait Common {
             return $response;
         }
         if(Auth::user()->role_id == cn::SCHOOL_ROLE_ID || Auth::user()->role_id == cn::PRINCIPAL_ROLE_ID){
-            $classMappingData = GradeClassMapping::where(['school_id'=>Auth::user()->{cn::USERS_SCHOOL_ID_COL}])->get();
+            $classMappingData = GradeClassMapping::where([
+                                    cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}
+                                ])
+                                ->get();
             if(!empty($classMappingData)){
                 foreach($classMappingData as $classMappingKey => $classMapping){
                     $GradeData = Grades::find($classMapping->grade_id);
@@ -374,21 +509,23 @@ trait Common {
         return $response;
     }
 
+    
+
     //in Class Performance Report option based set Alphabet Option
     public static function setOptionBasedAlphabet($option){
         switch($option){
             case 1:
-                    return 'A';
-                    break;
+                return 'A';
+                break;
             case 2:
-                    return 'B';
-                    break;
+                return 'B';
+                break;
             case 3:
-                    return 'C';
-                    break;
+                return 'C';
+                break;
             case 4: 
-                    return 'D';
-                    break;
+                return 'D';
+                break;
         }
     }
 
@@ -539,7 +676,10 @@ trait Common {
                         }
                         // Learning objectives id
                         // $LearningsObjectives = LearningsObjectives::where(cn::LEARNING_OBJECTIVES_CODE_COL,substr($ArrayOfQuestionCode[2],2))->where('learning_unit_id',$code['learning_unit_id'])->first();
-                        $LearningsObjectives = LearningsObjectives::IsAvailableQuestion()->where(cn::LEARNING_OBJECTIVES_CODE_COL,substr($ArrayOfQuestionCode[2],2))->where('learning_unit_id',$code['learning_unit_id'])->first();
+                        $LearningsObjectives = LearningsObjectives::IsAvailableQuestion()
+                                                ->where(cn::LEARNING_OBJECTIVES_CODE_COL,substr($ArrayOfQuestionCode[2],2))
+                                                ->where('learning_unit_id',$code['learning_unit_id'])
+                                                ->first();
                         if(isset($LearningsObjectives)){
                             $code['learning_objectives_id'] = $LearningsObjectives->{cn::LEARNING_OBJECTIVES_ID_COL};
                         }
@@ -728,19 +868,23 @@ trait Common {
         $studentRank = [];
         if(!empty($school_id)){
             $AttemptData = AttemptExams::with('user')->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)
-            ->whereHas('user',function ($q) use($school_id,$studentId){
-                $q->whereIn(cn::USERS_ID_COL,$studentId)->where([cn::USERS_SCHOOL_ID_COL => $school_id,cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID]);
-            })
-            ->selectRaw('student_id,SUM(total_correct_answers) as Total')
-            ->groupBy(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID)
-            ->orderBy('Total','DESC')
-            ->get();
+                            ->whereHas('user',function ($q) use($school_id,$studentId){
+                                $q->whereIn(cn::USERS_ID_COL,$studentId)
+                                ->where([
+                                    cn::USERS_SCHOOL_ID_COL => $school_id,
+                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
+                                ]);
+                            })
+                            ->selectRaw('student_id,SUM(total_correct_answers) as Total')
+                            ->groupBy(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID)
+                            ->orderBy('Total','DESC')
+                            ->get();
         }else{
             $AttemptData = AttemptExams::with('user')->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)
-            ->selectRaw('student_id,SUM(total_correct_answers) as Total')
-            ->groupBy(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID)
-            ->orderBy('Total','DESC')
-            ->get();
+                            ->selectRaw('student_id,SUM(total_correct_answers) as Total')
+                            ->groupBy(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID)
+                            ->orderBy('Total','DESC')
+                            ->get();
         }
         if(!empty($AttemptData)){
             foreach($AttemptData as $data){
@@ -978,14 +1122,14 @@ trait Common {
     /**
      * USE : Encryption Data
      */
-    public function encrypt($string){
+    public static function encrypt($string){
         return base64_encode($string);
     }
 
     /**
      * USE : Decrypt Data
      */
-    public function decrypt($string){
+    public static function decrypt($string){
         return base64_decode($string);
     }
 
@@ -1168,7 +1312,9 @@ trait Common {
     public function getSubjectMapping($strands_id=array(),$learning_units_id=array(),$learning_objectives_id=array()){
         $html = '';
         $html .= '<ul class="categories-list">';
-        $strandsIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,1)->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)->pluck(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL);
+        $strandsIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,1)
+                    ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
+                    ->pluck(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL);
         if(!empty($strandsIds)){
             $strandsIds = array_unique($strandsIds->toArray());
             $StrandList = Strands::whereIn(cn::STRANDS_ID_COL, $strandsIds)->get();
@@ -1182,9 +1328,9 @@ trait Common {
                     }
                     $html .= '<li class="category"><input type="checkbox" name="strands[]" value="'.$strand->{cn::STRANDS_ID_COL}.'" '.$selected.' ><div class="row"><div class="col-md-8"><label>'.$strand->{cn::STRANDS_NAME_COL}.'</label></div><div class="col-md-4"><input type="range" id="" min="0" value="0" disabled="" max="100" class="up-50" style=""><span class="label-percentage">0%</span></div></div>';
                     $learningUnitsIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,1)
-                            ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
-                            ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strand->{cn::STRANDS_ID_COL})
-                            ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL);
+                                        ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
+                                        ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strand->{cn::STRANDS_ID_COL})
+                                        ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL);
                     if(!empty($learningUnitsIds)){
                         $learningUnitsIds = array_unique($learningUnitsIds->toArray());
                         $LearningUnits = LearningsUnits::whereIn(cn::LEARNING_UNITS_ID_COL, $learningUnitsIds)->get();
@@ -1200,10 +1346,10 @@ trait Common {
                                 }
                                 $html .= '<li class="category"><input type="checkbox" name="learning_units[]" value="'.$learningUnit->{cn::LEARNING_UNITS_ID_COL}.'" '.$selectedLearningUnit.'><div class="row"><div class="col-md-8"><label>'.$learningUnit->{cn::LEARNING_UNITS_NAME_COL}.'</label></div><div class="col-md-4"><input type="range" id="" min="0" value="0" disabled="" max="100" class="up-50" style=""><span class="label-percentage">0%</span></div></div>';
                                 $learningObjectivesIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,1)
-                                                ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
-                                                ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strand->{cn::STRANDS_ID_COL})
-                                                ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnit->{cn::LEARNING_UNITS_ID_COL})
-                                                ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL);
+                                                        ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
+                                                        ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strand->{cn::STRANDS_ID_COL})
+                                                        ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnit->{cn::LEARNING_UNITS_ID_COL})
+                                                        ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL);
                                 if(!empty($learningObjectivesIds)){
                                     $learningObjectivesIds = array_unique($learningObjectivesIds->toArray());
                                     // $LearningObjectives = LearningsObjectives::whereIn(cn::LEARNING_OBJECTIVES_ID_COL, $learningObjectivesIds)->get();
@@ -1238,7 +1384,10 @@ trait Common {
 
     public function getSingleClassName($id){
         $className = '';
-        $ClassData = GradeClassMapping::find($id);
+        $ClassData = GradeClassMapping::where([
+                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+                        cn::GRADE_CLASS_MAPPING_ID_COL => $id
+                    ])->first();
         if(!empty($ClassData)){
             $className = strtoupper($ClassData->{cn::GRADE_CLASS_MAPPING_NAME_COL});
         }
@@ -1423,12 +1572,15 @@ trait Common {
         }
 
         // Get Grade Name
-        $gradeName = $this->getGradeName(Auth::user()->grade_id);
+        //$gradeName = $this->getGradeName(Auth::user()->grade_id);
+        $gradeName = $this->getGradeName(Auth::user()->CurriculumYearGradeId);
         // Get class Name
-        $className = $this->getSingleClassName(Auth::user()->class_id);
+        //$className = $this->getSingleClassName(Auth::user()->class_id);
+        $className = $this->getSingleClassName(Auth::user()->CurriculumYearClassId);
         //get Student Number 
-        $studentNumber = Auth::user()->student_number;
-        // get Time Stamp 
+        //$studentNumber = Auth::user()->student_number;
+        $studentNumber = Auth::user()->CurriculumYearData['student_number'];
+        // get Time Stamp
         $timestamps = $currentDate->getTimestamp();
         //Dynamic Title
         $TestTitle = $schoolYear.'+'.$gradeName.$className.'+'.$studentNumber.'+'.$timestamps;
@@ -1501,7 +1653,7 @@ trait Common {
             for($i=1; $i <= 5; $i++){
                 ${'correctLevelQuesion'.$i} = $data['correct_Level'.$i];
                 ${'wrongLevelQuesion'.$i} = ($data['Level'.$i] - $data['correct_Level'.$i]);
-                $largestQuestionDifficulty[] = ( ${'correctLevelQuesion'.$i} +${'wrongLevelQuesion'.$i});
+                $largestQuestionDifficulty[] = (${'correctLevelQuesion'.$i} +${'wrongLevelQuesion'.$i});
                 $response['correct_Level'.$i] =  ${'correctLevelQuesion'.$i};
                 $response['wrong_Level'.$i] = ${'wrongLevelQuesion'.$i};
             }
@@ -1523,17 +1675,20 @@ trait Common {
      * USE : Covert natural value to normalized value
      */
     function getNormalizedAbility($value){
-        //if(!empty($value)){
-            $value = exp($value) / (1 + exp($value)) * 100;
-            return round($value,2);
-        // }else{
-        //     return $value;
-        // }
+        $value = exp($value) / (1 + exp($value)) * 100;
+        return round($value,2);
     }
 
     function getTeacherAssignedClasses($schoolid,$teacherid){
         $teacherClassesIds = null;
-        $teacherClassesIds = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $schoolid, cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => $teacherid])->groupBy(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)->get()->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL);
+        $teacherClassesIds = TeachersClassSubjectAssign::where([
+                                cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear,
+                                cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $schoolid,
+                                cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => $teacherid
+                            ])
+                            ->groupBy(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)
+                            ->get()
+                            ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL);
         if(isset($teacherClassesIds) && !empty($teacherClassesIds)){
             return $teacherClassesIds->toArray();
         }
@@ -1582,12 +1737,13 @@ trait Common {
             $items = $currentItems;
         }
     }
+
+
     public function getCookie($cookieName){
         $IntelligentTutorData = Cookie::get($cookieName);
         $value = json_decode($IntelligentTutorData);
         return $value;
     }
-
 
     //Get Role Base Grades 
     public function GetRoleBasedGrades($roleId){
@@ -1599,7 +1755,8 @@ trait Common {
                 return $this->GetPluckIds('TeachersClassSubjectAssign');
                 break;
             case 3:
-                return Grades::where('id',Auth::user()->role_id)->get()->pluck('id')->toArray();
+                //return Grades::where(cn::GRADES_ID_COL,Helper::GetCurriculumDataById($this->LoggedUserId(),Self::GetCurriculumYear(),'grade_id'))->get()->pluck(cn::GRADES_ID_COL)->toArray();
+                return Grades::where(cn::GRADES_ID_COL,Auth::user()->CurriculumYearGradeId)->get()->pluck(cn::GRADES_ID_COL)->toArray();
                 break;
             case 5:
             case 7:
@@ -1629,10 +1786,19 @@ trait Common {
                     return Languages::get()->pluck(cn::LANGUAGES_ID_COL)->toArray();
                 break;
             case 'TeachersClassSubjectAssign' :
-                    return TeachersClassSubjectAssign::where(cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL,Auth::user()->{cn::USERS_ID_COL})->get()->pluck('class_id')->toArray();
+                    return TeachersClassSubjectAssign::where(cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                            ->where(cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL,Self::GetCurriculumYear())
+                            ->where(cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL,Auth::user()->{cn::USERS_ID_COL})
+                            ->get()
+                            ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)
+                            ->toArray();
                 break;
             case 'GradeClassMapping':
-                return GradeClassMapping::where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,Auth::user()->school_id)->get()->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL)->toArray();
+                return GradeClassMapping::where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,Auth::user()->school_id)
+                        ->where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,Self::GetCurriculumYear())
+                        ->get()
+                        ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL)
+                        ->toArray();
                 break;
             default:
                 break;
@@ -1678,30 +1844,29 @@ trait Common {
             }
            
             $cookieData = [
-                                'learning_tutor_grade_id' => $currentGrade,
-                                'learning_tutor_strand_id' => $currentStrand,
-                                'learning_tutor_learning_unit' => $currentLearningUnit,
-                                'learning_tutor_learning_objectives' => $currentLearningObjective,
-                                'learning_tutor_language_id' => $currentLanguage,
-                                'learning_tutor_status' => $currentStatus
-                            ];
+                            'learning_tutor_grade_id' => $currentGrade,
+                            'learning_tutor_strand_id' => $currentStrand,
+                            'learning_tutor_learning_unit' => $currentLearningUnit,
+                            'learning_tutor_learning_objectives' => $currentLearningObjective,
+                            'learning_tutor_language_id' => $currentLanguage,
+                            'learning_tutor_status' => $currentStatus
+                        ];
 
             $request->merge($cookieData);
-            $array_json=json_encode($cookieData);
+            $array_json = json_encode($cookieData);
             Cookie::queue($cookieName, $array_json, $cookieTime);
             $items = $request;
         }else{
             $cookieData = [
                             'learning_tutor_grade_id' => $currentGrade,'learning_tutor_strand_id' => $currentStrand,
-                            'learning_tutor_learning_unit'=>$currentLearningUnit,
-                            'learning_tutor_learning_objectives'=>$currentLearningObjective,
-                            'learning_tutor_language_id'=>$currentLanguage,
+                            'learning_tutor_learning_unit' => $currentLearningUnit,
+                            'learning_tutor_learning_objectives' => $currentLearningObjective,
+                            'learning_tutor_language_id' => $currentLanguage,
                             'learning_tutor_status' => $currentStatus
                         ];
-            $array_json=json_encode($cookieData);
+            $array_json = json_encode($cookieData);
             Cookie::queue($cookieName, $array_json, $cookieTime);
         }
-        
     }
 
     /**
@@ -1766,13 +1931,13 @@ trait Common {
         $response = [];
         $questionIds = '';
         $questionId_data = array();
-        $gradeId = Auth::user()->grade_id;
-        $objective_mapping_id = $StrandUnitsObjectivesMappingsId;          
-       // dd($objective_mapping_id);
+        //$gradeId = Auth::user()->grade_id;
+        $gradeId = Auth::user()->CurriculumYearGradeId;
+        $objective_mapping_id = $StrandUnitsObjectivesMappingsId;
         $difficulty_lvl = $request->dificulty_level;
-        $selected_levels=array();
+        $selected_levels = array();
         foreach ($difficulty_lvl as $difficulty_value) {
-            $selected_levels[]=$difficulty_value-1;
+            $selected_levels[] = ($difficulty_value - 1);
         }
         $no_of_questions_per_learning_skills = $this->getGlobalConfiguration('no_of_questions_per_learning_skills');
         if(empty($no_of_questions_per_learning_skills)){
@@ -1785,8 +1950,12 @@ trait Common {
         if(!empty($objective_mapping_id)){
             $user_id = Auth::user()->{cn::USERS_ID_COL};
             $oldQesList = "";
-            $oldExamId = ExamConfigurationsDetails::where(cn::EXAM_CONFIGURATIONS_DETAILS_CREATED_BY_USER_ID_COL,$user_id)->pluck(cn::EXAM_CONFIGURATIONS_DETAILS_EXAM_ID_COL)->toArray();
-            $oldExamList = Exam::whereIn(cn::EXAM_TABLE_ID_COLS,$oldExamId)->pluck(cn::EXAM_TABLE_QUESTION_IDS_COL)->toArray();
+            $oldExamId = ExamConfigurationsDetails::where(cn::EXAM_CONFIGURATIONS_DETAILS_CREATED_BY_USER_ID_COL,$user_id)
+                        ->pluck(cn::EXAM_CONFIGURATIONS_DETAILS_EXAM_ID_COL)
+                        ->toArray();
+            $oldExamList = Exam::whereIn(cn::EXAM_TABLE_ID_COLS,$oldExamId)
+                            ->pluck(cn::EXAM_TABLE_QUESTION_IDS_COL
+                            )->toArray();
             if(isset($oldExamList) && !empty($oldExamList)){
                 $oldQesList = implode(',',$oldExamList);
                 $oldQesList = explode(',',$oldQesList);
@@ -1830,10 +1999,9 @@ trait Common {
                                 }
                             })
                             ->limit($no_of_questions_per_learning_skills);
-                            $questionId_list=$questionId_data_list->pluck(cn::QUESTION_TABLE_ID_COL)
+                            $questionId_list = $questionId_data_list->pluck(cn::QUESTION_TABLE_ID_COL)
                             ->toArray();
-                        $question_data=$questionId_data_list->get()
-                                    ->toArray();
+                        $question_data = $questionId_data_list->get()->toArray();
                         if(isset($questionId_list) && !empty($questionId_list)){
                             if($question_id_list != ""){
                                 $question_id_list.=','.implode(',', $questionId_list);
@@ -1860,134 +2028,24 @@ trait Common {
                 }
                 $qLoop++;
             }
-            return $coded_questions_list=array_slice($coded_questions_list, 0, $no_of_questions);
+            return $coded_questions_list = array_slice($coded_questions_list, 0, $no_of_questions);
         }
     }
 
     /**
      * USE : Get question ids from AI Api
      */
-    // function generateQuestionsAIQenerateQuestions($request,$StrandUnitsObjectivesMappingsId){
-    //     $response = [];
-    //     $questionIds = '';
-    //     $questionId_data = array();
-    //     $gradeId = Auth::user()->grade_id;
-    //     $objective_mapping_id = $StrandUnitsObjectivesMappingsId;
-    //     $difficulty_lvl = $request->dificulty_level;
-    //     $selected_levels=array();
-    //     foreach ($difficulty_lvl as $difficulty_value) {
-    //         $selected_levels[]=$difficulty_value-1;
-    //     }
-    //     $no_of_questions_per_learning_skills = $this->getGlobalConfiguration('no_of_questions_per_learning_skills');
-    //     if(empty($no_of_questions_per_learning_skills)){
-    //         $no_of_questions_per_learning_skills = 2;
-    //     }
-    //     $no_of_questions = 10;
-    //     if(isset($request->no_of_questions) && !empty($request->no_of_questions)){
-    //         $no_of_questions = $request->no_of_questions;
-    //     }
-    //     if(!empty($objective_mapping_id)){
-    //         $user_id = Auth::user()->{cn::USERS_ID_COL};
-    //         $oldQesList = "";
-    //         $oldExamId = ExamConfigurationsDetails::where(cn::EXAM_CONFIGURATIONS_DETAILS_CREATED_BY_USER_ID_COL,$user_id)
-    //                         ->pluck(cn::EXAM_CONFIGURATIONS_DETAILS_EXAM_ID_COL)
-    //                         ->toArray();
-    //         $oldExamList = Exam::whereIn(cn::EXAM_TABLE_ID_COLS,$oldExamId)->pluck(cn::EXAM_TABLE_QUESTION_IDS_COL)->toArray();
-    //         if(isset($oldExamList) && !empty($oldExamList)){
-    //             $oldQesList = implode(',',$oldExamList);
-    //             $oldQesList = explode(',',$oldQesList);
-    //         }
-    //         if($oldQesList!=""){
-    //             $oldQesList = array_merge($oldQesList,$request->old_question_ids);
-    //         }else{
-    //             $oldQesList = $request->old_question_ids;
-    //         }
-    //         $questionId_data_list = Question::whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL,$objective_mapping_id)
-    //                                 //->where(cn::QUESTION_QUESTION_TYPE_COL,$request->test_type)
-    //                                 ->whereIn(cn::QUESTION_QUESTION_TYPE_COL,[2,3])
-    //                                 ->whereNotIn(cn::QUESTION_QUESTION_TYPE_COL,$request->old_question_ids)
-    //                                 ->groupBy(cn::QUESTION_QUESTION_CODE_COL)
-    //                                 ->pluck(cn::QUESTION_QUESTION_CODE_COL)
-    //                                 ->toArray();
-            
-    //         $question_code_skills = array();
-    //         foreach ($questionId_data_list as $question_code_s) {
-    //             $question_code_exp = explode('-', $question_code_s);
-    //             $question_code_skills[] = $question_code_exp[0].'-'.$question_code_exp[1].'-'.$question_code_exp[2].'-'.substr($question_code_exp[3],0,2);
-    //         }
-    //         if(isset($question_code_skills) && !empty($question_code_skills)){
-    //             $question_code_skills = array_unique($question_code_skills);
-    //             $question_code_skills = array_values($question_code_skills);
-    //         }else{
-    //             return array();
-    //         }
-    //         rsort($difficulty_lvl);
-    //         $qLoop = 0;
-    //         $question_id_list = '';
-    //         $coded_questions_list = array();
-    //         while($qLoop <= $no_of_questions){
-    //             foreach($question_code_skills as $question_code){
-    //                 foreach($difficulty_lvl as $difficulty){
-    //                     $questionId_data_list = Question::with('PreConfigurationDifficultyLevel')->where(cn::QUESTION_QUESTION_CODE_COL,'like',$question_code.'%')
-    //                         //->where(cn::QUESTION_QUESTION_TYPE_COL,$request->test_type)
-    //                         ->whereIn(cn::QUESTION_QUESTION_TYPE_COL,[2,3])
-    //                         ->where(function ($query) use ($oldQesList){
-    //                             if(!empty($oldQesList)){
-    //                                 $query->whereNotIn(cn::QUESTION_TABLE_ID_COL,$oldQesList);
-    //                             }
-    //                         })
-    //                         ->where(cn::QUESTION_DIFFICULTY_LEVEL_COL,$difficulty)
-    //                         ->where(function ($query) use ($question_id_list){
-    //                             if($question_id_list != ""){
-    //                                 $question_id_list_array = explode(',', $question_id_list);
-    //                                 $query->whereNotIn(cn::QUESTION_TABLE_ID_COL,$question_id_list_array);
-    //                             }
-    //                         })
-    //                         ->limit($no_of_questions_per_learning_skills);
-    //                         $questionId_list=$questionId_data_list->pluck(cn::QUESTION_TABLE_ID_COL)
-    //                         ->toArray();
-    //                     $question_data=$questionId_data_list->get()
-    //                                 ->toArray();
-    //                     if(isset($questionId_list) && !empty($questionId_list)){
-    //                         if($question_id_list != ""){
-    //                             $question_id_list.=','.implode(',', $questionId_list);
-    //                         }else{
-    //                             $question_id_list.=implode(',', $questionId_list);
-    //                         }
-    //                         foreach ($question_data as $question_key => $question_value) {
-    //                             $coded_questions_list[] = array($question_value[cn::QUESTION_NAMING_STRUCTURE_CODE_COL],floatval($question_data[0]['pre_configuration_difficulty_level']['title']),0);
-    //                         }
-    //                     }
-    //                     $qSize = sizeof(explode(',',$question_id_list));
-    //                     if($qSize >= $no_of_questions){
-    //                         if($qSize > $no_of_questions){
-    //                             $question_id_list_tmp = explode(',',$question_id_list);
-    //                             array_pop($question_id_list_tmp);
-    //                             $question_id_list = implode(',',$question_id_list_tmp);
-    //                         }
-    //                         break;
-    //                     }
-    //                 }
-    //             }
-    //             if($qSize >= $no_of_questions){
-    //                 break;
-    //             }
-    //             $qLoop++;
-    //         }
-    //         return $coded_questions_list = array_slice($coded_questions_list, 0, $no_of_questions);
-    //     }
-    // }
-
     function generateQuestionsAIQenerateQuestions($request,$StrandUnitsObjectivesMappingsId){
         $response = [];
         $questionIds = '';
         $questionId_data = array();
-        $gradeId = Auth::user()->grade_id;
+        //$gradeId = Auth::user()->grade_id;
+        $gradeId = Auth::user()->CurriculumYearGradeId;
         $objective_mapping_id = $StrandUnitsObjectivesMappingsId;
         $difficulty_lvl = $request->dificulty_level;
-        $selected_levels=array();
+        $selected_levels = array();
         foreach ($difficulty_lvl as $difficulty_value) {
-            $selected_levels[]=$difficulty_value-1;
+            $selected_levels[] = $difficulty_value-1;
         }
         $no_of_questions_per_learning_skills = $this->getGlobalConfiguration('no_of_questions_per_learning_skills');
         if(empty($no_of_questions_per_learning_skills)){
@@ -2035,54 +2093,38 @@ trait Common {
             $qLoop = 0;
             $question_id_list = '';
             $coded_questions_list = array();
-            //while($qLoop <= $no_of_questions){
-                foreach($question_code_skills as $question_code){
-                    foreach($difficulty_lvl as $difficulty){
-                        $questionId_data_list = Question::with('PreConfigurationDifficultyLevel')->where(cn::QUESTION_QUESTION_CODE_COL,'like',$question_code.'%')
-                        //->where(cn::QUESTION_QUESTION_TYPE_COL,$request->test_type)
-                        ->whereIn(cn::QUESTION_QUESTION_TYPE_COL,[2,3])
-                        ->where(function ($query) use ($oldQesList){
-                            if(!empty($oldQesList)){
-                                $query->whereNotIn(cn::QUESTION_TABLE_ID_COL,$oldQesList);
-                            }
-                        })
-                        ->where(cn::QUESTION_DIFFICULTY_LEVEL_COL,$difficulty)
-                        ->where(function ($query) use ($question_id_list){
-                            if($question_id_list != ""){
-                                $question_id_list_array = explode(',', $question_id_list);
-                                $query->whereNotIn(cn::QUESTION_TABLE_ID_COL,$question_id_list_array);
-                            }
-                        });
-                        //->limit($no_of_questions_per_learning_skills);
-                        $questionId_list = $questionId_data_list->pluck(cn::QUESTION_TABLE_ID_COL)->toArray();
-                        $question_data = $questionId_data_list->get()->toArray();
-                        if(isset($questionId_list) && !empty($questionId_list)){
-                            if($question_id_list != ""){
-                                $question_id_list.=','.implode(',', $questionId_list);
-                            }else{
-                                $question_id_list.=implode(',', $questionId_list);
-                            }
-                            foreach ($question_data as $question_key => $question_value) {
-                                $coded_questions_list[] = array($question_value[cn::QUESTION_NAMING_STRUCTURE_CODE_COL],floatval($question_data[0]['pre_configuration_difficulty_level']['title']),0);
-                            }
+            foreach($question_code_skills as $question_code){
+                foreach($difficulty_lvl as $difficulty){
+                    $questionId_data_list = Question::with('PreConfigurationDifficultyLevel')->where(cn::QUESTION_QUESTION_CODE_COL,'like',$question_code.'%')
+                    //->where(cn::QUESTION_QUESTION_TYPE_COL,$request->test_type)
+                    ->whereIn(cn::QUESTION_QUESTION_TYPE_COL,[2,3])
+                    ->where(function ($query) use ($oldQesList){
+                        if(!empty($oldQesList)){
+                            $query->whereNotIn(cn::QUESTION_TABLE_ID_COL,$oldQesList);
                         }
-                        // $qSize = sizeof(explode(',',$question_id_list));
-                        // if($qSize >= $no_of_questions){
-                        //     if($qSize > $no_of_questions){
-                        //         $question_id_list_tmp = explode(',',$question_id_list);
-                        //         array_pop($question_id_list_tmp);
-                        //         $question_id_list = implode(',',$question_id_list_tmp);
-                        //     }
-                        //     break;
-                        // }
+                    })
+                    ->where(cn::QUESTION_DIFFICULTY_LEVEL_COL,$difficulty)
+                    ->where(function ($query) use ($question_id_list){
+                        if($question_id_list != ""){
+                            $question_id_list_array = explode(',', $question_id_list);
+                            $query->whereNotIn(cn::QUESTION_TABLE_ID_COL,$question_id_list_array);
+                        }
+                    });
+                    //->limit($no_of_questions_per_learning_skills);
+                    $questionId_list = $questionId_data_list->pluck(cn::QUESTION_TABLE_ID_COL)->toArray();
+                    $question_data = $questionId_data_list->get()->toArray();
+                    if(isset($questionId_list) && !empty($questionId_list)){
+                        if($question_id_list != ""){
+                            $question_id_list.=','.implode(',', $questionId_list);
+                        }else{
+                            $question_id_list.=implode(',', $questionId_list);
+                        }
+                        foreach ($question_data as $question_key => $question_value) {
+                            $coded_questions_list[] = array($question_value[cn::QUESTION_NAMING_STRUCTURE_CODE_COL],floatval($question_data[0]['pre_configuration_difficulty_level']['title']),0);
+                        }
                     }
                 }
-                // if($qSize >= $no_of_questions){
-                //     break;
-                // }
-                //$qLoop++;
-            //}
-            //$coded_questions_list = array_slice($coded_questions_list, 0, $no_of_questions);
+            }
             return $coded_questions_list;
         }
     }
@@ -2091,9 +2133,13 @@ trait Common {
      * USE : Get Student Peer Group Ids using Auth Id
      */
     protected static function getStudentPeerGroupIds(){
-        return PeerGroupMember::where(cn::PEER_GROUP_MEMBERS_STATUS_COL,1)
-                ->where(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL,Auth::user()->id)
-                ->pluck(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL)->toArray();
+        return PeerGroupMember::where([
+                cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+                cn::PEER_GROUP_MEMBERS_STATUS_COL => 1,
+                cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL => Auth::user()->id
+            ])
+            ->pluck(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL)
+            ->toArray();
     }
 
     /**
@@ -2125,7 +2171,10 @@ trait Common {
      */
     function GetStudentAttemptedExamIds($StudentId){
         $ExamIds = array();
-        $ExamIds = AttemptExams::where('student_id',$StudentId)->pluck('id');
+        $ExamIds = AttemptExams::where([
+                    cn::ATTEMPT_EXAMS_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+                    cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $StudentId
+                ])->pluck(cn::ATTEMPT_EXAMS_EXAM_ID);
         return $ExamIds;
     }
 
@@ -2168,14 +2217,14 @@ trait Common {
         $ExamData = Exam::find($examId);
         if(!empty($ExamData)){
             //Get Questions in Exam Assigns
-            if(!empty($ExamData->question_ids)){
-                $questionIds= explode(',',$ExamData->question_ids);
+            if(!empty($ExamData->{cn::EXAM_TABLE_QUESTION_IDS_COL})){
+                $questionIds = explode(',',$ExamData->{cn::EXAM_TABLE_QUESTION_IDS_COL});
                 $QuestionList = Question::with('answers')->whereIn(cn::QUESTION_TABLE_ID_COL,$questionIds)->get();
             }
             
             //Get Student data in Exam Assigns
-            if(!empty($ExamData->student_ids)){
-                $studentIds = explode(',',$ExamData->student_ids);
+            if(!empty($ExamData->{cn::EXAM_TABLE_STUDENT_IDS_COL})){
+                $studentIds = explode(',',$ExamData->{cn::EXAM_TABLE_STUDENT_IDS_COL});
             }
 
             //Set Header And Correct Answer Array
@@ -2192,23 +2241,26 @@ trait Common {
             $getAllStudentIds = [];
             $getStudentsFromClassIds = [];
             $getStudentFromGroupIds = [];
+
             if(SELF::isAdmin()){
                 if(!empty($classIds)){
-                    $getStudentsFromClassIds = User::whereIn(cn::USERS_CLASS_ID_COL,$classIds)->pluck('id')->toArray();
+                    // $getStudentsFromClassIds = User::whereIn(cn::USERS_CLASS_ID_COL,$classIds)->pluck(cn::USERS_ID_COL)->toArray();
+                    $getStudentsFromClassIds = User::whereIn(cn::USERS_ID_COL,Self::curriculum_year_mapping_student_ids('',$classIds,''))->pluck(cn::USERS_ID_COL)->toArray();
                 }
                 if(!empty($groupIds)){
-                    $getStudentFromGroupIds =  PeerGroupMember::whereIn('peer_group_id',$groupIds)->pluck('member_id')->unique()->toArray();
-
+                    $getStudentFromGroupIds =  PeerGroupMember::where(cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL,Self::GetCurriculumYear())
+                                                ->whereIn(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$groupIds)
+                                                ->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)
+                                                ->unique()
+                                                ->toArray();
                 }
                 $getAllStudentIds = array_unique(array_merge($getStudentsFromClassIds,$getStudentFromGroupIds));
 
                 $AttemptExamData = $Query->whereHas('user',function($q) use($getAllStudentIds){
-                    $q->whereIn('id',$getAllStudentIds);
+                    $q->whereIn(cn::USERS_ID_COL,$getAllStudentIds);
                 })->get();
-                // $AttemptExamData = $Query->whereHas('user',function($q) use($classIds){
-                //     $q->whereIn(cn::USERS_CLASS_ID_COL,$classIds);
-                // })->get();
             }
+
             if(SELF::isTeacherLogin()){
                 if(!empty($GetStudentIds)){
                     $AttemptExamData = $Query->whereHas('user',function($q) use($GetStudentIds){
@@ -2218,31 +2270,51 @@ trait Common {
                         })->get();
                 }else{
                     if(empty($groupIds)){
-                        $TeachersGradeClass = TeachersClassSubjectAssign::where(cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL,Auth::user()->{cn::USERS_ID_COL});
+                        $TeachersGradeClass = TeachersClassSubjectAssign::where([
+                                                cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+                                                cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                                cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth::user()->{cn::USERS_ID_COL}
+                                            ]);
                         if(!empty($TeachersGradeClass)){
                             $assignTeacherGrades = $TeachersGradeClass->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL);
                             if(!empty($TeachersGradeClass->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray())){
                                 $assignTeacherClass = explode(',',implode(',',$TeachersGradeClass->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray()));
                                 $AttemptExamData = $Query->whereHas('user',function($q) use($assignTeacherGrades,$assignTeacherClass, $classIds){
+                                    // $q->where(cn::USERS_SCHOOL_ID_COL, Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                                    //     ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                    //     ->whereIn(cn::USERS_CLASS_ID_COL,$classIds)
+                                    //     ->whereIn(cn::USERS_GRADE_ID_COL,$assignTeacherGrades);
+
                                     $q->where(cn::USERS_SCHOOL_ID_COL, Auth::user()->{cn::USERS_SCHOOL_ID_COL})
                                         ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                        ->whereIn(cn::USERS_CLASS_ID_COL,$classIds)
-                                        ->whereIn(cn::USERS_GRADE_ID_COL,$assignTeacherGrades);
+                                        ->get()
+                                        ->whereIn('CurriculumYearClassId',$classIds)
+                                        ->whereIn('CurriculumYearGradeId',$assignTeacherGrades);
                                     })->get();
                             }
                         }      
                     }else{
-                        $peerGroupIds = PeerGroup::whereIn('id',$groupIds)->where(cn::PEER_GROUP_CREATED_BY_USER_ID_COL,Auth::user()->{cn::USERS_ID_COL})->pluck(cn::PEER_GROUP_ID_COL)->toArray();
+                        $peerGroupIds = PeerGroup::where(cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL,Self::GetCurriculumYear())
+                                        ->whereIn(cn::PEER_GROUP_ID_COL,$groupIds)
+                                        ->where(cn::PEER_GROUP_CREATED_BY_USER_ID_COL,Auth::user()->{cn::USERS_ID_COL})
+                                        ->pluck(cn::PEER_GROUP_ID_COL)
+                                        ->toArray();
                         if(!empty($peerGroupIds)){
-                            $peerGroupMemberIds = PeerGroupMember::whereIn(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$peerGroupIds)->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->unique()->toArray();
+                            $peerGroupMemberIds = PeerGroupMember::where(cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL,Self::GetCurriculumYear())
+                                                ->whereIn(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$peerGroupIds)
+                                                ->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)
+                                                ->unique()
+                                                ->toArray();
                             $AttemptExamData = $Query->whereHas('user',function($q) use($peerGroupMemberIds){
-                                $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                ->whereIn('id',$peerGroupMemberIds);
+                                $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                                ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                ->whereIn(cn::USERS_ID_COL,$peerGroupMemberIds);
                             })->get();
                         }
                     }
                 }               
             }
+
             if(SELF::isPrincipalLogin() || SELF::isSchoolLogin()){
                 if(!empty($GetStudentIds)){
                     $AttemptExamData = $Query->whereHas('user',function($q) use($GetStudentIds){
@@ -2253,17 +2325,26 @@ trait Common {
                 }else{
                     if(empty($groupIds)){
                         $AttemptExamData = $Query->whereHas('user',function($q) use($classIds){
-                            $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                ->whereIn(cn::USERS_CLASS_ID_COL, $classIds);
+                            $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                            ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                            ->whereIn(cn::USERS_CLASS_ID_COL, $classIds);
                         })->get();
                     }else{
-                        $peerGroupIds = PeerGroup::whereIn('id',$groupIds)->pluck('id')->toArray();
+                        $peerGroupIds = PeerGroup::where(cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL,Self::GetCurriculumYear())
+                                        ->whereIn(cn::PEER_GROUP_ID_COL,$groupIds)
+                                        ->pluck(cn::PEER_GROUP_ID_COL)
+                                        ->toArray();
                         if(!empty($peerGroupIds)){
-                            $peerGroupMemberIds = PeerGroupMember::whereIn(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$peerGroupIds)->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->unique()->toArray();
-                            $AttemptExamData = $Query->whereHas('user',function($q) use($peerGroupMemberIds){
-                                $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                ->whereIn('id',$peerGroupMemberIds);
-                            })->get();
+                            $peerGroupMemberIds =   PeerGroupMember::where(cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL,Self::GetCurriculumYear())
+                                                    ->whereIn(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$peerGroupIds)
+                                                    ->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)
+                                                    ->unique()
+                                                    ->toArray();
+                            $AttemptExamData =  $Query->whereHas('user',function($q) use($peerGroupMemberIds){
+                                                    $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                                    ->whereIn(cn::USERS_ID_COL,$peerGroupMemberIds);
+                                                })->get();
                         }
                     }
                 }
@@ -2272,8 +2353,13 @@ trait Common {
                 $totalStudent = count($AttemptExamData);
                 foreach($AttemptExamData as $attemptedExamKey => $attemptedExam){
                     $rowArray = [];
-                    $rowArray[] = $attemptedExam->user->class;
-                    $rowArray[] = ($attemptedExam->user->class_student_number!='') ? $attemptedExam->user->class_student_number : SELF::decrypt($attemptedExam->user->name_en);
+                    //$rowArray[] = Helper::GetCurriculumDataById($attemptedExam->user->id,Self::GetCurriculumYear(),'class');
+                    $rowArray[] = $attemptedExam->user->CurriculumYearData[cn::CURRICULUM_YEAR_STUDENT_CLASS] ?? '';
+                    //$rowArray[] = $attemptedExam->user->class;
+                    //$rowArray[] = ($attemptedExam->user->class_student_number!='') ? $attemptedExam->user->class_student_number : SELF::decrypt($attemptedExam->user->name_en);
+                    //$ClassStudentNumber = Helper::GetCurriculumDataById($attemptedExam->user->id,Self::GetCurriculumYear(),'class_student_number');
+                    $rowArray[] = $attemptedExam->user->CurriculumYearData[cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER] ?? '';
+                    $rowArray[] = ($attemptedExam->user->CurriculumYearData[cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER]!='') ? $attemptedExam->user->CurriculumYearData[cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER] : Self::decrypt($attemptedExam->user->name_en);
                     
                     foreach($QuestionList as $questionKey => $questions){
                     // get Selected Answer
@@ -2323,7 +2409,6 @@ trait Common {
                     }
                     $records[] = $rowArray;
                 }
-                            
                 //Set Selected Answers Row On Based Question
                 $HeadingIndexArray = ['A','B','C','D','A%','B%','C%','D%','Correct %'];
                 for($row = 1;$row <= count($HeadingIndexArray);$row++){
@@ -2376,7 +2461,7 @@ trait Common {
                     $records[(count($ExamData->attempt_exams) +1)+$row] =  $rowArray;
                 }
             }else{
-                $records = null;  
+                $records = null;
             }
             return $records;
         }
@@ -2516,7 +2601,102 @@ trait Common {
         return $MaxReferenceNumber;
     }
 
-    
+    /***
+     * USE: Get Curriculum Current Year
+     */
+    public static function GetCurriculumCurrentYear(){
+        $PresentYearCurriculumId = CurriculumYear::where(cn::CURRICULUM_YEAR_YEAR_COL,((int)Carbon::now()->format('Y').'-'.((int)(Carbon::now()->format('y'))+1)))->first();
+        if(!empty($PresentYearCurriculumId)){
+            return CurriculumYear::whereBetween(cn::CURRICULUM_YEAR_ID_COL, [1, $PresentYearCurriculumId->id])->orderBy(cn::CURRICULUM_YEAR_ID_COL,'DESC')->get();
+        }
+        return [];
+    }
 
-    
+    /**
+     * USE : Get Student detail by Curriculum Year
+     */
+    public static function GetStudentDataByCurriculumYear($YearId,$UserId){
+        $CurriculumYearStudentMappings =    CurriculumYearStudentMappings::where([
+                                                cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $YearId,
+                                                cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $UserId
+                                            ])->first();
+        return $CurriculumYearStudentMappings ?? [];
+    }
+
+    /**
+     * USE : Get The Current Date
+     */
+    public function CurrentDate(){
+        return Carbon::now()->toDateString();
+    }
+
+    /**
+     * USE : Update Curriculum Year in global configurations
+     */
+    public function UpdateGlobalConfigurationCurriculumYear(){
+        $nextCurriculumYear = (((int)Carbon::now()->format('Y')+1).'-'.((int)(Carbon::now()->format('y'))+2));
+        $CurriculumYear =   CurriculumYear::where([
+                                cn::CURRICULUM_YEAR_YEAR_COL => $nextCurriculumYear,
+                                cn::CURRICULUM_YEAR_STATUS_COL => 'active'
+                            ])->first();
+        GlobalConfiguration::where([cn::GLOBAL_CONFIGURATION_KEY_COL => 'current_curriculum_year'])
+        ->Update([
+            cn::GLOBAL_CONFIGURATION_VALUE_COL  => $CurriculumYear->{cn::CURRICULUM_YEAR_ID_COL}
+        ]);
+    }
+
+    /**
+     * USE : Get Monday Date List
+     */
+    public function getMondayDates($year, $month){
+        $MondayDateList = array();
+
+        # First weekday in specified month: 1 = monday, 7 = sunday
+        $firstDay = date('N', mktime(0, 0, 0, $month, 1, $year));
+
+        /* Add 0 days if monday ... 6 days if tuesday, 1 day if sunday to get the first monday in month */
+        $addDays = (8 - $firstDay);
+        
+        $MondayDateList[] = date('Y-m-d', mktime(0, 0, 0, $month, 1 + $addDays, $year));
+
+        $nextMonth = mktime(0, 0, 0, $month + 1, 1, $year);
+
+        # Just add 7 days per iteration to get the date of the subsequent week
+        for ($week = 1, $time = mktime(0, 0, 0, $month, 1 + $addDays + $week * 7, $year);
+            $time < $nextMonth;
+            ++$week, $time = mktime(0, 0, 0, $month, 1 + $addDays + $week * 7, $year))
+        {
+            $MondayDateList[] = date('Y-m-d', $time);
+        }
+
+        return $MondayDateList;
+    }
+
+    /**
+     * USE : Get the next curriculum year
+     */
+    public function GetNextCurriculumYearId(){
+        // Find Next Curriculum Year
+        $nextCurriculumYear = (((int)Carbon::now()->format('Y')+1).'-'.((int)(Carbon::now()->format('y'))+2));
+
+        // Fins Current Curriculum Year
+        $CurrentCurriculumYear = ((int)Carbon::now()->format('Y').'-'.((int)(Carbon::now()->format('y'))+1));
+
+        // Get the Current Curriculum Year Id
+        $CurriculumYearData = CurriculumYear::where(cn::CURRICULUM_YEAR_YEAR_COL,$CurrentCurriculumYear)->first();
+        if(CurriculumYear::where(cn::CURRICULUM_YEAR_YEAR_COL,$nextCurriculumYear)->doesntExist()){
+            $CurriculumYear =   CurriculumYear::Create([
+                                    cn::CURRICULUM_YEAR_YEAR_COL => $nextCurriculumYear,
+                                    cn::CURRICULUM_YEAR_STATUS_COL => 'active'
+                                ]);
+        }else{
+            $CurriculumYear = CurriculumYear::where([
+                                cn::CURRICULUM_YEAR_YEAR_COL => $nextCurriculumYear,
+                                cn::CURRICULUM_YEAR_STATUS_COL => 'active'
+                            ])->first();
+        }
+        // Store Next Curriculum Year Id
+        $nextCurriculumYearId = $CurriculumYear->{cn::CURRICULUM_YEAR_ID_COL};
+        return $nextCurriculumYearId;
+    }
 }

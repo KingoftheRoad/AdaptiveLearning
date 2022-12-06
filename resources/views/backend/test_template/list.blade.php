@@ -179,7 +179,7 @@
 										@endif
 							  		</tbody>
 								</table>
-								<div>{{__('languages.showing')}} {{!empty($TestTemplatesList->firstItem()) ? $TestTemplatesList->firstItem() : 0}} {{__('languages.to')}} {{!empty($TestTemplatesList->lastItem()) ? $TestTemplatesList->lastItem() : 0}}
+								<div>{{__('languages.showing')}} {{($TestTemplatesList->currentpage()-1)*$TestTemplatesList->perpage()+1}} {{__('languages.to')}} {{$TestTemplatesList->currentpage()*$TestTemplatesList->perpage()}}
 								{{__('languages.of')}}  {{$TestTemplatesList->total()}} {{__('languages.entries')}}
 								</div>
 								<div class="pagination-data">
@@ -201,11 +201,23 @@
 												<option value="30" @if($items == 30) selected @endif >30</option>
 												<option value="40" @if($items == 40) selected @endif >40</option>
 												<option value="50" @if($items == 50) selected @endif >50</option>
-												<option value="{{$TestTemplatesList->total()}}" @if(app('request')->input('items') == $TestTemplatesList->total()) selected @endif >{{__('languages.all')}}</option>
+												<option value="{{$TotalTestTemplatesData}}" @if($items == $TotalTestTemplatesData) selected @endif >{{__('languages.all')}}</option>
 											</select>
 										</form>
 									</div>
 									
+								</div>
+								<div id="table_box_bootstrap">
+									<div class="table-export-table">
+										<div class="export-table setting-table">
+											<i class="fa fa-download"></i>
+											<p>Exported Selected</p>
+										</div>
+										<div class="configure-table setting-table">
+											<i class="fa fa-cog"></i>
+											<p>Exported Selected</p>
+										</div>
+									</div>
 								</div>
 							</div>
 						</div>

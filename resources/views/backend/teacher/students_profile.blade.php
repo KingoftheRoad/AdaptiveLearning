@@ -28,7 +28,11 @@
 							<div class="col-md-10">
 								<div class="profile-detail">
 									<div class="personal_details_main create_line">
-										<h5>{{__('languages.my_class.personal_details') }} <a href="{{route('profile.index')}}"><span class="fa fa-pencil"></a></span></h5>
+										<h5>{{__('languages.my_class.personal_details') }} <a href="{{route('profile.index')}}">
+											@if(Auth::user()->role_id==3)
+												<span class="fa fa-pencil"></a></span>
+											@endif
+										</h5>
 										<div class="detail-sec">
 											<p class="detail-s"><strong>{{ __('languages.user_activity.english_name') }} :</strong></p>
 											<p class="detail-p"> {{($profile->name_en) ? App\Helpers\Helper::decrypt($profile->name_en) :'N/A'}} </p>

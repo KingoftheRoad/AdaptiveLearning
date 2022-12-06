@@ -4,14 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-// use Illuminate\Database\Eloquent\SoftDeletes;
 use Kyslik\ColumnSortable\Sortable;
 use App\Constants\DbConstant as cn;
 
 
 class Role extends Model
 {
-    use HasFactory,Sortable;//SoftDeletes;
+    use HasFactory,Sortable;
 
     protected $table = cn::ROLES_TABLE_NAME;
 
@@ -70,8 +69,7 @@ class Role extends Model
         return $messages;
     }
 
-    public function users()
-    {
+    public function users(){
         return $this->hasMany('App\Models\User');
     }
     

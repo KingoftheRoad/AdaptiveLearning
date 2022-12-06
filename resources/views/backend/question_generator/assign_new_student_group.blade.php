@@ -68,7 +68,7 @@
                             
                             <option  value="{{$student->id}}" @if(isset($oldStudentList) && !empty($oldStudentList) && in_array($student->id,$oldStudentList)) selected="selected" disabled="disabled" @endif >
                                 @if(app()->getLocale() == 'en') {{$student->DecryptNameEn}}  @else {{$student->DecryptNameCh}}  @endif
-                                @if($student->class_student_number) ({{$student->class_student_number}}) @endif
+                                @if($student->class_student_number) ({{$student->CurriculumYearData['class_student_number']}}) @endif
                             </option>
                         @endforeach
                         </select>

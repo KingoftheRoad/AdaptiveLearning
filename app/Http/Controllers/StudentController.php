@@ -25,6 +25,7 @@ use App\Models\Strands;
 use App\Models\LearningsUnits;
 use App\Models\LearningsObjectives;
 use App\Models\ExamConfigurationsDetails;
+use App\Models\CurriculumYearStudentMappings;
 use App\Http\Services\AIApiService;
 use App\Helpers\Helper;
 use DB;
@@ -35,9 +36,11 @@ class StudentController extends Controller
     use common, ResponseFormat;
     protected $currentUserSchoolId;
     protected $DefaultStudentOverAllAbility;
+    protected $CurrentCurriculumYearId;
     
     public function __construct(){
         $this->AIApiService = new AIApiService();
+        $this->CurrentCurriculumYearId = $this->getGlobalConfiguration('current_curriculum_year');
 
         // Store global variable into current user schhol id
         $this->currentUserSchoolId = null;
@@ -58,10 +61,26 @@ class StudentController extends Controller
             $classTypeOptions = '';
             $items = $request->items ?? 10;
             $TotalFilterData = '';
-            $gradeList = GradeSchoolMappings::with('grades')->where(cn::GRADES_MAPPING_SCHOOL_ID_COL,$this->isSchoolLogin())->get();            
-            $countUserData = User::where([cn::USERS_SCHOOL_ID_COL => auth()->user()->school_id,cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID])->count();
-            $UsersList = User::where([cn::USERS_SCHOOL_ID_COL => auth()->user()->school_id,cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID])->sortable()->orderBy(cn::USERS_ID_COL,'DESC')->paginate($items);
-            $GradeClassMapping = GradeClassMapping::where([cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->student_grade_id, cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $this->isSchoolLogin()])->get();
+            $gradeList = GradeSchoolMappings::with('grades')->where([
+                            cn::GRADES_MAPPING_SCHOOL_ID_COL => Auth::user()->school_id,
+                            cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear()
+                        ])
+                        ->get();
+            $countUserData = User::where([
+                                cn::USERS_SCHOOL_ID_COL => auth()->user()->school_id,
+                                cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                            ])->count();
+            $UsersList = User::where([
+                            cn::USERS_SCHOOL_ID_COL => auth()->user()->school_id,
+                            cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                        ])->sortable()
+                        ->orderBy(cn::USERS_ID_COL,'DESC')
+                        ->paginate($items);
+
+            $GradeClassMapping = GradeClassMapping::where([
+                                    cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->student_grade_id,
+                                    cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $this->isSchoolLogin()
+                                ])->get();
             
             $Query = User::select('*');
             if(isset($request->filter_data)){
@@ -133,6 +152,7 @@ class StudentController extends Controller
 
             // Get class type list
             $classData = GradeClassMapping::where([
+                            cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                             cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $this->currentUserSchoolId,
                             cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $Grades->id,
                             cn::GRADE_CLASS_MAPPING_ID_COL => $request->class_id
@@ -145,6 +165,7 @@ class StudentController extends Controller
             }
             // Store user detail
             $PostData = array(
+                cn::USERS_CURRICULUM_YEAR_ID_COL    => $this->GetCurriculumYear(),
                 cn::USERS_ROLE_ID_COL               => cn::STUDENT_ROLE_ID,
                 cn::USERS_GRADE_ID_COL              => $Grades->id,
                 cn::USERS_SCHOOL_ID_COL             => auth()->user()->school_id,
@@ -162,7 +183,7 @@ class StudentController extends Controller
                 cn::USERS_DATE_OF_BIRTH_COL         => ($request->date_of_birth) ? $this->DateConvertToYMD($request->date_of_birth) : null,                
                 cn::USERS_PASSWORD_COL              => Hash::make($request->password),
                 cn::USERS_STATUS_COL                => $request->status ?? 'active',
-                cn::USERS_CREATED_BY_COL            => auth()->user()->id
+                cn::USERS_CREATED_BY_COL            => auth()->user()->id,
             );
             if(User::where([cn::USERS_CLASS_STUDENT_NUMBER => $Grades->name.$classData->name.$request->student_number,cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}])->doesntExist()){
                 $PostData += ([cn::USERS_CLASS_STUDENT_NUMBER      =>  $Grades->name.$classData->name.$request->student_number,]);
@@ -172,6 +193,20 @@ class StudentController extends Controller
             $Users = User::create($PostData);
             if($Users){
             $this->StoreAuditLogFunction($PostData,'User',cn::USERS_ID_COL,'','Create Student',cn::USERS_TABLE_NAME,'');
+            //in student curriculum year table in side user not exist then create record.
+                if(!(CurriculumYearStudentMappings::where(cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL,$Users->id)->exists())){
+                    $curriculumStudentMapping = CurriculumYearStudentMappings::create([
+                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $Users->id,
+                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->school_id,
+                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $Grades->id ?? null,
+                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classData->id ?? null,
+                        cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => $Users->student_number_within_class ?? null,
+                        cn::CURRICULUM_YEAR_STUDENT_CLASS => $Grades->name.$classData->name ?? null,
+                        cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => $Users->class_student_number ?? null,
+                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_STATUS_COL => $Users->status 
+                    ]);
+                }
                 return redirect('Student')->with('success_msg', __('languages.student_added_successfully'));
             }else{
                 return back()->with('error_msg', __('languages.problem_was_occur_please_try_again'));
@@ -186,7 +221,11 @@ class StudentController extends Controller
             if(!in_array('student_management_update', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
                 return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
             }
-            $gradeData = GradeSchoolMappings::where([cn::GRADES_MAPPING_SCHOOL_ID_COL=>Auth::user()->{cn::USERS_SCHOOL_ID_COL}])->pluck(cn::GRADES_MAPPING_GRADE_ID_COL)->toArray();
+            $gradeData = GradeSchoolMappings::where([
+                            cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                            cn::GRADES_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}
+                        ])
+                        ->pluck(cn::GRADES_MAPPING_GRADE_ID_COL)->toArray();
             $grades = Grades::whereIn(cn::GRADES_ID_COL,$gradeData)->get();
             $user = User::find($id);
             return view('backend.studentmanagement.edit',compact('user','grades'));
@@ -208,23 +247,33 @@ class StudentController extends Controller
             }
             // $classNumber = explode('+',$request->class_number);
             $userData = User::find($id);
-            $gradeid = ($userData->grade_id != '') ? $userData->grade_id : 4;
+
+            //$gradeid = ($userData->grade_id != '') ? $userData->grade_id : 4;
+            $gradeid = ($userData->CurriculumYearGradeId != '') ? $userData->CurriculumYearGradeId : 4;
             $Grades = Grades::where(cn::GRADES_NAME_COL,$gradeid)->first();
             
             // Get Class List
             if($this->currentUserSchoolId){
                 $classData = GradeClassMapping::where([
-                    cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $this->currentUserSchoolId,
-                    cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $gradeid,
-                    cn::GRADE_CLASS_MAPPING_ID_COL => $request->class_id
-                ])->first();
+                                cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL  => $this->GetCurriculumYear(),
+                                cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL           => $this->currentUserSchoolId,
+                                cn::GRADE_CLASS_MAPPING_GRADE_ID_COL            => $gradeid,
+                                cn::GRADE_CLASS_MAPPING_ID_COL                  => $request->class_id
+                            ])->first();
             }
             if(empty($classData->id)){
                 return back()->with('error_msg', __('languages.class_not_available'));
             }
-            if(User::where([cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},cn::USERS_PERMANENT_REFERENCE_NUMBER => $request->permanent_refrence_number,cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID])->where(cn::USERS_ID_COL,'!=' ,$userData->id)->exists()){
+            if(User::where([
+                cn::USERS_SCHOOL_ID_COL                 => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                cn::USERS_PERMANENT_REFERENCE_NUMBER    => $request->permanent_refrence_number,
+                cn::USERS_ROLE_ID_COL                   => cn::STUDENT_ROLE_ID
+            ])
+            ->where(cn::USERS_ID_COL,'!=' ,$userData->id)
+            ->exists()){
                 return back()->withInput()->with('error_msg', __('languages.permanent_reference_already_exists'));
             }
+
             // Update user detail
             $PostData = array(
                 cn::USERS_ROLE_ID_COL               => cn::STUDENT_ROLE_ID,
@@ -232,7 +281,7 @@ class StudentController extends Controller
                 cn::USERS_SCHOOL_ID_COL             => auth()->user()->school_id,
                 cn::STUDENT_NUMBER_WITHIN_CLASS     => $request->student_number,
                 cn::USERS_CLASS                     => $Grades->name.$classData->name,
-                cn::USERS_CLASS_ID_COL                 => $classData->id,
+                cn::USERS_CLASS_ID_COL              => $classData->id,
                 cn::USERS_PERMANENT_REFERENCE_NUMBER=> ($request->permanent_refrence_number) ? $request->permanent_refrence_number : null,
                 cn::USERS_NAME_EN_COL               =>  $this->encrypt($request->name_en),
                 cn::USERS_NAME_CH_COL               => $this->encrypt($request->name_ch),
@@ -247,7 +296,11 @@ class StudentController extends Controller
                 cn::USERS_CREATED_BY_COL            => auth()->user()->id
             );
             $this->StoreAuditLogFunction($PostData,'User',cn::USERS_ID_COL,$id,'Update Student',cn::USERS_TABLE_NAME,'');
-            if(User::where([cn::USERS_CLASS_STUDENT_NUMBER => $Grades->name.$classData->name.$request->student_number,cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID])->where(cn::USERS_ID_COL,'!=',$id)->doesntExist()){
+            if(User::where([
+                cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                cn::USERS_CLASS_STUDENT_NUMBER => $Grades->name.$classData->name.$request->student_number,
+                cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
+            ])->where(cn::USERS_ID_COL,'!=',$id)->doesntExist()){
                 $PostData += ([cn::USERS_CLASS_STUDENT_NUMBER      =>  $Grades->name.$classData->name.$request->student_number,]);
             }else{
                 return back()->with('error_msg', __('languages.duplicate_class_student_number'));
@@ -258,11 +311,14 @@ class StudentController extends Controller
             }else{
                 return back()->with('error_msg', __('languages.problem_was_occur_please_try_again'));
             }
-        } catch (\Exception $exception) {
+        }catch(\Exception $exception){
             return back()->withError($exception->getMessage())->withInput();
         }
     }
 
+    /**
+     * USE : Delete User from user list
+     */
     public function destroy($id){
         try{
             if(!in_array('student_management_delete', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
@@ -280,6 +336,9 @@ class StudentController extends Controller
         }
     }
 
+    /**
+     * USE : Add new grade
+     */
     public function AddGrade(Request $request){
         try{
             $Update = User::where(cn::USERS_ID_COL,$request->id)->Update([cn::USERS_GRADE_ID_COL => $request->class_id]);
@@ -298,7 +357,11 @@ class StudentController extends Controller
         if(!empty($request->studentIds) && !empty($request->class_type) && !empty($request->grade_id) ){
             foreach($request->studentIds as $student){
                 $Grades = Grades::find($request->grade_id);
-                $ClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$this->isSchoolLogin())->where(cn::GRADE_CLASS_MAPPING_ID_COL,$request->class_type)->first();
+                $ClassData = GradeClassMapping::where([
+                                cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $this->isSchoolLogin(),
+                                cn::GRADE_CLASS_MAPPING_ID_COL => $request->class_type
+                            ])->first();
                 $UserData = User::find($student);
                 $user_class_student_number = '';
                 if(!empty($Grades->{cn::GRADES_ID_COL}) && !empty($ClassData->{cn::GRADE_CLASS_MAPPING_NAME_COL})){
@@ -391,22 +454,23 @@ class StudentController extends Controller
             }
         }
         $examData = [
-            cn::EXAM_TYPE_COLS => 1,
-            cn::EXAM_REFERENCE_NO_COL => $this->GetMaxReferenceNumberExam(1,$request['self_learning_test_type']),
-            cn::EXAM_TABLE_TITLE_COLS => $this->createTestTitle(),
-            cn::EXAM_TABLE_FROM_DATE_COLS => Carbon::now(),
-            cn::EXAM_TABLE_TO_DATE_COLS => Carbon::now(),
-            cn::EXAM_TABLE_RESULT_DATE_COLS => Carbon::now(),
-            cn::EXAM_TABLE_PUBLISH_DATE_COL => Carbon::now(),
-            cn::EXAM_TABLE_TIME_DURATIONS_COLS => $timeduration,
-            cn::EXAM_TABLE_QUESTION_IDS_COL => ($request['questionIds']) ?  $request['questionIds'] : null,
-            cn::EXAM_TABLE_STUDENT_IDS_COL => $this->LoggedUserId(),
-            cn::EXAM_TABLE_SCHOOL_COLS => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-            cn::EXAM_TABLE_IS_UNLIMITED => ($request['self_learning_test_type'] == 1) ? 1 : 0,
+            cn::EXAM_CURRICULUM_YEAR_ID_COL     => $this->CurrentCurriculumYearId, // "CurrentCurriculumYearId" Get value from Global Configuration
+            cn::EXAM_TYPE_COLS                  => 1,
+            cn::EXAM_REFERENCE_NO_COL           => $this->GetMaxReferenceNumberExam(1,$request['self_learning_test_type']),
+            cn::EXAM_TABLE_TITLE_COLS           => $this->createTestTitle(),
+            cn::EXAM_TABLE_FROM_DATE_COLS       => Carbon::now(),
+            cn::EXAM_TABLE_TO_DATE_COLS         => Carbon::now(),
+            cn::EXAM_TABLE_RESULT_DATE_COLS     => Carbon::now(),
+            cn::EXAM_TABLE_PUBLISH_DATE_COL     => Carbon::now(),
+            cn::EXAM_TABLE_TIME_DURATIONS_COLS  => $timeduration,
+            cn::EXAM_TABLE_QUESTION_IDS_COL     => ($request['questionIds']) ?  $request['questionIds'] : null,
+            cn::EXAM_TABLE_STUDENT_IDS_COL      => $this->LoggedUserId(),
+            cn::EXAM_TABLE_SCHOOL_COLS          => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+            cn::EXAM_TABLE_IS_UNLIMITED         => ($request['self_learning_test_type'] == 1) ? 1 : 0,
             cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL => $request['self_learning_test_type'],
-            cn::EXAM_TABLE_CREATED_BY_COL => $this->LoggedUserId(),
-            'created_by_user' => 'student',
-            cn::EXAM_TABLE_STATUS_COLS => 'publish'
+            cn::EXAM_TABLE_CREATED_BY_COL       => $this->LoggedUserId(),
+            cn::EXAM_TABLE_CREATED_BY_USER_COL  => 'student',
+            cn::EXAM_TABLE_STATUS_COLS          => 'publish'
         ];
         $this->StoreAuditLogFunction($examData,'Exam',cn::EXAM_TABLE_ID_COLS,'','Create Exam',cn::EXAM_TABLE_NAME,'');
         $exams = Exam::create($examData);
@@ -465,124 +529,30 @@ class StudentController extends Controller
             $schoolId = Auth::user()->{cn::USERS_SCHOOL_ID_COL};
             $roleId = Auth::user()->{cn::USERS_ROLE_ID_COL};
             $ExamList = array();
-            $strands_id = array();
-            $learning_units_id = array();
-            $learning_objectives_id = array();
-            $isFilter = 0;
             $active_tab = "";
             $grade_id = '';
             $stdata = array();
             $student_id = '';
-            $strandsList = array();
-            $LearningUnits = array();
-            $LearningObjectives = array();
-            $difficultyLevels = PreConfigurationDiffiltyLevel::all();
+            $difficultyLevels = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get();
 
             if(isset($request->active_tab) && !empty($request->active_tab)){
                 $active_tab = $request->active_tab;
             }
-            // Filter using Strands options
-            if(isset($request->strands) && !empty($request->strands)){
-                if(!is_array($request->strands)){
-                    $strands_id = json_decode($request->strands);
-                }else{
-                    $strands_id = $request->strands;
-                }
-                $isFilter = 1;
-            }
-            // Filter using Learning Units options
-            if(isset($request->learning_units) && !empty($request->learning_units)){
-                if(!is_array($request->learning_units)){
-                    $learning_units_id = json_decode($request->learning_units);
-                }else{
-                    $learning_units_id = $request->learning_units;
-                }
-                $isFilter = 1;
-            }
-            // Filetr using Learning Objectives Focus
-            if(isset($request->learning_objectives_id) && !empty($request->learning_objectives_id)){
-                if(!is_array($request->learning_objectives_id)){
-                    $learning_objectives_id = json_decode($request->learning_objectives_id);
-                }else{
-                    $learning_objectives_id = $request->learning_objectives_id;
-                }
-                $isFilter = 1;
-            }
-
-            // Searching Using StrandsLearningUnitsLearningObjectives mapping Idsfor selected filter options
-            $StrandUnitsObjectivesMappings = StrandUnitsObjectivesMappings::where(function ($query) use ($strands_id,$learning_units_id,$learning_objectives_id) {
-                                                if(!empty($strands_id)){
-                                                    $query->whereIn(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strands_id);
-                                                }
-                                                if(!empty($learning_units_id)){
-                                                    $query->whereIn(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learning_units_id);
-                                                }
-                                                if(!empty($learning_objectives_id)){
-                                                    $query->whereIn(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$learning_objectives_id);
-                                                }
-                                                })->get()->toArray();
-
-            if(isset($StrandUnitsObjectivesMappings) && !empty($StrandUnitsObjectivesMappings) && $isFilter == 1){
-                $StrandUnitsObjectivesMappingsId = array_column($StrandUnitsObjectivesMappings,cn::OBJECTIVES_MAPPINGS_ID_COL);
-                $QuestionsList = Question::with('answers')->whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL,$StrandUnitsObjectivesMappingsId)->orderBy(cn::QUESTION_TABLE_ID_COL)->get()->toArray();
-                if(isset($QuestionsList) && !empty($QuestionsList)){
-                    $QuestionsDataList = array_column($QuestionsList,cn::QUESTION_TABLE_ID_COL);
-                    $ExamList = Exam::with('attempt_exams')->whereIn(cn::EXAM_TABLE_QUESTION_IDS_COL,$QuestionsDataList)->get()->toArray();
-                    if(isset($ExamList) && !empty($ExamList)){
-                        $ExamList = array_column($ExamList,cn::EXAM_TABLE_ID_COLS);
-                    }
-                }
-            }
             $ExamsData = array();
             // Get Self Learning Exams List
-            $ExamsData['excercise_list'] = Exam::with(['attempt_exams' => fn($query) => $query->where('student_id', Auth::user()->{cn::USERS_ID_COL})])
-                                        ->whereRaw("find_in_set($userId,student_ids)")
-                                        ->where(cn::EXAM_TYPE_COLS,1)
-                                        ->where(cn::EXAM_TABLE_IS_GROUP_TEST_COL,0)
-                                        ->where('created_by',$this->LoggedUserId())
-                                        ->where('self_learning_test_type',1)
-                                        ->where(cn::EXAM_TABLE_STATUS_COLS,'publish')
-                                        ->where(function ($query) use ($learning_objectives_id,$ExamList){
-                                            if(!empty($learning_objectives_id)){
-                                                $query->whereIn(cn::EXAM_TABLE_ID_COLS,$ExamList);
-                                            }
-                                        })
-                                        ->orderBy(cn::EXAM_TABLE_CREATED_AT,'DESC')
-                                        ->get();
-            $studyFocusTreeOption = $this->getSubjectMapping($strands_id,$learning_units_id,$learning_objectives_id);
-            
-            // Get Current student grade id wise strand list
-            $strandsList = StrandUnitsObjectivesMappings::where([
-                cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL => Auth::user()->{cn::USERS_GRADE_ID_COL},
-                cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL => 1
-            ])->pluck(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL);
-            if($strandsList->isNotEmpty()){
-                $strandsIds = array_unique($strandsList->toArray());
-                $strandsList = Strands::whereIn(cn::STRANDS_ID_COL, $strandsIds)->get();
-
-                // Get The learning units based on first Strands
-                $learningUnitsIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,Auth::user()->{cn::USERS_GRADE_ID_COL})
-                            ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
-                            ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strandsList[0]->id)
-                            ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL);
-                if(!empty($learningUnitsIds)){
-                    $learningUnitsIds = array_unique($learningUnitsIds->toArray());
-                    $LearningUnits = LearningsUnits::whereIn(cn::LEARNING_UNITS_ID_COL, $learningUnitsIds)->get();
-
-                    // Get the Learning objectives based on first learning units
-                    $learningObjectivesIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,Auth::user()->{cn::USERS_GRADE_ID_COL})
-                            ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
-                            ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strandsList[0]->id)
-                            ->whereIn(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$LearningUnits->pluck('id'))
-                            ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL);
-                    if(!empty($learningObjectivesIds)){
-                        $learningObjectivesIds = array_unique($learningObjectivesIds->toArray());
-                        // $LearningObjectives = LearningsObjectives::whereIn(cn::LEARNING_OBJECTIVES_ID_COL, $learningObjectivesIds)->get();
-                        $LearningObjectives = LearningsObjectives::IsAvailableQuestion()->whereIn(cn::LEARNING_OBJECTIVES_ID_COL, $learningObjectivesIds)->get();
-                    }
-                }
-            }
-            return view('backend/student/self_learning/self_learning_exercise_list',compact('difficultyLevels','ExamsData','studyFocusTreeOption','strandsList','LearningUnits','LearningObjectives'));
+            $ExamsData['exercise_list'] =   Exam::with(['attempt_exams' => fn($query) => $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, Auth::user()->{cn::USERS_ID_COL})])
+                                            ->whereRaw("find_in_set($userId,student_ids)")
+                                            ->where([
+                                                cn::EXAM_TYPE_COLS => 1,
+                                                cn::EXAM_TABLE_IS_GROUP_TEST_COL => 0,
+                                                cn::EXAM_TABLE_CREATED_BY_COL => $this->LoggedUserId(),
+                                                cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL => 1,
+                                                cn::EXAM_TABLE_STATUS_COLS => 'publish',
+                                                cn::EXAM_CURRICULUM_YEAR_ID_COL=>$this->GetCurriculumYear()
+                                            ])
+                                            ->orderBy(cn::EXAM_TABLE_CREATED_AT,'DESC')
+                                            ->get();
+            return view('backend/student/self_learning/self_learning_exercise_list',compact('difficultyLevels','ExamsData'));
         }catch(Exception $exception){
             return back()->withError($exception->getMessage());
         }
@@ -597,123 +567,23 @@ class StudentController extends Controller
             $schoolId = Auth::user()->{cn::USERS_SCHOOL_ID_COL};
             $roleId = Auth::user()->{cn::USERS_ROLE_ID_COL};
             $ExamList = array();
-            $strands_id = array();
-            $learning_units_id = array();
-            $learning_objectives_id = array();
-            $isFilter = 0;
-            $active_tab = "";
-            $grade_id = '';
-            $stdata = array();
             $student_id = '';
-            $strandsList = array();
-            $LearningUnits = array();
-            $LearningObjectives = array();
-            $difficultyLevels = PreConfigurationDiffiltyLevel::all();
-
-            if(isset($request->active_tab) && !empty($request->active_tab)){
-                $active_tab = $request->active_tab;
-            }
-            // Filter using Strands options
-            if(isset($request->strands) && !empty($request->strands)){
-                if(!is_array($request->strands)){
-                    $strands_id = json_decode($request->strands);
-                }else{
-                    $strands_id = $request->strands;
-                }
-                $isFilter = 1;
-            }
-            // Filter using Learning Units options
-            if(isset($request->learning_units) && !empty($request->learning_units)){
-                if(!is_array($request->learning_units)){
-                    $learning_units_id = json_decode($request->learning_units);
-                }else{
-                    $learning_units_id = $request->learning_units;
-                }
-                $isFilter = 1;
-            }
-            // Filetr using Learning Objectives Focus
-            if(isset($request->learning_objectives_id) && !empty($request->learning_objectives_id)){
-                if(!is_array($request->learning_objectives_id)){
-                    $learning_objectives_id = json_decode($request->learning_objectives_id);
-                }else{
-                    $learning_objectives_id = $request->learning_objectives_id;
-                }
-                $isFilter = 1;
-            }
-
-            // Searching Using StrandsLearningUnitsLearningObjectives mapping Idsfor selected filter options
-            $StrandUnitsObjectivesMappings = StrandUnitsObjectivesMappings::where(function ($query) use ($strands_id,$learning_units_id,$learning_objectives_id) {
-                                                if(!empty($strands_id)){
-                                                    $query->whereIn(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strands_id);
-                                                }
-                                                if(!empty($learning_units_id)){
-                                                    $query->whereIn(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learning_units_id);
-                                                }
-                                                if(!empty($learning_objectives_id)){
-                                                    $query->whereIn(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$learning_objectives_id);
-                                                }
-                                                })->get()->toArray();
-
-            if(isset($StrandUnitsObjectivesMappings) && !empty($StrandUnitsObjectivesMappings) && $isFilter == 1){
-                $StrandUnitsObjectivesMappingsId = array_column($StrandUnitsObjectivesMappings,cn::OBJECTIVES_MAPPINGS_ID_COL);
-                $QuestionsList = Question::with('answers')->whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL,$StrandUnitsObjectivesMappingsId)->orderBy(cn::QUESTION_TABLE_ID_COL)->get()->toArray();
-                if(isset($QuestionsList) && !empty($QuestionsList)){
-                    $QuestionsDataList = array_column($QuestionsList,cn::QUESTION_TABLE_ID_COL);
-                    $ExamList = Exam::with('attempt_exams')->whereIn(cn::EXAM_TABLE_QUESTION_IDS_COL,$QuestionsDataList)->get()->toArray();
-                    if(isset($ExamList) && !empty($ExamList)){
-                        $ExamList = array_column($ExamList,cn::EXAM_TABLE_ID_COLS);
-                    }
-                }
-            }
+            // $difficultyLevels = PreConfigurationDiffiltyLevel::all();
+            $difficultyLevels = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get();
             $ExamsData = array();
-            $ExamsData['test_list'] = Exam::with(['attempt_exams' => fn($query) => $query->where('student_id', Auth::user()->{cn::USERS_ID_COL})])
+            $ExamsData['test_list'] = Exam::with(['attempt_exams' => fn($query) => $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, Auth::user()->{cn::USERS_ID_COL})])
                                             ->whereRaw("find_in_set($userId,student_ids)")
-                                            ->where(cn::EXAM_TYPE_COLS,1)
-                                            ->where(cn::EXAM_TABLE_IS_GROUP_TEST_COL,0)
-                                            ->where('created_by',$this->LoggedUserId())
-                                            ->where('self_learning_test_type',2)
-                                            ->where(cn::EXAM_TABLE_STATUS_COLS,'publish')
-                                            ->where(function ($query) use ($learning_objectives_id,$ExamList){
-                                                if(!empty($learning_objectives_id)){
-                                                    $query->whereIn(cn::EXAM_TABLE_ID_COLS,$ExamList);
-                                                }
-                                            })
+                                            ->where([
+                                                cn::EXAM_TYPE_COLS => 1,
+                                                cn::EXAM_TABLE_IS_GROUP_TEST_COL => 0,
+                                                cn::EXAM_TABLE_CREATED_BY_COL => $this->LoggedUserId(),
+                                                cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL => 2,
+                                                cn::EXAM_TABLE_STATUS_COLS => 'publish',
+                                                cn::EXAM_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear()
+                                            ])
                                             ->orderBy(cn::EXAM_TABLE_CREATED_AT,'DESC')
                                             ->get();
-            $studyFocusTreeOption = $this->getSubjectMapping($strands_id,$learning_units_id,$learning_objectives_id);
-            
-            // Get Current student grade id wise strand list
-            $strandsList = StrandUnitsObjectivesMappings::where([
-                cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL => Auth::user()->{cn::USERS_GRADE_ID_COL},
-                cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL => 1
-            ])->pluck(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL);
-            if($strandsList->isNotEmpty()){
-                $strandsIds = array_unique($strandsList->toArray());
-                $strandsList = Strands::whereIn(cn::STRANDS_ID_COL, $strandsIds)->get();
-
-                // Get The learning units based on first Strands
-                $learningUnitsIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,Auth::user()->{cn::USERS_GRADE_ID_COL})
-                            ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
-                            ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strandsList[0]->id)
-                            ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL);
-                if(!empty($learningUnitsIds)){
-                    $learningUnitsIds = array_unique($learningUnitsIds->toArray());
-                    $LearningUnits = LearningsUnits::whereIn(cn::LEARNING_UNITS_ID_COL, $learningUnitsIds)->get();
-
-                    // Get the Learning objectives based on first learning units
-                    $learningObjectivesIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,Auth::user()->{cn::USERS_GRADE_ID_COL})
-                            ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
-                            ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strandsList[0]->id)
-                            ->whereIn(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$LearningUnits->pluck('id'))
-                            ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL);
-                    if(!empty($learningObjectivesIds)){
-                        $learningObjectivesIds = array_unique($learningObjectivesIds->toArray());
-                        // $LearningObjectives = LearningsObjectives::whereIn(cn::LEARNING_OBJECTIVES_ID_COL, $learningObjectivesIds)->get();
-                        $LearningObjectives = LearningsObjectives::IsAvailableQuestion()->whereIn(cn::LEARNING_OBJECTIVES_ID_COL, $learningObjectivesIds)->get();
-                    }
-                }
-            }
-            return view('backend/student/testing_zone/self_learning_test_list',compact('difficultyLevels','ExamsData','studyFocusTreeOption','strandsList','LearningUnits','LearningObjectives'));
+            return view('backend/student/testing_zone/self_learning_test_list',compact('difficultyLevels','ExamsData'));
         }catch(Exception $exception){
             return back()->withError($exception->getMessage());
         }
@@ -798,8 +668,10 @@ class StudentController extends Controller
                             $coded_questions_list = array();
                             $oldQuestionIds = array();
                             //if(isset($data['learning_objectives_difficulty_level']) && !empty($data['learning_objectives_difficulty_level']) && isset($data['get_no_of_question_learning_objectives']) && !empty($data['get_no_of_question_learning_objectives']) && $request->difficulty_mode == 'manual'){
-                            $objective_mapping_id = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnitId)
-                                                    ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$id)
+                            $objective_mapping_id = StrandUnitsObjectivesMappings::where([
+                                                        cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL => $learningUnitId,
+                                                        cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL => $id
+                                                    ])
                                                     ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)
                                                     ->toArray();
                             $LearningsSkillAll = array_keys($learningUnitData['learning_objective']);
@@ -886,10 +758,13 @@ class StudentController extends Controller
                         }
 
                         if(isset($responseQuestionCodesArray) && !empty($responseQuestionCodesArray)){
-                            $question_list = Question::with(['answers','PreConfigurationDifficultyLevel','objectiveMapping'])->whereIn(cn::QUESTION_NAMING_STRUCTURE_CODE_COL,$responseQuestionCodesArray)->get();
-                            $question_id_list = Question::whereIn(cn::QUESTION_NAMING_STRUCTURE_CODE_COL,$responseQuestionCodesArray)->inRandomOrder()
-                                                        ->pluck(cn::QUESTION_TABLE_ID_COL)
-                                                        ->toArray();
+                            $question_list = Question::with(['answers','PreConfigurationDifficultyLevel','objectiveMapping'])
+                                            ->whereIn(cn::QUESTION_NAMING_STRUCTURE_CODE_COL,$responseQuestionCodesArray)
+                                            ->get();
+                            $question_id_list = Question::whereIn(cn::QUESTION_NAMING_STRUCTURE_CODE_COL,$responseQuestionCodesArray)
+                                                ->inRandomOrder()
+                                                ->pluck(cn::QUESTION_TABLE_ID_COL)
+                                                ->toArray();
                             if(isset($question_id_list) && !empty($question_id_list)){
                                 $questionId_data_list = implode(',',array_unique($question_id_list));
                                 $request = array_merge($request->all(), ['questionIds' => $questionId_data_list]);
@@ -914,186 +789,4 @@ class StudentController extends Controller
             }
         }
     }
-
-    // public function CreateSelfLearning(Request $request){
-    //     if(isset($request)){
-    //         $difficultyLevels = PreConfigurationDiffiltyLevel::all();
-    //         $result = array();
-    //         $minimumQuestionPerSkill = Helper::getGlobalConfiguration('no_of_questions_per_learning_skills') ?? 2 ;
-    //         $learningUnitArray = array();
-    //         $coded_questions_list_all = array();
-    //         $difficulty_lvl = $request->difficulty_lvl;
-    //         $selected_levels = array();
-    //         if(isset($difficulty_lvl) && !empty($difficulty_lvl)){
-    //             foreach($difficulty_lvl as $difficulty_value){
-    //                 $selected_levels[] = $difficulty_value-1;
-    //             }
-    //         }
-    //         $no_of_questions = 10;
-    //         if(isset($request->total_no_of_questions) && !empty($request->total_no_of_questions)){
-    //             $no_of_questions = $request->total_no_of_questions;
-    //         }
-
-    //         if($request->self_learning_test_type==1){
-    //             $QuestionType = array(2,3);
-    //         }else{
-    //             $QuestionType = array(1);
-    //         }
-
-    //         if(isset($request->learning_unit) && !empty($request->learning_unit)){
-    //             foreach($request->learning_unit as $learningUnitId => $learningUnitData){
-    //                 $learningObjectiveQuestionArray = array();
-    //                 if(isset($learningUnitData['learning_objective']) && !empty($learningUnitData['learning_objective'])){
-    //                     foreach($learningUnitData['learning_objective'] as $id => $data){
-    //                         $coded_questions_list = array();
-    //                         $oldQuestionIds = array();
-    //                         if(isset($data['learning_objectives_difficulty_level']) && !empty($data['learning_objectives_difficulty_level']) && isset($data['get_no_of_question_learning_objectives']) && !empty($data['get_no_of_question_learning_objectives']) && $request->difficulty_mode == 'manual'){
-    //                             $objective_mapping_id = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnitId)->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$id)->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)->toArray();
-    //                             $LearningsSkillAll = array_keys($learningUnitData['learning_objective']);
-    //                             $learningsObjectivesData = LearningsObjectives::find($id);
-    //                             $LearningsSkill = $learningsObjectivesData->code;
-    //                             $QuestionSkill = Question::with('PreConfigurationDifficultyLevel')
-    //                                             ->whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL,$objective_mapping_id)
-    //                                             //->where(cn::QUESTION_QUESTION_TYPE_COL,$request->test_type)
-    //                                             ->whereIn(cn::QUESTION_QUESTION_TYPE_COL,$QuestionType)
-    //                                             ->groupBy(cn::QUESTION_E_COL)
-    //                                             ->inRandomOrder()
-    //                                             ->pluck(cn::QUESTION_E_COL)
-    //                                             ->toArray();
-    //                             //$no_of_questions = $data['get_no_of_question_learning_objectives'];
-    //                             $qLoop = 0;
-    //                             //while($qLoop <= $no_of_questions){
-    //                                 foreach($QuestionSkill as $skillName){
-    //                                     $questionArray = Question::with('PreConfigurationDifficultyLevel')
-    //                                                         ->whereNotIn(cn::QUESTION_TABLE_ID_COL,$oldQuestionIds)
-    //                                                         ->whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL,$objective_mapping_id)
-    //                                                         //->where(cn::QUESTION_QUESTION_TYPE_COL,$request->test_type)
-    //                                                         ->whereIn(cn::QUESTION_QUESTION_TYPE_COL,$QuestionType)
-    //                                                         ->where(cn::QUESTION_E_COL,$skillName)
-    //                                                         ->whereIn(cn::QUESTION_DIFFICULTY_LEVEL_COL,$data['learning_objectives_difficulty_level'])
-    //                                                         //->limit($minimumQuestionPerSkill)
-    //                                                         ->inRandomOrder()
-    //                                                         ->get()
-    //                                                         ->toArray();
-    //                                     if(!empty($questionArray)){
-    //                                         foreach($questionArray as $question_key => $question_value){
-    //                                             $oldQuestionIds[] = $question_value['id'];
-    //                                             $coded_questions_list[] = array($question_value[cn::QUESTION_NAMING_STRUCTURE_CODE_COL],floatval($question_value['pre_configuration_difficulty_level']['title']),0);
-    //                                         }
-    //                                     }
-    //                                     // $qSize = sizeof($coded_questions_list);
-    //                                     // if($qSize >= $no_of_questions){
-    //                                     //     break;
-    //                                     // }
-    //                                 }
-    //                                 // if($qSize >= $no_of_questions){
-    //                                 //     break;
-    //                                 // }
-    //                                 //$qLoop++;
-    //                             //}
-    //                             //$coded_questions_list = array_slice($coded_questions_list,0,$no_of_questions);
-    //                         }else if($request->difficulty_mode == 'auto'){
-    //                             $objective_mapping_id = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnitId)->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$id)->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)->toArray();
-    //                             $LearningsSkillAll = array_keys($learningUnitData['learning_objective']);
-    //                             $learningsObjectivesData = LearningsObjectives::find($id);
-    //                             $LearningsSkill = $learningsObjectivesData->code;
-    //                             $QuestionSkill = Question::with('PreConfigurationDifficultyLevel')
-    //                                                 ->whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL,$objective_mapping_id)
-    //                                                 //->where(cn::QUESTION_QUESTION_TYPE_COL,$request->test_type)
-    //                                                 ->whereIn(cn::QUESTION_QUESTION_TYPE_COL,$QuestionType)
-    //                                                 ->groupBy(cn::QUESTION_E_COL)
-    //                                                 ->inRandomOrder()
-    //                                                 ->pluck(cn::QUESTION_E_COL)
-    //                                                 ->toArray();
-    //                             //$no_of_questions = $data['get_no_of_question_learning_objectives'];
-    //                             //$qLoop = 0;
-    //                             //while($qLoop <= $no_of_questions){           
-    //                                 foreach ($QuestionSkill as $skillName){
-    //                                     $questionArray = Question::with('PreConfigurationDifficultyLevel')
-    //                                                         ->whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL,$objective_mapping_id)
-    //                                                         //->where(cn::QUESTION_QUESTION_TYPE_COL,$request->test_type)
-    //                                                         ->whereIn(cn::QUESTION_QUESTION_TYPE_COL,$QuestionType)
-    //                                                         //->limit($minimumQuestionPerSkill)
-    //                                                         ->inRandomOrder()
-    //                                                         ->get()
-    //                                                         ->toArray();
-    //                                     if(!empty($questionArray)){
-    //                                         foreach($questionArray as $question_key => $question_value){
-    //                                             $coded_questions_list[] = array($question_value[cn::QUESTION_NAMING_STRUCTURE_CODE_COL],floatval($question_value['pre_configuration_difficulty_level']['title']),0);
-    //                                         }
-    //                                     }
-    //                                     // $qSize = sizeof($coded_questions_list);
-    //                                     // if($qSize >= $no_of_questions){
-    //                                     //     break;
-    //                                     // }
-    //                                 }
-    //                                 // if($qSize >= $no_of_questions){
-    //                                 //     break;
-    //                                 // }
-    //                                 //$qLoop++;
-    //                             //}
-    //                         }
-    //                         $coded_questions_list_all = array_merge($coded_questions_list_all,$coded_questions_list);
-    //                     }
-    //                 }
-    //             }
-    //         }
-
-    //         if(sizeof($coded_questions_list_all) > 0){
-    //             if(isset($coded_questions_list_all) && !empty($coded_questions_list_all)){
-    //                 $requestPayload = new \Illuminate\Http\Request();
-    //                 // call api based on selected mode for AIApi
-    //                 switch($request->difficulty_mode){
-    //                     case 'manual':
-    //                             $requestPayload = $requestPayload->replace([
-    //                                 'selected_levels'       => $selected_levels,
-    //                                 'coded_questions_list'  => $coded_questions_list_all,
-    //                                 //'k'                     => floatval(sizeof($coded_questions_list_all)),
-    //                                 'k'                     => floatval($no_of_questions),
-    //                                 "repeated_rate"         => 0.1
-    //                             ]);
-    //                             $response = $this->AIApiService->Assign_Questions_Manually($requestPayload);
-    //                         break;
-    //                     case 'auto':
-    //                             $studentAbilities = Auth::user()->{cn::USERS_OVERALL_ABILITY_COL} ?? $this->DefaultStudentOverAllAbility;
-    //                             $requestPayload = $requestPayload->replace([
-    //                                 'students_abilities_list'   => array(floatval($studentAbilities)),
-    //                                 'coded_questions_list'      => $coded_questions_list_all,
-    //                                 //'k'                         => floatval(sizeof($coded_questions_list_all)),
-    //                                 'k'                     => floatval($no_of_questions),
-    //                                 'n'                         => 50,
-    //                                 'repeated_rate'             => 0.1
-    //                             ]);
-    //                             $response = $this->AIApiService->Assign_Questions_AutoMode($requestPayload);
-    //                         break;
-    //                 }
-    //                 if(isset($response) && !empty($response)){
-    //                     $responseQuestionCodes = array_column($response[0],0);
-    //                     $question_list = Question::with(['answers','PreConfigurationDifficultyLevel','objectiveMapping'])->whereIn(cn::QUESTION_NAMING_STRUCTURE_CODE_COL,$responseQuestionCodes)->get();
-    //                     $question_id_list = Question::whereIn(cn::QUESTION_NAMING_STRUCTURE_CODE_COL,$responseQuestionCodes)->pluck(cn::QUESTION_TABLE_ID_COL)->toArray();
-    //                     if(isset($question_id_list) && !empty($question_id_list)){
-    //                         $questionId_data_list = implode(',',array_unique($question_id_list));
-    //                         $request = array_merge($request->all(), ['questionIds' => $questionId_data_list]);
-    //                         $response = $this->selfExamCreate($request);
-    //                         if(isset($response) && !empty($response)){
-    //                             return $this->sendResponse($response);
-    //                         }else{
-    //                             return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
-    //                         }
-    //                         // $result['html'] = (string)View::make('backend.question_generator.school.question_list_preview',compact('question_list','difficultyLevels'));
-    //                         // $result['questionIds'] = $question_id_list;
-    //                     }else{
-    //                         return $this->sendError(__('languages.questions-not-found'), 422);
-    //                     }
-    //                 }else{
-    //                     return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
-    //                 }
-    //             }else{
-    //                 return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
-    //             }
-    //         }else{
-    //             return $this->sendError(__('languages.not_enough_questions_in_that_objective'), 422);
-    //         }
-    //     }
-    // }
 }

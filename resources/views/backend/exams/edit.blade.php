@@ -62,6 +62,18 @@
                                         </select>
                                         @if($errors->has('exam_type'))<span class="validation_error">{{ $errors->first('exam_type') }}</span>@endif
                                     </div> 
+                                    <!-- <div class="form-group col-md-6 mb-50">
+                                        <label for="id_end_time">{{ __('languages.test.templates') }}</label>
+                                        <select name="template" class="form-control select-option" id="select_template">
+                                            <option value="">{{__('languages.test.select_template')}}</option>
+                                            @if(!empty($testTemplates))
+                                                @foreach($testTemplates as $testTemplate)
+                                                    <option value="{{$testTemplate->id}}" @if($exam->template_id == $testTemplate->id ) selected @endif>{{ $testTemplate->name }}</option>
+                                                @endforeach
+                                            @endif
+                                        </select>
+                                        @if($errors->has('template'))<span class="validation_error">{{ $errors->first('template') }}</span>@endif
+                                    </div> -->
                                 </div>
                                    
                                 <div class="form-row select-data">

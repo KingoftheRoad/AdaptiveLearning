@@ -60,6 +60,18 @@
                                     </select>
                                     @if($errors->has('exam_type'))<span class="validation_error">{{ $errors->first('exam_type') }}</span>@endif
                                 </div>
+                                <!-- <div class="form-group col-md-6 mb-50">
+                                    <label for="id_end_time">{{ __('languages.test.templates') }}</label>
+                                    <select name="template" class="form-control select-option" id="select_template">
+                                        <option value="">{{__('languages.test.select_template')}}</option>
+                                        @if(!empty($testTemplates))
+                                            @foreach($testTemplates as $testTemplate)
+                                                <option value="{{$testTemplate->id}}">{{ $testTemplate->name }}</option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                    @if($errors->has('template'))<span class="validation_error">{{ $errors->first('template') }}</span>@endif
+                                </div> -->
                             </div>
                             <div class="form-row select-data">
                                 <div class="form-group col-md-6">
@@ -167,14 +179,14 @@
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title">{{__('languages.test_template_management.template_question_list')}}</h5>
+                            <h5 class="modal-title">Template Question List</h5>
                             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                 <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
                         <div class="modal-body view-template-question"></div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">{{__('languages.close')}}</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                         </div>
                     </div>
                 </div>

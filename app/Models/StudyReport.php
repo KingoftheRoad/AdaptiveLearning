@@ -29,8 +29,8 @@ class StudyReport extends Model
         cn::STUDY_REPORT_STUDENT_ID_COL
     ];
 
-     // Enable sortable columns name
-     public $sortable = [
+    // Enable sortable columns name
+    public $sortable = [
         cn::STUDY_REPORT_ID_COL,
         cn::STUDY_REPORT_REPORT_TYPE_COL,
         cn::STUDY_REPORT_STUDY_TYPE_COL,
@@ -42,7 +42,7 @@ class StudyReport extends Model
         cn::STUDY_REPORT_STUDY_STATUS_COL,
         cn::STUDY_REPORT_QUESTIONS_DIFFICULTIES_COL,
         cn::STUDY_REPORT_DATE_TIME_COL
-     ];
-     public $timestamps = true;
-
+    ];
+    
+    public $timestamps = true;
 }

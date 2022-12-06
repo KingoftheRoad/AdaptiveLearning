@@ -14,7 +14,7 @@ trait AIApi
         $requestData = $request->all();
         $requestBody = json_encode($requestData, true);
         //echo '<pre>';print_r($requestBody);die;
-        Log::info('AI-API | Request Payload | ' . $requestBody);
+        //Log::info('AI-API | Request Payload | ' . $requestBody);
         $client = new \GuzzleHttp\Client(['headers' => $headers,'verify' => false]);
         try {
             if(empty($method)){
@@ -46,19 +46,11 @@ trait AIApi
         $requestData = $request->all();
         $requestBody = json_encode($requestData, true);
         $client = new \GuzzleHttp\Client(['headers' => $headers,'verify' => false]);
-            if(empty($method)){
-                $method = 'POST';
-            }
-            $response = $client->request($method, $endpoint, ['body' => $requestBody]);
-
-            //$headers = $response->getHeaders();
-            //$base64 = 'data:image/' . $type . ';base64,' . base64_encode("");
-
-            //echo '<pre>';print_r($response);die;
-
-            $content = json_decode($response->getBody(), true);
-
-            //$base64 = 'data:image/' . $type . ';base64,' . base64_encode("");
-            echo '<img src="data:image/png;base64,' . $content . '">';
+        if(empty($method)){
+            $method = 'POST';
+        }
+        $response = $client->request($method, $endpoint, ['body' => $requestBody]);
+        $content = json_decode($response->getBody(), true);
+        echo '<img src="data:image/png;base64,' . $content . '">';
     }
 }

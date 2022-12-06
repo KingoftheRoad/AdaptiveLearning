@@ -87,8 +87,7 @@
 										@endif
 							  </tbody>
 							</table>
-							<div>{{__('languages.showing')}} {{!empty($GroupList->firstItem()) ? $GroupList->firstItem() : 0}} {{__('languages.to')}} {{!empty($GroupList->lastItem()) ? $GroupList->lastItem() : 0}} 
-								{{__('languages.of')}}  {{$GroupList->total()}} {{__('languages.entries')}} </div>
+							<div>{{__('languages.showing')}} {{($GroupList->currentpage()-1)*$GroupList->perpage()+1}} {{__('languages.to')}} {{$GroupList->currentpage()*$GroupList->perpage()}} {{__('languages.of')}}  {{$GroupList->total()}} {{__('languages.entries')}} </div>
 								<div class="pagination-data">
 									<div class="col-lg-9 col-md-9 pagintn">
 										@if((app('request')->input('items'))=== null)
@@ -107,7 +106,7 @@
 												<option value="30" @if(app('request')->input('items') == 30) selected @endif >30</option>
 												<option value="40" @if(app('request')->input('items') == 40) selected @endif >40</option>
 												<option value="50" @if(app('request')->input('items') == 50) selected @endif >50</option>
-												<option value="{{$GroupList->total()}}" @if(app('request')->input('items') == $GroupList->total()) selected @endif >{{__('languages.all')}}</option>
+												<option value="{{$TotalStudentGroupData}}" @if(app('request')->input('items') == $TotalStudentGroupData) selected @endif >{{__('languages.all')}}</option>
 											</select>
 										</form>
 									</div>

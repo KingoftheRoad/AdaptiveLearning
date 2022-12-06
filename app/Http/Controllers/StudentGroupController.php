@@ -25,8 +25,8 @@ class StudentGroupController extends Controller
         try{
             //  Laravel Pagination set in Cookie
             //$this->paginationCookie('StudentGroupList',$request);
-            if(!in_array('group_management_read', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
+            if(!in_array('group_management_read', Helper::getPermissions(Auth::user()->id))) {
+                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->id));
             } 
             $items = $request->items ?? 10; //For Pagination
             $TotalStudentGroupData = StudentGroup::all()->count();
@@ -40,8 +40,8 @@ class StudentGroupController extends Controller
 
     public function store(Request $request){
         try {
-            if(!in_array('group_management_create', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
+            if(!in_array('group_management_create', Helper::getPermissions(Auth::user()->id))) {
+                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->id));
             }
             $result = StudentGroup::create([
                 cn::STUDENT_GROUP_GRADE_ID_COL => $request->{cn::STUDENT_GROUP_GRADE_ID_COL},
@@ -52,7 +52,7 @@ class StudentGroupController extends Controller
                 $this->StoreAuditLogFunction($request->all(),'StudentGroup',cn::STUDENT_GROUP_ID_COL,'','Create Student Group',cn::STUDENT_GROUP_TABLE_NAME,'');
                 return $this->sendResponse($result, __('languages.group_created_successfully'));
             }else{
-                return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
+                return $this->sendError(__('languages.problem_was_occured_please_try_again'), 422);
             }
         } catch (\Exception $ex) {
             return $this->sendError($ex->getMessage(), 404);
@@ -61,8 +61,8 @@ class StudentGroupController extends Controller
 
     public function edit($id){
         try {
-            if(!in_array('group_management_update', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
+            if(!in_array('group_management_update', Helper::getPermissions(Auth::user()->id))) {
+                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->id));
             } 
             $StudentGroup = StudentGroup::find($id);
             if($StudentGroup){
@@ -77,8 +77,8 @@ class StudentGroupController extends Controller
 
     public function update(Request $request, $id){
         try {
-            if(!in_array('group_management_update', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
+            if(!in_array('group_management_update', Helper::getPermissions(Auth::user()->id))) {
+                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->id));
             }
             $this->StoreAuditLogFunction($request->all(),'StudentGroup',cn::STUDENT_GROUP_ID_COL,$id,'Updated Student Group',cn::STUDENT_GROUP_TABLE_NAME,'');
             $result = StudentGroup::find($id)->update([
@@ -89,7 +89,7 @@ class StudentGroupController extends Controller
             if($result){
                 return $this->sendResponse($result, __('languages.group_updated_successfully'));
             }else{
-                return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
+                return $this->sendError(__('languages.problem_was_occured_please_try_again'), 422);
             }
         } catch (\Exception $ex) {
             return $this->sendError($ex->getMessage(), 404);
@@ -99,15 +99,15 @@ class StudentGroupController extends Controller
     public function destroy($id){
         try{
             if($id){
-                if(!in_array('group_management_delete', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-                    return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
+                if(!in_array('group_management_delete', Helper::getPermissions(Auth::user()->id))) {
+                    return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->id));
                 } 
                 $result = StudentGroup::find($id)->delete();
                 if($result){
                     $this->StoreAuditLogFunction('','StudentGroup','','','Delete Student group ID '.$id,cn::STUDENT_GROUP_TABLE_NAME,'');
                     return $this->sendResponse($result, __('languages.group_deleted_successfully'));
                 }else{
-                    return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
+                    return $this->sendError(__('languages.problem_was_occured_please_try_again'), 422);
                 }
             }else{
                 return $this->sendError('Id not found', 422);
@@ -163,7 +163,7 @@ class StudentGroupController extends Controller
             $GroupsData = StudentGroup::find($groupId);
             if(isset($GroupsData)){
                 if(!empty($GroupsData->{cn::STUDENT_GROUP_STUDENT_ID_COL})){
-                    $existingStudents = explode(',',$GroupsData->{cn::STUDENT_GROUP_STUDENT_ID_COL});
+                    $existingStudents = explode(',',$GroupsData->student_ids);
                     $MergeStudentIds = array_merge($existingStudents,$request->student_ids);
                     $this->StoreAuditLogFunction('','StudentGroup','','','Update Student id in Student Group Exams ID '.implode(',',array_unique($MergeStudentIds)),cn::STUDENT_GROUP_TABLE_NAME,'');
                     $save = StudentGroup::find($groupId)->update([cn::STUDENT_GROUP_STUDENT_ID_COL => implode(',',array_unique($MergeStudentIds))]);
@@ -197,7 +197,7 @@ class StudentGroupController extends Controller
             if($save){
                 return $this->sendResponse($save, __('languages.student_added_successfully'));
             }else{
-                return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
+                return $this->sendError(__('languages.problem_was_occured_please_try_again'), 422);
             }
         }else{
             return $this->sendError(__('languages.invalid_group_id'), 422);
@@ -267,7 +267,7 @@ class StudentGroupController extends Controller
                 }
                 return $this->sendResponse($save, __('languages.student_deleted_successfully'));
             }else{
-                return $this->sendError(__('languages.problem_was_occur_please_try_again'), 422);
+                return $this->sendError(__('languages.problem_was_occured_please_try_again'), 422);
             }
         }else{
             return $this->sendError(__('languages.invalid_group_id'), 422);

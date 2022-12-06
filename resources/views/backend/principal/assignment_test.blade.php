@@ -134,16 +134,10 @@ if($user_id){
 						@endforeach
 					@endif
 				</div>
-                {{-- <div class="row pb-4">
-                    <div class="col-sm-2 col-md-2 col-lg-2">
-						<a href="{{ route('myteaching.assignment-tests') }}" class="btn-search white-font">{{__('languages.my_studies.test')}}</a>
-                        <a href="{{ route('myteaching/assignment-exercise') }}" class="btn-search white-font">{{__('languages.excercise')}}</a>
-					</div>
-                </div> --}}
          </div>
          <div class="row">
             <div class="col-md-12">
-                <div class="question-bank-sec">
+                <div class="question-bank-sec restrict-overflow">
                     <table id="DataTable" class="display" style="width:100%">
                         <thead>
                             <tr>
@@ -278,10 +272,10 @@ if($user_id){
                                     <td class="btn-edit">
                                         <a href="{{ route('report.class-test-reports.correct-incorrect-answer', ['exam_id' => $assignmentTest->exam_id, 'filter' => 'filter', 'grade_id' => $assignmentTest->grade_id, 'class_type_id' => array($assignmentTest->class_id), 'group_id' => $assignmentTest->peer_group_id]) }}" title="{{__('languages.performance_report')}}"><i class="fa fa-bar-chart" aria-hidden="true"></i></a>
                                         <a href="javascript:void(0);" title="{{__('languages.ability_analysis')}}" class="getClassAbilityAnalysisReport" data-examid="{{$assignmentTest->exam_id}}" data-studentids="{{$assignmentTest->student_ids}}" data-isGroup="{{!empty($assignmentTest->peer_group_id) ? true : false}}" data-buttonText="{{!empty($assignmentTest->peer_group_id) ? __('languages.My Group') : __('languages.My Class')}}">
-                                            <i class="fa fa-bar-chart" aria-hidden="true"></i>
+                                            <i class="fa fa-bar-chart ml-2" aria-hidden="true"></i>
                                         </a>
                                         <a href="javascript:void(0);" title="{{__('languages.difficulty_analysis')}}" class="getTestDifficultyAnalysisReport" data-examid="{{$assignmentTest->exam_id}}">
-                                            <i class="fa fa-bar-chart" aria-hidden="true"></i>
+                                            <i class="fa fa-bar-chart ml-2" aria-hidden="true"></i>
                                         </a>
                                         @php
                                             if(isset($assignmentTest->grade_with_class) && !empty($assignmentTest->grade_with_class)){
@@ -367,125 +361,6 @@ if($user_id){
 </div>
 <!-- End Result Summary Popup -->
 
-<!-- Play Video Popup -->
-<div class="modal fade" id="videoModal" tabindex="-1"  data-keyboard="false" aria-labelledby="videoModalLabel"  aria-hidden="true" data-backdrop="static">
-	<div class="modal-dialog modal-dialog-centered">
-		<div class="modal-content">
-			<div class="modal-body embed-responsive embed-responsive-16by9">
-				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="position: absolute;top: 0;right: 0;background-color: white;height: 30px;width: 30px;z-index: 9;opacity: 1;border-radius: 50%;padding-bottom: 4px;">
-					<span aria-hidden="true">&times;</span>
-				</button>
-				<iframe class="embed-responsive-item" src="" id="videoDis" frameborder="0" allowtransparency="true" allowfullscreen ></iframe>
-			</div>
-		</div>
-	</div>
-</div>
-
-<!-- Start Student create self learning test Popup -->
-<div class="modal" id="studentCreateSelfLearningTestModal" tabindex="-1" aria-labelledby="studentCreateSelfLearningTestModal" aria-hidden="true" data-backdrop="static">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<form class="student-generate-test-form" method="get" id="student-generate-test-form">
-				<div class="modal-header">
-					<h4 class="modal-title w-100">{{__('languages.generate_self_learning')}} {{__('languages.excercise')}} & {{__('languages.generate_self_learning')}} {{__('languages.test_text')}}</h4>
-					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-				</div>
-				<div class="modal-body">
-					<input type="hidden" name="grade_id" value="{{ Auth::user()->grade_id }}" id="grade-id">
-					<input type="hidden" name="subject_id" value="1" id="subject-id">
-					<input type="hidden" name="question_ids" value="" id="question-ids">
-					<input type="hidden" name="self_learning_test_type" value="" id="self_learning_test_type">
-					<div class="form-row">
-						<div class="form-group col-md-6 mb-50">
-							<label>{{__('languages.upload_document.strands')}}</label>
-							<select name="strand_id[]" class="form-control select-option" id="strand_id" multiple>
-								@if(isset($strandsList) && !empty($strandsList))
-									@foreach ($strandsList as $strandKey => $strand)
-										<option value="{{ $strand->id }}" <?php if($strandKey == 0){echo 'selected';}?>>{{ $strand->{'name_'.app()->getLocale()} }}</option>
-									@endforeach
-								@else
-									<option value="">{{__('languages.no_strands_available')}}</option>
-								@endif
-							</select>
-						</div>
-						<div class="form-group col-md-6 mb-50">
-							<label>{{__('languages.upload_document.learning_units')}}</label>
-							<select name="learning_unit_id[]" class="form-control select-option" id="learning_unit" multiple>
-								@if(isset($LearningUnits) && !empty($LearningUnits))
-									@foreach ($LearningUnits as $learningUnitKey => $learningUnit)
-										<option value="{{ $learningUnit->id }}" selected>{{ $learningUnit->{'name_'.app()->getLocale()} }}</option>
-									@endforeach
-								@else
-									<option value="">{{__('languages.no_learning_units_available')}}</option>
-								@endif
-							</select>
-						</div>
-						<div class="form-group col-md-6 mb-50">
-							<label>{{__('languages.upload_document.learning_objectives')}}</label>
-							<select name="learning_objectives_id[]" class="form-control select-option" id="learning_objectives" multiple>
-								@if(isset($LearningObjectives) && !empty($LearningObjectives))
-									@foreach ($LearningObjectives as $learningObjectivesKey => $learningObjectives)
-										<option value="{{ $learningObjectives->id }}" selected>{{ $learningObjectives->foci_number }} {{ $learningObjectives->{'title_'.app()->getLocale()} }}</option>
-									@endforeach
-								@else
-									<option value="">{{__('languages.no_learning_objectives_available')}}</option>
-								@endif
-							</select>
-						</div>
-						<div class="form-group col-md-6 mb-50">
-							<label>{{__('languages.difficulty_mode')}}</label>
-							<select name="difficulty_mode" class="form-control select-option" id="difficulty_mode">
-								<option value="manual">{{__('languages.manual')}}</option>
-								<option value="auto" disabled >{{__('languages.auto')}}</option>
-							</select>
-						</div>
-						<div class="form-group col-md-6 mb-50">
-							<label>{{__('languages.questions.difficulty_level')}}</label>
-							<select name="difficulty_lvl[]" class="form-control select-option" id="difficulty_lvl" multiple>
-								@if(!empty($difficultyLevels))
-								@foreach($difficultyLevels as $difficultyLevel)
-								<option value="{{$difficultyLevel->difficulty_level}}">{{$difficultyLevel->difficulty_level_name}}</option>
-								@endforeach
-								@endif
-							</select>
-							<span name="err_difficulty_level"></span>
-						</div>
-						<div class="form-group col-md-6 mb-50">
-							<label>{{__('languages.no_of_question')}}</label>
-							<input type="text" class="form-control" id="no_of_questions" name="no_of_questions" onkeyup="getTestTimeDuration()" value="" placeholder="{{__('languages.no_of_question')}}">
-						</div>
-						<div class="form-group col-md-6 mb-50 test_time_duration_section" style=display:none;>
-							<label>{{__('languages.test_time_duration')}} ({{__('languages.hh_mm_ss')}})</label>
-							<input type="text" class="form-control" id="test_time_duration" name="test_time_duration" value="" placeholder="{{__('languages.hh_mm_ss')}}">
-							<span></span>
-						</div>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-primary" id="generate_test">{{__('languages.submit')}}</button>
-					<button type="button" class="btn btn-default" data-dismiss="modal">{{__('languages.close')}}</button>
-				</div>
-			</form>
-		</div>
-	</div>
-</div>
-<!-- End Student create self learning test Popup -->
-
-<!-- Start Play Video Popup -->
-<div class="modal fade" id="imgModal" tabindex="-1" aria-labelledby="imgModalLabel" aria-hidden="true" data-backdrop="static">
-	<div class="modal-dialog modal-dialog modal-lg">
-		<div class="modal-content">
-			<div class="modal-body">
-				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="position: absolute;top: 0;right: 0;background-color: white;height: 30px;width: 30px;z-index: 9;opacity: 1;border-radius: 50%;padding-bottom: 4px;">
-					<span aria-hidden="true">&times;</span>
-				</button>
-				<img id="imgDis"  style="width: 100%;height: 100%;" src="">
-			</div>
-		</div>
-	</div>
-</div>
-<!-- End Play Video Popup -->
-
 <!-- Start Performance Analysis Popup -->
 <div class="modal" id="class-ability-analysis-report" tabindex="-1" aria-labelledby="class-ability-analysis-report" aria-hidden="true" data-backdrop="static">
 	<div class="modal-dialog modal-lg">
@@ -548,7 +423,7 @@ if($user_id){
 
 
 <!-- Start list of Student Progress Report Popup -->
-<div class="modal" id="modal-student-progress-report" tabindex="-1" aria-labelledby="test-difficulty-analysis-report" aria-hidden="true" data-backdrop="static">
+<div class="modal" id="modal-student-progress-report" tabindex="-1" aria-hidden="true" data-backdrop="static">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
 			<form method="post">
@@ -579,163 +454,125 @@ if($user_id){
 </div>
 <!-- End list of Student Progress Report Popup --> 
 @include('backend.layouts.footer')
-<script>
-    $(function() {
-        $(document).on('click', '.test-tab', function() {
-            $('.test-tab').removeClass('active');
-            $('.tab-pane').removeClass('active');
-            $('#'+$(this).attr('data-id')).addClass('active');
-            $(this).addClass('active');
-            $('#documentbtn form .active_tab').val($(this).attr('data-id'));
-            $.cookie("PreviousTab", $(this).attr('data-id'));
-        });	
-        //Default remember tab selected into student panel and teacher panel
-        $('.test-tab').removeClass('active');
-        $('.tab-pane').removeClass('active');
-        if($.cookie("PreviousTab")){
-            $('#tab-'+$.cookie("PreviousTab")).addClass('active');
-            $('#'+$.cookie("PreviousTab")).addClass('active');
-        }else{
-            $('#tab-self-learning').addClass('active');
-            $('#self_learning').addClass('active');
-        }
-        
-        /*
-        This change display document in exam id
-        */
-        var listExamIdDoc = new Array();
-        $.each($(".main-my-study input[type=checkbox]"), function() {
-            if($(this).val()!='on'){
-                listExamIdDoc.push($(this).val());
-            }
-        });
+<script type="text/javascript">
+$(function() {
+	/*for pagination add this script added by mukesh mahanto*/ 
+	document.getElementById('pagination').onchange = function() {
+		window.location = "{!! $AssignmentTestList->url(1) !!}&items=" + this.value;
+	};
+
+	/**
+	 * USE : Display on graph Get Class APerformance Analysis
+	 * Trigger : On click Performance graph icon into exams list action table
+	 * **/
+	$(document).on('click', '.getClassAbilityAnalysisReport', function(e) {
+		$("#cover-spin").show();
+		$('#class-ability-analysis-report').modal('show');
+		$studentIds = $(this).attr('data-studentids');
+		$examId = $(this).attr('data-examid');
+		$('#exam_ids').val($examId);
+		$('#student_ids').val($studentIds);
+		var isGroup = $(this).attr('data-isGroup');
+		$('.class-ability-graph-btn').attr('data-classAbilityIsGroup',isGroup);
+		$('.my_class_group_button').html($(this).attr('data-buttonText'));
+		if($studentIds && $examId){
+			$.ajax({
+				url: BASE_URL + '/my-teaching/get-class-ability-analysis-report',
+				type: 'post',
+				data : {
+					'_token': $('meta[name="csrf-token"]').attr('content'),
+					'examid' : $examId,
+					'studentIds' : $studentIds,
+					'graph_type' : 'my-class',
+					'isGroup' : isGroup
+				},
+				success: function(response) {
+					var ResposnseData = JSON.parse(JSON.stringify(response));
+					if(ResposnseData.data != 0){
+						// Append image src attribute with base64 encode image
+						$('#class-ability-analysis-report-image').attr('src','data:image/jpg;base64,'+ ResposnseData.data);
+						$('#class-ability-analysis-report').modal('show');
+					}else{
+						toastr.error(VALIDATIONS.DATA_NOT_FOUND);
+					}
+					$("#cover-spin").hide();
+				},
+				error: function(response) {
+					ErrorHandlingMessage(response);
+				}
+			});
+		}
+	});
     
-        $(document).on('change', '#AllTabs', function() {
-            if($(this).prop('checked')){
-                $(".categories-main-list .categories-list input[type=checkbox]").prop('checked',true);
-            }else{
-                $(".categories-main-list .categories-list input[type=checkbox]").prop('checked',false);
-            }
-        });
-    });
-    </script>
-    <script type="text/javascript">
-    $(function() {
-        /*for pagination add this script added by mukesh mahanto*/ 
-		document.getElementById('pagination').onchange = function() {
-			window.location = "{!! $AssignmentTestList->url(1) !!}&items=" + this.value;
-		};
-        /**
-         * USE : Display on graph Get Class APerformance Analysis
-         * Trigger : On click Performance graph icon into exams list action table
-         * **/
-        $(document).on('click', '.getClassAbilityAnalysisReport', function(e) {
-            $("#cover-spin").show();
-            $('#class-ability-analysis-report').modal('show');
-            $studentIds = $(this).attr('data-studentids');
-            $examId = $(this).attr('data-examid');
-            $('#exam_ids').val($examId);
-            $('#student_ids').val($studentIds);
-			var isGroup = $(this).attr('data-isGroup');
-			$('.class-ability-graph-btn').attr('data-classAbilityIsGroup',isGroup);
-			$('.my_class_group_button').html($(this).attr('data-buttonText'));
-            if($studentIds && $examId){
-                $.ajax({
-                    url: BASE_URL + '/my-teaching/get-class-ability-analysis-report',
-                    type: 'post',
-                    data : {
-                        '_token': $('meta[name="csrf-token"]').attr('content'),
-                        'examid' : $examId,
-                        'studentIds' : $studentIds,
-                        'graph_type' : 'my-class',
-						'isGroup' : isGroup
-                    },
-                    success: function(response) {
-                        var ResposnseData = JSON.parse(JSON.stringify(response));
-                        if(ResposnseData.data != 0){
-                            // Append image src attribute with base64 encode image
-                            $('#class-ability-analysis-report-image').attr('src','data:image/jpg;base64,'+ ResposnseData.data);
-                            $('#class-ability-analysis-report').modal('show');
-                        }else{
-                            toastr.error(VALIDATIONS.DATA_NOT_FOUND);
-                        }
-                        $("#cover-spin").hide();
-                    },
-                    error: function(response) {
-                        ErrorHandlingMessage(response);
-                    }
-                });
-            }
-        });
-    
-        /**
-         * USE : Click on the diffrent button like this 'my-class', 'my-school', 'all-school'
-         * **/
-        $(document).on('click', '.class-ability-graph-btn', function(e) {
-            $("#cover-spin").show();
-            $studentIds = $('#student_ids').val();
-            $examId = $('#exam_ids').val();
-            if($studentIds && $examId){
-                $.ajax({
-                    url: BASE_URL + '/my-teaching/get-class-ability-analysis-report',
-                    type: 'post',
-                    data : {
-                        '_token': $('meta[name="csrf-token"]').attr('content'),
-                        'examid' : $examId,
-                        'studentIds' : $studentIds,
-                        'graph_type' : $(this).attr('data-graphtype'),
-						'isGroup' : $(this).attr('data-classAbilityIsGroup')
-                    },
-                    success: function(response) {
-                        var ResposnseData = JSON.parse(JSON.stringify(response));
-                        if(ResposnseData.data != 0){
-                            // Append image src attribute with base64 encode image
-                            $('#class-ability-analysis-report-image').attr('src','data:image/jpg;base64,'+ ResposnseData.data);
-                            $('#class-ability-analysis-report').modal('show');
-                        }else{
-                            toastr.error(VALIDATIONS.DATA_NOT_FOUND);
-                        }
-                        $("#cover-spin").hide();
-                    },
-                    error: function(response) {
-                        ErrorHandlingMessage(response);
-                    }
-                });
-            }
-        });
-        // get student progress report
-        $(document).on('click', '.student-progress-report', function(e) {
-            $("#cover-spin").show();
-            $examId = $(this).attr('data-examid');
-            $studentIds = $(this).attr('data-studentids');
-            if($examId && $studentIds){
-                $.ajax({
-                    url: BASE_URL + '/myteaching/student-progress-report',
-                    type: 'post',
-                    data : {
-                        '_token': $('meta[name="csrf-token"]').attr('content'),
-                        'examid' : $examId,
-                        'studentIds' : $studentIds
-                    },
-                    success: function(response) {
-                        if(response.data.length != 0){
-                            $("#student-list").DataTable().destroy();
-                            $("#student-list tbody").html(response.data);
-                            $("#student-list").DataTable({
-                                order: [[0, "desc"]],
-                            });
-                            $("#modal-student-progress-report").modal('show');
-                        }else{
-                            toastr.error(VALIDATIONS.DATA_NOT_FOUND);
-                        }
-                        $("#cover-spin").hide();
-                    },
-                    error: function(response) {
-                        ErrorHandlingMessage(response);
-                    }
-                });
-            }
-        });
-    });
-    </script>
+	/**
+	 * USE : Click on the diffrent button like this 'my-class', 'my-school', 'all-school'
+	 * **/
+	$(document).on('click', '.class-ability-graph-btn', function(e) {
+		$("#cover-spin").show();
+		$studentIds = $('#student_ids').val();
+		$examId = $('#exam_ids').val();
+		if($studentIds && $examId){
+			$.ajax({
+				url: BASE_URL + '/my-teaching/get-class-ability-analysis-report',
+				type: 'post',
+				data : {
+					'_token': $('meta[name="csrf-token"]').attr('content'),
+					'examid' : $examId,
+					'studentIds' : $studentIds,
+					'graph_type' : $(this).attr('data-graphtype'),
+					'isGroup' : $(this).attr('data-classAbilityIsGroup')
+				},
+				success: function(response) {
+					var ResposnseData = JSON.parse(JSON.stringify(response));
+					if(ResposnseData.data != 0){
+						// Append image src attribute with base64 encode image
+						$('#class-ability-analysis-report-image').attr('src','data:image/jpg;base64,'+ ResposnseData.data);
+						$('#class-ability-analysis-report').modal('show');
+					}else{
+						toastr.error(VALIDATIONS.DATA_NOT_FOUND);
+					}
+					$("#cover-spin").hide();
+				},
+				error: function(response) {
+					ErrorHandlingMessage(response);
+				}
+			});
+		}
+	});
+
+	// get student progress report
+	$(document).on('click', '.student-progress-report', function(e) {
+		$("#cover-spin").show();
+		$examId = $(this).attr('data-examid');
+		$studentIds = $(this).attr('data-studentids');
+		if($examId && $studentIds){
+			$.ajax({
+				url: BASE_URL + '/myteaching/student-progress-report',
+				type: 'post',
+				data : {
+					'_token': $('meta[name="csrf-token"]').attr('content'),
+					'examid' : $examId,
+					'studentIds' : $studentIds
+				},
+				success: function(response) {
+					if(response.data.length != 0){
+						$("#student-list").DataTable().destroy();
+						$("#student-list tbody").html(response.data);
+						$("#student-list").DataTable({
+							order: [[0, "desc"]],
+						});
+						$("#modal-student-progress-report").modal('show');
+					}else{
+						toastr.error(VALIDATIONS.DATA_NOT_FOUND);
+					}
+					$("#cover-spin").hide();
+				},
+				error: function(response) {
+					ErrorHandlingMessage(response);
+				}
+			});
+		}
+	});
+});
+</script>
 @endsection

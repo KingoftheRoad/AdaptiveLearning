@@ -26,5 +26,6 @@ class StudentGroup extends Model
 
     // Enable sortable columns name
     public $sortable = [cn::STUDENT_GROUP_ID_COL,cn::STUDENT_GROUP_NAME_COL];
+    
     public $timestamps = true;
 }

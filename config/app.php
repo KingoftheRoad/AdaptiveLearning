@@ -165,7 +165,7 @@ return [
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
         Kyslik\ColumnSortable\ColumnSortableServiceProvider::class,
-        App\Providers\MailConfigServiceProvider::class,
+        //App\Providers\MailConfigServiceProvider::class,
 
         /*
          * Package Service Providers...

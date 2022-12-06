@@ -31,7 +31,8 @@ class UploadDocuments extends Model
         cn::UPLOAD_DOCUMENTS_UPLOAD_BY_COL,
         cn::UPLOAD_DOCUMENTS_STATUS_COL,
         cn::UPLOAD_DOCUMENTS_CREATED_AT_COL,
-        cn::UPLOAD_DOCUMENTS_UPDATED_BY_COL
+        cn::UPLOAD_DOCUMENTS_UPDATED_BY_COL,
+        cn::UPLOAD_DOCUMENTS_CURRICULUM_YEAR_ID_COL
     ];
     public $timestamps = true;
 

@@ -45,10 +45,8 @@ class CloneSchoolData extends Command
     public function handle()
     {
         //$this->info('Hourly Update has been send successfully');
-        if(date('d-m') == '15-07'){
-            Log::info('Schedule Run Start: Copy and Clone School Data');
-            dispatch($this->CloneSchoolDataNextCurriculumYear)->delay(now()->addSeconds(1));
-            Log::info('Schedule Run Successfully: Copy and Clone School Data');
-        }
+        Log::info('Schedule Run Start: Copy and Clone School Data');
+        dispatch($this->CloneSchoolDataNextCurriculumYear)->delay(now()->addSeconds(1));
+        Log::info('Schedule Run Successfully: Copy and Clone School Data');
     }
 }

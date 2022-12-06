@@ -91,6 +91,7 @@ class UpdateUserCreditPointsJob implements ShouldQueue
                                                     }
                                                     if(!empty($AccuracyCreditPoint)){
                                                         UserCreditPointHistory::Create([
+                                                            cn::USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                                                             cn::USER_CREDIT_POINT_HISTORY_EXAM_ID_COL => $ExamData->{cn::EXAM_TABLE_ID_COLS},
                                                             cn::USER_CREDIT_POINT_HISTORY_USER_ID_COL => $this->StudentId,
                                                             cn::USER_CREDIT_POINT_HISTORY_TEST_TYPE_COL => 'self_learning',
@@ -129,6 +130,7 @@ class UpdateUserCreditPointsJob implements ShouldQueue
 
                                                     if(!empty($AbilityCreditPoint)){
                                                         UserCreditPointHistory::Create([
+                                                            cn::USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                                                             cn::USER_CREDIT_POINT_HISTORY_EXAM_ID_COL => $ExamData->{cn::EXAM_TABLE_ID_COLS},
                                                             cn::USER_CREDIT_POINT_HISTORY_USER_ID_COL => $this->StudentId,
                                                             cn::USER_CREDIT_POINT_HISTORY_TEST_TYPE_COL => 'self_learning',
@@ -166,6 +168,7 @@ class UpdateUserCreditPointsJob implements ShouldQueue
                                                     }
                                                     if(!empty($AccuracyCreditPoint)){
                                                         UserCreditPointHistory::Create([
+                                                            cn::USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                                                             cn::USER_CREDIT_POINT_HISTORY_EXAM_ID_COL => $ExamData->{cn::EXAM_TABLE_ID_COLS},
                                                             cn::USER_CREDIT_POINT_HISTORY_USER_ID_COL => $this->StudentId,
                                                             cn::USER_CREDIT_POINT_HISTORY_TEST_TYPE_COL => 'self_learning',
@@ -204,6 +207,7 @@ class UpdateUserCreditPointsJob implements ShouldQueue
 
                                                     if(!empty($AbilityCreditPoint)){
                                                         UserCreditPointHistory::Create([
+                                                            cn::USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                                                             cn::USER_CREDIT_POINT_HISTORY_EXAM_ID_COL => $ExamData->{cn::EXAM_TABLE_ID_COLS},
                                                             cn::USER_CREDIT_POINT_HISTORY_USER_ID_COL => $this->StudentId,
                                                             cn::USER_CREDIT_POINT_HISTORY_TEST_TYPE_COL => 'self_learning',
@@ -233,6 +237,7 @@ class UpdateUserCreditPointsJob implements ShouldQueue
                                             $SubmissionCreditPoint = Helper::getGlobalConfiguration('assignment_credit_points_for_submission_on_time');
                                             if(!empty($SubmissionCreditPoint)){
                                                 UserCreditPointHistory::Create([
+                                                    cn::USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                                                     cn::USER_CREDIT_POINT_HISTORY_EXAM_ID_COL => $ExamData->{cn::EXAM_TABLE_ID_COLS},
                                                     cn::USER_CREDIT_POINT_HISTORY_USER_ID_COL => $this->StudentId,
                                                     cn::USER_CREDIT_POINT_HISTORY_TEST_TYPE_COL => 'assignment',
@@ -267,6 +272,7 @@ class UpdateUserCreditPointsJob implements ShouldQueue
 
                                                 if(!empty($AccuracyCreditPoint)){
                                                     UserCreditPointHistory::Create([
+                                                        cn::USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                                                         cn::USER_CREDIT_POINT_HISTORY_EXAM_ID_COL => $ExamData->{cn::EXAM_TABLE_ID_COLS},
                                                         cn::USER_CREDIT_POINT_HISTORY_USER_ID_COL => $this->StudentId,
                                                         cn::USER_CREDIT_POINT_HISTORY_TEST_TYPE_COL => 'assignment',
@@ -303,6 +309,7 @@ class UpdateUserCreditPointsJob implements ShouldQueue
 
                                                 if(!empty($AbilityCreditPoint)){
                                                     UserCreditPointHistory::Create([
+                                                        cn::USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                                                         cn::USER_CREDIT_POINT_HISTORY_EXAM_ID_COL => $ExamData->{cn::EXAM_TABLE_ID_COLS},
                                                         cn::USER_CREDIT_POINT_HISTORY_USER_ID_COL => $this->StudentId,
                                                         cn::USER_CREDIT_POINT_HISTORY_TEST_TYPE_COL => 'assignment',
@@ -323,9 +330,12 @@ class UpdateUserCreditPointsJob implements ShouldQueue
             $GetStudentTotalCreditPoints = UserCreditPointHistory::where(cn::USER_CREDIT_POINT_HISTORY_USER_ID_COL,$this->StudentId)->sum(cn::USER_CREDIT_POINT_HISTORY_NO_OF_CREDIT_POINT_COL);
             if(!empty($GetStudentTotalCreditPoints)){
                 // Update Student Credit Point table
-                UserCreditPoints::updateOrCreate(
-                    [cn::USER_CREDIT_USER_ID_COL => $this->StudentId],
+                UserCreditPoints::updateOrCreate([
+                        cn::USER_CREDIT_USER_ID_COL => $this->StudentId,
+                        cn::USER_CREDIT_POINTS_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
+                    ],
                     [
+                        cn::USER_CREDIT_POINTS_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                         cn::USER_CREDIT_USER_ID_COL => $this->StudentId,
                         cn::USER_NO_OF_CREDIT_POINTS_COL => $GetStudentTotalCreditPoints
                     ]

@@ -20,10 +20,36 @@ use App\Models\GlobalConfiguration;
 use App\Models\StrandUnitsObjectivesMappings;
 use App\Models\UserCreditPointHistory;
 use App\Models\AttemptExamStudentMapping;
+use App\Models\CurriculumYear;
+use App\Models\CurriculumYearStudentMappings;
+use Illuminate\Support\Facades\Session;
+use App\Models\RemainderUpdateSchoolYearData;
 use URL;
 use Cookie;
+use Carbon\Carbon;
 
 class Helper{
+
+    /**
+     * USE : Get Field data by selected year
+     */
+    public static function GetCurriculumDataById($UserId, $Id, $FieldName=''){
+        $CurriculumYearData = array();
+        if(isset($FieldName) && !empty($FieldName)){
+            $CurriculumYearData = CurriculumYearStudentMappings::select($FieldName)
+                                    ->where([
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $Id,
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $UserId
+                                    ])
+                                    ->first();
+            if(isset($CurriculumYearData) && !empty($CurriculumYearData)){                
+                return $CurriculumYearData->$FieldName;
+            }
+        }else{
+            $CurriculumYearData = CurriculumYearStudentMappings::where(cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL,$id)->first();
+            return $CurriculumYearData;
+        }
+    }
     
     // if permission not assign and try to forcefully to enter that time Redirect on Role based on Dashboard
     public static function redirectRoleBasedDashboard($user){
@@ -129,7 +155,7 @@ class Helper{
     public static function FindRoleByUserId($UserId){
         $UserData = User::find($UserId);        
         if(!empty($UserData)){
-            switch($UserData->role_id){
+            switch($UserData->{cn::USERS_ROLE_ID_COL}){
                 case cn::SUPERADMIN_ROLE_ID:
                     $roleType = 'Super Admin';
                     break;
@@ -169,11 +195,34 @@ class Helper{
         return $TestName;
     }
 
+    /**
+     * USE : Get Permission by user id
+     */
     public static function getPermissions($user_id){
         $permissions = User::where(cn::USERS_ID_COL,$user_id)->with('roles')->get();
         foreach($permissions as $permission){
             return explode(',',$permission->roles->permission);
         }
+    }
+
+    /**
+     * USE : Get Curriculum year list by student id
+     */
+    public static function getCurriculumYearList($UserId){
+        $CurriculumYearList = [];
+        $CurriculumYearStudentMappings = CurriculumYearStudentMappings::where([
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $UserId,
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_STATUS_COL => 1 // 1 = Active
+                                        ])
+                                        ->get()
+                                        ->pluck(cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL)
+                                        ->toArray();
+        if(isset($CurriculumYearStudentMappings) && !empty($CurriculumYearStudentMappings)){
+            $CurriculumYearList = CurriculumYear::whereIn(cn::CURRICULUM_YEAR_ID_COL,$CurriculumYearStudentMappings)
+                                    ->orderBy(cn::CURRICULUM_YEAR_ID_COL,'desc')
+                                    ->get();
+        }
+        return $CurriculumYearList;
     }
 
     public static function getLevelNameBasedOnLanguage($difficulty_level){
@@ -226,7 +275,11 @@ class Helper{
     //Get Single class Name on Grade selected for particular student 
     public static function getSingleClassName($id){
         $className = '';
-        $ClassData = GradeClassMapping::find($id);
+        $ClassData = GradeClassMapping::where([
+                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+                        cn::GRADE_CLASS_MAPPING_ID_COL => $id
+                    ])
+                    ->first();
         if(!empty($ClassData)){
             $className = strtoupper($ClassData->{cn::GRADE_CLASS_MAPPING_NAME_COL});
         }
@@ -235,12 +288,13 @@ class Helper{
     
     //on User to Select Class Name 
     public static function getClassNames($class_ids){
-        $className =array();
+        $className = array();
         $classId = array();
         if(!empty($class_ids)){
             $classId = explode(',',$class_ids);
         }
-        $ClassData = GradeClassMapping::whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$classId)->get();
+        $ClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,Self::GetCurriculumYear())
+                    ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$classId)->get();
         if(!empty($ClassData)){
             foreach($ClassData as $class){
                 array_push($className,$class->{cn::GRADE_CLASS_MAPPING_NAME_COL});
@@ -254,7 +308,6 @@ class Helper{
     public static function getAbility($accuracy){
         if(!empty($accuracy)){
             $convertedAccuracy = ($accuracy / 100);
-            //return (log($convertedAccuracy) - (log(1 - $convertedAccuracy)));
             return exp($convertedAccuracy) / (1 + exp($convertedAccuracy));
         }else{
             return $accuracy;
@@ -262,12 +315,8 @@ class Helper{
     }
 
     public static function getNormalizedAbility($ability){
-        //if(!empty($ability)){
-            $ability = exp($ability) / (1 + exp($ability)) * 100;
-            return round($ability,2);
-        // }else{
-        //     return $ability;
-        // }
+        $ability = exp($ability) / (1 + exp($ability)) * 100;
+        return round($ability,2);
     }
 
     /**
@@ -275,88 +324,46 @@ class Helper{
      * Ex. Ability = 55.2 then this function after calculation return 5.52
      */
     public static function getShortNormalizedAbility($ability){
-        //if(!empty($ability)){
-            $ability = ((\App\Helpers\Helper::getNormalizedAbility($ability) / 100) * 10);
-            // return round($ability,2);
-            return round($ability);
-        // }else{
-        //     return $ability;
-        // }
+        $ability = ((\App\Helpers\Helper::getNormalizedAbility($ability) / 100) * 10);
+        return round($ability);
     }
 
 
     // Get Accuracy Details
     public static function getAccuracy($examId='', $studentId){
-        $ExamsIds = explode(',',$examId);
         $accuracy = 0;
-        if(count($ExamsIds) == 1){
-            $total_correct_answers = 0;
-            $examData = Exam::find($examId);
-            $totalQuestion = count(explode(',',$examData->{cn::EXAM_TABLE_QUESTION_IDS_COL}));
-            $attemptedStudentExams = AttemptExams::where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentId)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->first();
-            if(isset($attemptedStudentExams) && !empty($attemptedStudentExams)){
-                $total_correct_answers += $attemptedStudentExams->{cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS};
-                if(!empty($totalQuestion) && !empty($total_correct_answers)){
-                    $accuracy = round(($total_correct_answers / $totalQuestion * 100), 2);
-                }
+        $total_correct_answers = 0;
+        $examData = Exam::find($examId);
+        $totalQuestion = count(explode(',',$examData->{cn::EXAM_TABLE_QUESTION_IDS_COL}));
+        $attemptedStudentExams = AttemptExams::where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentId)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->first();
+        if(isset($attemptedStudentExams) && !empty($attemptedStudentExams)){
+            $total_correct_answers += $attemptedStudentExams->{cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS};
+            if(!empty($totalQuestion) && !empty($total_correct_answers)){
+                $accuracy = round(($total_correct_answers / $totalQuestion * 100), 2);
             }
-            return $accuracy;
-        }else{
-            $totalQuestion = 0;
-            $correctAnswer = 0;
-            $wrongAnswer = 0;
-            foreach($ExamsIds as $examid){
-                $examData = Exam::find($examid);
-                $totalQuestion  += count(explode(',',$examData->{cn::EXAM_TABLE_QUESTION_IDS_COL}));
-                $attemptedStudentExams = AttemptExams::where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentId)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examid)->first();
-                if(isset($examData) && isset($attemptedStudentExams)){
-                    $correctAnswer += $attemptedStudentExams->{cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS};
-                }
-            }
-            $accuracy = round((($correctAnswer / $totalQuestion) * 100), 2);
-            return $accuracy;
         }
+        return $accuracy;
     }
 
     // Get All student combine accuracy
     public static function getAccuracyAllStudent($examId, $studentIds){
-        $ExamsIds = explode(',',$examId);
         $accuracy = 0;
         $total_correct_answers = 0;
         $totalCountQuestion = 0;
         $countAttemptedStudent = 0;
         $totalQuestion = 0;
         $students = explode(',',$studentIds);
-        if(count($ExamsIds) == 1){
-            $examData = Exam::find($examId);
-            $totalQuestion = explode(',',$examData->{cn::EXAM_TABLE_QUESTION_IDS_COL});
-            $attemptedStudentExams = AttemptExams::whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$students)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->get();
-            if(isset($attemptedStudentExams) && !empty($attemptedStudentExams)){
-                $countAttemptedStudent = count($attemptedStudentExams);
-                if(!empty($countAttemptedStudent)){
-                    $totalCountQuestion = count($totalQuestion) * (int)$countAttemptedStudent;
-                }
-                foreach($attemptedStudentExams as $attemptStudent){
-                    $total_correct_answers += $attemptStudent->{cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS};
-                }
-
-                if(!empty($totalCountQuestion) && !empty($total_correct_answers)){
-                    $accuracy = round(($total_correct_answers / $totalCountQuestion * 100), 2);
-                }
+        $examData = Exam::find($examId);
+        $totalQuestion = explode(',',$examData->{cn::EXAM_TABLE_QUESTION_IDS_COL});
+        $attemptedStudentExams = AttemptExams::whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$students)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->get();
+        if(isset($attemptedStudentExams) && !empty($attemptedStudentExams)){
+            $countAttemptedStudent = count($attemptedStudentExams);
+            if(!empty($countAttemptedStudent)){
+                $totalCountQuestion = count($totalQuestion) * (int)$countAttemptedStudent;
             }
-        }else{
-            // Is Group test check accuracy
-            foreach($ExamsIds as $examId){
-                $examData = Exam::find($examId);
-                $totalQuestion += count(explode(',',$examData->{cn::EXAM_TABLE_QUESTION_IDS_COL}));
-                $attemptedStudentExams = AttemptExams::whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$students)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->get();
-                if(isset($attemptedStudentExams) && !empty($attemptedStudentExams)){
-                    foreach($attemptedStudentExams as $attemptStudent){
-                        $total_correct_answers += $attemptStudent->{cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS};
-                    }
-                }
+            foreach($attemptedStudentExams as $attemptStudent){
+                $total_correct_answers += $attemptStudent->{cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS};
             }
-            $totalCountQuestion = ($totalQuestion * count($students)) ?? 0;
 
             if(!empty($totalCountQuestion) && !empty($total_correct_answers)){
                 $accuracy = round(($total_correct_answers / $totalCountQuestion * 100), 2);
@@ -481,30 +488,31 @@ class Helper{
         }
         return $progressBar;
     }
+
     /**
      * USE : Get Progress Detail in Teacher Panel
      */
     public static function getProgressDetail($students,$studentCompetenceList){
         $progressBar = ['Struggling' => 0,'Beginning' => 0,'Approaching' => 0,'Proficient' => 0,'Advanced' => 0, 'InComplete' => 0];
         
-        $strugglingValue = \App\Helpers\Helper::getStudyStatusValue('struggling');
-        $beginningValue = \App\Helpers\Helper::getStudyStatusValue('beginning');
-        $approachingValue = \App\Helpers\Helper::getStudyStatusValue('approaching');
-        $proficientValue = \App\Helpers\Helper::getStudyStatusValue('proficient');
-        $advancedValue = \App\Helpers\Helper::getStudyStatusValue('advanced');
+        $strugglingValue    = \App\Helpers\Helper::getStudyStatusValue('struggling');
+        $beginningValue     = \App\Helpers\Helper::getStudyStatusValue('beginning');
+        $approachingValue   = \App\Helpers\Helper::getStudyStatusValue('approaching');
+        $proficientValue    = \App\Helpers\Helper::getStudyStatusValue('proficient');
+        $advancedValue      = \App\Helpers\Helper::getStudyStatusValue('advanced');
 
         if(!empty($studentCompetenceList)){
             foreach ($studentCompetenceList as $studentCompetence) {
                 if($studentCompetence >= $strugglingValue['from'] && $studentCompetence <= $strugglingValue['to']){
-                    $progressBar['Struggling'] = $progressBar['Struggling'] + 1;
+                    $progressBar['Struggling'] = ($progressBar['Struggling'] + 1);
                 }else if($studentCompetence >= $beginningValue['from']  && $studentCompetence <= $beginningValue['to']){
-                    $progressBar['Beginning'] = $progressBar['Beginning'] + 1;
+                    $progressBar['Beginning'] = ($progressBar['Beginning'] + 1);
                 }else if($studentCompetence >= $approachingValue['from'] && $studentCompetence <=  $approachingValue['to']){
-                    $progressBar['Approaching'] = $progressBar['Approaching'] + 1;
+                    $progressBar['Approaching'] = ($progressBar['Approaching'] + 1);
                 }else if($studentCompetence >= $proficientValue['from'] && $studentCompetence <= $proficientValue['to']){
-                    $progressBar['Proficient'] = $progressBar['Proficient'] + 1;
+                    $progressBar['Proficient'] = ($progressBar['Proficient'] + 1);
                 }else if($studentCompetence >= $advancedValue['from'] && $studentCompetence <= $advancedValue['to']){
-                    $progressBar['Advanced'] = $progressBar['Advanced'] + 1;
+                    $progressBar['Advanced'] = ($progressBar['Advanced'] + 1);
                 }
             }
         }
@@ -552,48 +560,30 @@ class Helper{
 
     // Get All student Average No Of Question Answered Correctly
     public static function getAverageNoOfQuestionAnsweredCorrectly($examId, $studentIds){
-        $ExamsIds = explode(',',$examId);
         $QuestionAnsweredCorrectly = 0;
         $total_correct_answers = 0;
         $totalCountQuestion = 0;
         $countAttemptedStudent = 0;
         $totalQuestion = 0;
         $students = explode(',',$studentIds);
-        if(count($ExamsIds) == 1){
-            $examData = Exam::find($examId);
-            $totalQuestion = explode(',',$examData->{cn::EXAM_TABLE_QUESTION_IDS_COL});
-            $attemptedStudentExams = AttemptExams::whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$students)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->get();
-            if(isset($attemptedStudentExams) && !empty($attemptedStudentExams)){
-                $countAttemptedStudent = count($attemptedStudentExams);
-                if(!empty($countAttemptedStudent)){
-                    $totalCountQuestion = count($totalQuestion) * (int)$countAttemptedStudent;
-                }
-                foreach($attemptedStudentExams as $attemptStudent){
-                    $total_correct_answers += $attemptStudent->{cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS};
-                }
+        $examData = Exam::find($examId);
+        $totalQuestion = explode(',',$examData->{cn::EXAM_TABLE_QUESTION_IDS_COL});
+        $attemptedStudentExams = AttemptExams::whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$students)
+                                ->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)
+                                ->get();
+        if(isset($attemptedStudentExams) && !empty($attemptedStudentExams)){
+            $countAttemptedStudent = count($attemptedStudentExams);
+            if(!empty($countAttemptedStudent)){
+                $totalCountQuestion = count($totalQuestion) * (int)$countAttemptedStudent;
+            }
+            foreach($attemptedStudentExams as $attemptStudent){
+                $total_correct_answers += $attemptStudent->{cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS};
+            }
 
-                if($total_correct_answers!=0){
-                    $QuestionAnsweredCorrectly = round($total_correct_answers / count($students), 2);
-                }
-                $QuestionAnsweredCorrectly='('.$QuestionAnsweredCorrectly.'/'.$totalCountQuestion.')';
+            if($total_correct_answers!=0){
+                $QuestionAnsweredCorrectly = round($total_correct_answers / count($students), 2);
             }
-        }else{
-            // Is Group test check accuracy
-            foreach($ExamsIds as $examId){
-                $examData = Exam::find($examId);
-                $totalQuestion += count(explode(',',$examData->{cn::EXAM_TABLE_QUESTION_IDS_COL}));
-                $attemptedStudentExams = AttemptExams::whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$students)
-                                            ->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->get();
-                if(isset($attemptedStudentExams) && !empty($attemptedStudentExams)){
-                    foreach($attemptedStudentExams as $attemptStudent){
-                        $total_correct_answers += $attemptStudent->{cn::ATTEMPT_EXAMS_TOTAL_CORRECT_ANSWERS};
-                    }
-                }
-            }
-            if($total_correct_answers != 0){
-                $QuestionAnsweredCorrectly = round(($total_correct_answers / count($students)),2) ?? 0;
-            }
-            $QuestionAnsweredCorrectly='('.$QuestionAnsweredCorrectly.'/'.$totalQuestion.')';
+            $QuestionAnsweredCorrectly = '('.$QuestionAnsweredCorrectly.'/'.$totalCountQuestion.')';
         }
         return $QuestionAnsweredCorrectly;
     }
@@ -665,34 +655,18 @@ class Helper{
         if(empty($studentId)){
             $studentId = Auth::user()->{cn::USERS_ID_COL};
         }
-        $ExamsIds = explode(',',$exam_id);
-        if(count($ExamsIds) == 1){
-            $exam = Exam::where(cn::EXAM_TABLE_ID_COLS,$exam_id)->whereRaw("find_in_set($studentId,student_ids)")->get()->toArray();
-            $attempt_exams = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$exam_id)->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentId)->get()->toArray();
-            $question_ids = $exam[0][cn::EXAM_TABLE_QUESTION_IDS_COL];
-            $exam_taking_timing = $attempt_exams[0][cn::ATTEMPT_EXAMS_EXAM_TAKING_TIMING];
-            $exam_taking_timing_second = \App\Helpers\Helper::timeToSecond($exam_taking_timing ?? "00:00:00");
-            if($question_ids != "" && !empty($question_ids)){
-                $question_ids_size = sizeof(explode(',',$question_ids));
-                $per_question_time = round($exam_taking_timing_second/$question_ids_size,2);
-            }
-        }else{
-            $exam_taking_timing_second = 0;
-            $question_ids_size = 0;
-            foreach($ExamsIds as $exams){
-                $exam = Exam::where(cn::EXAM_TABLE_ID_COLS,$exams)->whereRaw("find_in_set($studentId,student_ids)")->get()->toArray();
-                $attempt_exams = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$exams)->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentId)->get()->toArray();
-                $question_ids = $exam[0][cn::EXAM_TABLE_QUESTION_IDS_COL];
-                $exam_taking_timing = $attempt_exams[0][cn::ATTEMPT_EXAMS_EXAM_TAKING_TIMING];
-                $exam_taking_timing_second = \App\Helpers\Helper::timeToSecond($exam_taking_timing ?? "00:00:00");
-                if($question_ids != ""){
-                    $question_ids_size = $question_ids_size+sizeof(explode(',',$question_ids));
-                    $per_question_time = round($exam_taking_timing_second/$question_ids_size,2);
-                }
-            }
+        $exam = Exam::where(cn::EXAM_TABLE_ID_COLS,$exam_id)->whereRaw("find_in_set($studentId,student_ids)")->get()->toArray();
+        $attempt_exams = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$exam_id)->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentId)->get()->toArray();
+        $question_ids = $exam[0][cn::EXAM_TABLE_QUESTION_IDS_COL];
+        $exam_taking_timing = $attempt_exams[0][cn::ATTEMPT_EXAMS_EXAM_TAKING_TIMING];
+        $exam_taking_timing_second = \App\Helpers\Helper::timeToSecond($exam_taking_timing ?? "00:00:00");
+        if($question_ids != "" && !empty($question_ids)){
+            $question_ids_size = sizeof(explode(',',$question_ids));
+            $per_question_time = round($exam_taking_timing_second/$question_ids_size,2);
         }
         return $per_question_time;
     }
+
     public static function getDifficultyLevelColors(){
         $difficultyColor = [];
         $difficultyData = PreConfigurationDiffiltyLevel::All();
@@ -709,9 +683,10 @@ class Helper{
      */
     public static function getNoOfQuestionPerLearningObjective($learningUnitId,$learningObjectiveId){
         $minimumQuestionPerSkill = \App\Helpers\Helper::getGlobalConfiguration('no_of_questions_per_learning_skills') ?? 2 ;
-        $StrandUnitsObjectivesMappingsIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnitId)
-                                            ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$learningObjectiveId)
-                                            ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)->toArray();
+        $StrandUnitsObjectivesMappingsIds = StrandUnitsObjectivesMappings::where([
+                                                cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL => $learningUnitId,
+                                                cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL => $learningObjectiveId
+                                            ])->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)->toArray();
         if(isset($StrandUnitsObjectivesMappingsIds) && !empty($StrandUnitsObjectivesMappingsIds)){
             $QuestionSkill = Question::with('PreConfigurationDifficultyLevel')
                             ->whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL,$StrandUnitsObjectivesMappingsIds)
@@ -732,8 +707,10 @@ class Helper{
      */
     public static function CountAllQuestionPerLearningObjective($learningUnitId,$learningObjectiveId,$testType='test',$DifficultyLevel=array(2),$noOfQuestion=''){
         $TotalQuestionPerObjectives = 0;
-        $StrandUnitsObjectivesMappingsIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnitId)
-                                            ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$learningObjectiveId)
+        $StrandUnitsObjectivesMappingsIds = StrandUnitsObjectivesMappings::where([
+                                                cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL => $learningUnitId,
+                                                cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL => $learningObjectiveId
+                                            ])
                                             ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)->toArray();
         if(isset($StrandUnitsObjectivesMappingsIds) && !empty($StrandUnitsObjectivesMappingsIds)){
             $QuestionQuery = Question::with('PreConfigurationDifficultyLevel')
@@ -774,7 +751,7 @@ class Helper{
         }else{
             $examData = Exam::where(cn::EXAM_TABLE_ID_COLS,$examId)->get();
         } 
-        return $examData[0]->id;
+        return $examData[0]->{cn::EXAM_TABLE_ID_COLS};
     }
 
     /* Generate Dynamic Color code in RGB Format*/
@@ -813,7 +790,6 @@ class Helper{
 
     /* Percentage Display from 1-100 */
     public static function GetShortPercentage($percentage){
-        //return  round((($percentage/100) * 10));
         return  round(($percentage / 10));
     }
 
@@ -822,12 +798,8 @@ class Helper{
      * Ex. Ability = 55.2 then this function after calculation return 5.52
      */
     public static function getOldShortNormalizedAbility($ability){
-        //if(!empty($ability)){
-            $ability = ((\App\Helpers\Helper::getNormalizedAbility($ability) / 100) * 10);
-             return round($ability,2);
-        // }else{
-        //     return $ability;
-        // }
+        $ability = ((\App\Helpers\Helper::getNormalizedAbility($ability) / 100) * 10);
+        return round($ability,2);
     }
 
     /**
@@ -849,9 +821,13 @@ class Helper{
 
     public static function GetCountCrediPointsStudent($examId, $studentId){
         $noOfCrediPoint = 0;
-        $CreditPointData = UserCreditPointHistory::where('exam_id',$examId)->where('user_id',$studentId)->get();
+        $CreditPointData =  UserCreditPointHistory::where([
+                                cn::USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+                                cn::USER_CREDIT_POINT_HISTORY_EXAM_ID_COL => $examId,
+                                cn::USER_CREDIT_POINT_HISTORY_USER_ID_COL => $studentId
+                            ])->get();
         if(!empty($CreditPointData)){
-            $noOfCrediPoint = $CreditPointData->sum('no_of_credit_point');
+            $noOfCrediPoint = $CreditPointData->sum(cn::USER_CREDIT_POINT_HISTORY_NO_OF_CREDIT_POINT_COL);
         }
         return $noOfCrediPoint;
     }
@@ -880,7 +856,11 @@ class Helper{
      * USE : Check Exam Student Mapping Table
      */
     public static function CheckExamStudentMapping($ExamId){
-        if(AttemptExamStudentMapping::where(['exam_id' => $ExamId, 'student_id' => Auth::user()->id])->exists()){
+        if(AttemptExamStudentMapping::where([
+            cn::ATTEMPT_EXAM_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
+            cn::ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL => $ExamId,
+            cn::ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL => Auth::user()->{cn::USERS_ID_COL}
+        ])->exists()){
             return true;
         }else{
             return false;
@@ -891,7 +871,72 @@ class Helper{
      * USE : Get Particular School All Teacher
      */
     public static function GetAllTeacherOfSchool($schoolId){
-        $teacherList = User::where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::TEACHER_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
+        $teacherList =  User::where([
+                            cn::USERS_SCHOOL_ID_COL => $schoolId,
+                            cn::USERS_ROLE_ID_COL => cn::TEACHER_ROLE_ID
+                        ])
+                        ->pluck(cn::USERS_ID_COL)
+                        ->toArray();
         return $teacherList;
+    }
+
+    /**
+     * USE : Get Curriculum Year
+     */
+    public static function GetCurriculumYear(){
+        if(empty(Auth::user()->{cn::USERS_CURRICULUM_YEAR_ID_COL})){            
+            Self::SetCurriculumYear();
+        }        
+        return Auth::user()->{cn::USERS_CURRICULUM_YEAR_ID_COL};        
+    }
+
+    /**
+     * USE : Set  Default curriculum Year
+     */
+    public static function SetCurriculumYear($CurriculumYearId=''){
+        if(isset($CurriculumYearId) && !empty($CurriculumYearId)){
+           User::find(Auth::user()->id)->Update([
+                cn::USERS_CURRICULUM_YEAR_ID_COL => $CurriculumYearId
+            ]);
+        }else{
+            if(User::where([
+                cn::USERS_ID_COL => Auth::user()->id,
+                cn::USERS_CURRICULUM_YEAR_ID_COL => null
+            ])->exists()){
+                User::find(Auth::user()->id)->Update([
+                    cn::USERS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID
+                ]);
+            }
+        }
+    }
+
+    /**
+	 *USE : Date Formate D/M/Y Format 
+	 **/
+	public static function dateConvertDDMMYYY($fromseprator,$toseprator,$date){
+		$date = str_replace($fromseprator,$toseprator,$date);
+		return date('d/m/Y',strtotime($date));
+	}
+
+    /**
+     * USE : Check school reminder is enabled or not
+     * Return : true or false
+     */
+    public static function isRemainderEnabledCheck(){
+        // Find Next Curriculum Year
+        $nextCurriculumYear = (((int)Carbon::now()->format('Y')+1).'-'.((int)(Carbon::now()->format('y'))+2));
+        $CurriculumYear = CurriculumYear::where([
+            cn::CURRICULUM_YEAR_YEAR_COL => $nextCurriculumYear,
+            cn::CURRICULUM_YEAR_STATUS_COL => 'active'
+        ])->first();
+        if(RemainderUpdateSchoolYearData::where([
+            cn::REMAINDER_UPDATE_SCHOOL_YEAR_DATA_CURRICULUM_YEAR_ID_COL => $CurriculumYear->{cn::CURRICULUM_YEAR_ID_COL},
+            cn::REMAINDER_UPDATE_SCHOOL_YEAR_DATA_SCHOOL_ID_COL => Auth::user()->school_id,
+            cn::REMAINDER_UPDATE_SCHOOL_YEAR_DATA_STATUS_COL => 'pending'
+        ])->exists()){
+            return true;
+        }else{
+            return false;
+        }
     }
 }

@@ -23,13 +23,13 @@ class TeachersClassSubjectAssign extends Model
      * @var array
      */
     protected $fillable = [
-
         cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL,
         cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL,
         cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL,
         cn::TEACHER_CLASS_SUBJECT_SUBJECT_ID_COL,
         cn::TEACHER_CLASS_SUBJECT_STATUS_COL,
-        cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL
+        cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL,
+        cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL
     ];
 
     // Enable sortable columns name
@@ -69,6 +69,29 @@ class TeachersClassSubjectAssign extends Model
                 break;
         }
         return $rules;
+    }
+
+    public static function rulesMessages($action = ''){
+        $messages = [];
+        switch ($action) {
+            case 'create':
+                $messages = [
+                    'teacher_id.required' => __('validation.please_select_teacher'),
+                    'class_id.required' => __('validation.please_select_grade'),
+                    'subject_id.required' => __('validation.please_select_subject'),
+                    'class_type.required' =>  __('validation.please_select_class_type'),
+                ];
+                break;
+                case 'update':
+                    $messages = [
+                        'teacher_id.required' => __('validation.please_select_teacher'),
+                        'class_id.required' => __('validation.please_select_grade'),
+                        'subject_id.required' => __('validation.please_select_subject'),
+                        'class_type.required' =>  __('validation.please_select_class_type'),
+                    ];
+                    break;
+        }
+        return $messages;
     }
 
     public function getSubjectNameById(){

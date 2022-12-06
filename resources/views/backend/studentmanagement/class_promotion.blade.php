@@ -43,9 +43,9 @@
                                         @if(!empty($arrayPromotionHistory))
                                             @foreach($arrayPromotionHistory as $history)
                                                 <tr>
-                                                    <td>{{ App\Helpers\Helper::getGradeName($history->current_grade_id).'-'.App\Helpers\Helper::getSingleClassName($history->current_class_id) }}</td>
-                                                    <td>{{ App\Helpers\Helper::getGradeName($history->promoted_grade_id).'-'.App\Helpers\Helper::getSingleClassName($history->promoted_class_id) }}</td>
-													<td>{{ \Carbon\Carbon::parse($history->created_at)->format('d/m/Y h:m:s') }}</td>
+                                                    <td> {{ (!empty($history->current_grade_id)) ? App\Helpers\Helper::getGradeName($history->current_grade_id).'-'.App\Helpers\Helper::getSingleClassName($history->current_class_id) : '----' }}</td>
+                                                    <td> {{ (!empty($history->promoted_grade_id)) ? App\Helpers\Helper::getGradeName($history->promoted_grade_id).'-'.App\Helpers\Helper::getSingleClassName($history->promoted_class_id) : '----' }}</td>
+													<td> {{ \Carbon\Carbon::parse($history->created_at)->format('d/m/Y h:m:s') }}</td>
                                                 </tr>
                                             @endforeach
                                         @endif

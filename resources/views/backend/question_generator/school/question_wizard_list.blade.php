@@ -49,6 +49,19 @@
 					@endif
 					<form class="" id="" method="get">	
 						<div class="row">
+						<div class="select-lng pt-2 pb-2 col-lg-2 col-md-4">
+							<select name="current_curriculum_year" id="current_curriculum_year" class="form-control select-option exam-search">
+								<option value="">{{ __('languages.current') }} {{ __('languages.curriculum_year') }}</option>
+								@if(!empty($CurriculumYears))
+									@foreach($CurriculumYears as $CurriculumYear)
+									<option value="{{$CurriculumYear['id']}}" {{ request()->get('current_curriculum_year') == $CurriculumYear['id'] ? 'selected' : '' }}>{{ $CurriculumYear['year']}}</option>
+									@endforeach
+								@endif
+							</select>
+							@if($errors->has('current_curriculum_year'))
+								<span class="validation_error">{{ $errors->first('current_curriculum_year') }}</span>
+							@endif
+						</div>
 						<div class="select-lng pt-2 pb-2 col-lg-2 col-md-4">                            
 								<select name="test_type"  class="form-control select-option exam-search">
 									<option value="">{{ __('languages.test.select_test_type') }}</option>
@@ -128,13 +141,14 @@
 					</form>
 					<div class="row">
 						<div class="col-lg-12 col-md-12 col-sm-12">
-							<div class="question-bank-sec test-list-mains">
+							<div class="question-bank-sec test-list-mains restrict-overflow">
 								<table class="exam-list-table display" style="width:100%">
 							    	<thead>
 							        	<tr>
 							          		<th>
 										  		<input type="checkbox" name="" class="checkbox" id="group-exam-ids">
 											</th>
+											<th>@sortablelink('curriculum_year_id',__('languages.curriculum_year'))</th>
 											<th>@sortablelink('exam_type',__('languages.test.test_type'))</th>
 											<th>@sortablelink('reference_no',__('languages.reference_number'))</th>
 							          		<th>@sortablelink('title',__('languages.test.title'))</th>
@@ -153,6 +167,7 @@
 										@if(!empty($exam->ExamSchoolMapping[0]))
 											<tr>
 												<td><input type="checkbox" name="examids" class="checkbox exam-id" value="{{$exam->id}}"></td>
+												<td>{{($exam->getCurrentCurriculumYear($exam->curriculum_year_id)) ?? ''}}</td>
 												<td>
 													@if($exam->exam_type ==1)
 														{{__('languages.self_learning')}}
@@ -209,7 +224,8 @@
 												</td>
 												<td>
 													@if($exam->created_by_user == 'super_admin' || $exam->created_by_user == 'school_admin' || $exam->created_by_user == 'principal')
-													<select name="exam_status" id="update_exam_status" class="update_exam_status" data-examid="{{$exam->id}}" {{ $exam->ExamSchoolMapping[0]['status'] == 'inactive' ? 'disabled' : ''}} {{ $exam->exam_type == 1 ? 'disabled' : ''}} >
+													{{-- <select name="exam_status" id="update_exam_status" class="update_exam_status" data-examid="{{$exam->id}}" {{ $exam->ExamSchoolMapping[0]['status'] == 'inactive' ? 'disabled' : ''}} {{ $exam->exam_type == 1 ? 'disabled' : ''}} > --}}
+														<select name="exam_status" id="update_exam_status" class="update_exam_status" data-examid="{{$exam->id}}"  {{ $exam->exam_type == 1 ? 'disabled' : ''}} >
 														<option value="">{{__('languages.select_status')}}</option>
 														<option value="publish" {{$exam->ExamSchoolMapping[0]['status'] == 'publish' ? 'selected' : ''}}>{{__('languages.publish')}}</option>
 														<option value="inactive" {{$exam->ExamSchoolMapping[0]['status'] == 'inactive' ? 'selected' : ''}}>{{__('languages.inactive')}}</option>

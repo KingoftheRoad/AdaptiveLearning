@@ -66,12 +66,13 @@ class ProgressReportController extends Controller
 
             // Get pre-configured data for the questions
             $PreConfigurationDifficultyLevel = array();
-            $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
+            $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get()->toArray();
             if(isset($PreConfigurationDiffiltyLevelData)){
                 $PreConfigurationDifficultyLevel = array_column($PreConfigurationDiffiltyLevelData,cn::PRE_CONFIGURE_DIFFICULTY_TITLE_COL,cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_COL);
             }
 
             $teacherClassSubjectAssign =    TeachersClassSubjectAssign::where([
+                                                cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                                                 cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL},
                                                 cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $schoolId
                                             ])->get();
@@ -95,6 +96,7 @@ class ProgressReportController extends Controller
             $teacherGradesFirst = $teacherClassSubjectAssign[0];
             if(isset($request->grade_id) && !empty($request->grade_id)){
                 $teacherClassSubjectAssignNew = TeachersClassSubjectAssign::where([
+                                                    cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                                                     cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL},
                                                     cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL => $request->grade_id,
                                                     cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $schoolId
@@ -105,9 +107,12 @@ class ProgressReportController extends Controller
                 $teachersClass = explode(',',$teacherGradesFirst['class_name_id']);
                 $gradeData = Grades::find($teacherGradesFirst['class_id']);
                 if(!empty($teachersClass)){
-                    $GradeClassData =   GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$teacherGradesFirst['class_id'])
-                                        ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$teachersClass)
-                                        ->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
+                    $GradeClassData =   GradeClassMapping::whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$teachersClass)
+                                        ->where([
+                                            cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId,
+                                            cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $teacherGradesFirst['class_id']
+                                        ])
                                         ->get();
                     foreach($GradeClassData as $gradeClasss){
                         if(isset($request->class_type_id) && !empty($request->class_type_id)){
@@ -153,8 +158,9 @@ class ProgressReportController extends Controller
             }
             
             if(isset($classArray)){
-                $classid=$classArray[0];
+                $classid = $classArray[0];
             }
+            
             if($isFilter){
                 if(!empty($learningUnitsIds)){                
                     $learningUnitsId = $learningUnitsIds[0];
@@ -167,17 +173,27 @@ class ProgressReportController extends Controller
                         if(isset($gradeArray)){
                             $gradeid = $gradeArray[0];
                             $gradeData = Grades::find($gradeid);
-                            $GradeClassData =   GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$gradeid)
+                            $GradeClassData =   GradeClassMapping::where([
+                                                    cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $gradeid,
+                                                    cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                    cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId
+                                                ])
                                                 ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$classArray)
-                                                ->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
                                                 ->get();
                             if(isset($GradeClassData) && !empty($GradeClassData)){
                                 $gradeClasss = $GradeClassData[0];
-                                $studentList =  User::where(cn::USERS_GRADE_ID_COL,$gradeid)
-                                                ->where(cn::USERS_CLASS_ID_COL,$gradeClasss->id)
-                                                ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                                                ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                                ->get();
+                                // $studentList =  User::where(cn::USERS_GRADE_ID_COL,$gradeid)
+                                //                 ->where(cn::USERS_CLASS_ID_COL,$gradeClasss->id)
+                                //                 ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
+                                //                 ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                //                 ->get();
+                                $studentList =  User::where([
+                                                    cn::USERS_ROLE_ID_COL =>cn::STUDENT_ROLE_ID,
+                                                    cn::USERS_SCHOOL_ID_COL => $schoolId
+                                                ])
+                                                ->get()
+                                                ->where('CurriculumYearGradeId',$gradeid)
+                                                ->where('CurriculumYearClassId',$gradeClasss->id);
                                 if(isset($studentList) && !empty($studentList)){
                                     foreach($studentList as $student){
                                         $countNoOfMasteredLearningObjectives = 0;
@@ -187,10 +203,12 @@ class ProgressReportController extends Controller
                                             $StudentLearningObjectiveAbility = 0;
                                             $countLearningObjectivesQuestion = 0;
                                             $learningObjectivesData = LearningsObjectives::find($learningObjectivesId);
-                                            $StrandUnitsObjectivesMappingsId = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strandId)
-                                                        ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnitsId)
-                                                        ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$learningObjectivesId)
-                                                        ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)->toArray();
+                                            $StrandUnitsObjectivesMappingsId =  StrandUnitsObjectivesMappings::where([
+                                                                                    cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL => $strandId,
+                                                                                    cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL => $learningUnitsId,
+                                                                                    cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL => $learningObjectivesId
+                                                                                ])
+                                                                                ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)->toArray();
                                             if(isset($StrandUnitsObjectivesMappingsId) && !empty($StrandUnitsObjectivesMappingsId)){
                                                 $QuestionsList = Question::with('answers')
                                                                     ->whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL,$StrandUnitsObjectivesMappingsId)
@@ -202,9 +220,9 @@ class ProgressReportController extends Controller
                                                     $stud_id = $student->id;
                                                     $StudentAttemptedExamIds = $this->GetStudentAttemptedExamIds($stud_id) ?? [];
                                                     
-                                                    $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where('student_id', $stud_id)])
+                                                    $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id)])
                                                                 ->whereHas('attempt_exams', function($q) use($stud_id){
-                                                                    $q->where('student_id', '=', $stud_id);
+                                                                    $q->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, '=', $stud_id);
                                                                 })
                                                                 ->where(function ($query) use ($reportLearningType){
                                                                     if(isset($reportLearningType) && $reportLearningType == 1){  // $reportLearningType == 1 = 'Self-Learning Test
@@ -221,6 +239,7 @@ class ProgressReportController extends Controller
                                                                         });
                                                                     }
                                                                 })
+                                                                ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                                                 ->whereIn(cn::EXAM_TABLE_ID_COLS,$StudentAttemptedExamIds)
                                                                 ->orderBy(cn::EXAM_TABLE_ID_COLS,'DESC')
                                                                 ->get()
@@ -399,6 +418,7 @@ class ProgressReportController extends Controller
             }
 
             $teacherClassSubjectAssign =    TeachersClassSubjectAssign::where([
+                                                cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                                                 cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL},
                                                 cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $schoolId
                                             ])->get();
@@ -421,6 +441,7 @@ class ProgressReportController extends Controller
             $teacherGradesFirst = $teacherClassSubjectAssign[0];
             if(isset($request->grade_id) && !empty($request->grade_id)){
                 $teacherClassSubjectAssignNew = TeachersClassSubjectAssign::where([
+                                                    cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                                                     cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL},
                                                     cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL => $request->grade_id,
                                                     cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $schoolId
@@ -431,9 +452,12 @@ class ProgressReportController extends Controller
                 $teachersClass = explode(',',$teacherGradesFirst['class_name_id']);
                 $gradeData = Grades::find($teacherGradesFirst['class_id']);
                 if(!empty($teachersClass)){
-                    $GradeClassData =   GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$teacherGradesFirst['class_id'])
+                    $GradeClassData =   GradeClassMapping::where([
+                                            cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $teacherGradesFirst['class_id'],
+                                            cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId
+                                        ])
                                         ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$teachersClass)
-                                        ->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
                                         ->get();
                     foreach($GradeClassData as $gradeClasss){
                         if(isset($request->class_type_id) && !empty($request->class_type_id)){
@@ -468,17 +492,26 @@ class ProgressReportController extends Controller
             if(!empty($StrandList)){
                 $gradeid = $gradeArray[0];
                 $gradeData = Grades::find($gradeid);
-                $GradeClassData =   GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$gradeid)
+                $GradeClassData =   GradeClassMapping::where([
+                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $gradeid,
+                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId
+                                    ])
                                     ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$classArray)
-                                    ->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
                                     ->get();
                 $gradeClasss = $GradeClassData[0];
-                $studentList =  User::where(cn::USERS_GRADE_ID_COL,$gradeid)
-                                ->where(cn::USERS_CLASS_ID_COL,$gradeClasss->id)
-                                ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                                ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                ->get();
-
+                // $studentList =  User::where(cn::USERS_GRADE_ID_COL,$gradeid)
+                //                 ->where(cn::USERS_CLASS_ID_COL,$gradeClasss->id)
+                //                 ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
+                //                 ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                //                 ->get();
+                $studentList =  User::where([
+                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                                    cn::USERS_SCHOOL_ID_COL => $schoolId,
+                                ])
+                                ->get()
+                                ->where('CurriculumYearGradeId',$gradeid)
+                                ->where('CurriculumYearClassId',$gradeClasss->id);
                 foreach($studentList as $student){
                     $progressReportArray[$student->id]['student_data'][] = $student->toArray();
                     $no_of_learning_unit = count($LearningUnitsList);
@@ -493,9 +526,12 @@ class ProgressReportController extends Controller
                                 $learningUnitsId = $learningUnitsIds[0];
                                 $gradeid = $gradeArray[0];
                                 $gradeData = Grades::find($gradeid);
-                                $GradeClassData =   GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$gradeid)
+                                $GradeClassData =   GradeClassMapping::where([
+                                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                        cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $gradeid,
+                                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId
+                                                    ])
                                                     ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$classArray)
-                                                    ->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
                                                     ->get();                                                                        
                                 $countNoOfMasteredLearningUnits = 0;
                                 foreach($learningUnitsIds as $learningUnitsId){
@@ -525,9 +561,9 @@ class ProgressReportController extends Controller
                                                     $stud_id = $student->id;
                                                     $StudentAttemptedExamIds = $this->GetStudentAttemptedExamIds($stud_id) ?? [];
                                                     
-                                                    $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where('student_id', $stud_id)])
+                                                    $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id)])
                                                                 ->whereHas('attempt_exams', function($q) use($stud_id){
-                                                                    $q->where('student_id', '=', $stud_id);
+                                                                    $q->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, '=', $stud_id);
                                                                 })
                                                                 ->where(function ($query) use ($reportLearningType){
                                                                     if(isset($reportLearningType) && $reportLearningType == 1){  // $reportLearningType == 1 = 'Self-Learning Test
@@ -544,6 +580,7 @@ class ProgressReportController extends Controller
                                                                         });
                                                                     }
                                                                 })
+                                                                ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                                                 ->whereIn(cn::EXAM_TABLE_ID_COLS,$StudentAttemptedExamIds)
                                                                 ->orderBy(cn::EXAM_TABLE_ID_COLS,'DESC')
                                                                 ->get()
@@ -667,8 +704,12 @@ class ProgressReportController extends Controller
             $schoolId = Auth::user()->{cn::USERS_SCHOOL_ID_COL};
             $roleId = Auth::user()->{cn::USERS_ROLE_ID_COL};
             $reportLearningType = "";
-            $teacherListIds = User::where([cn::USERS_ROLE_ID_COL=>cn::TEACHER_ROLE_ID,cn::USERS_SCHOOL_ID_COL=>$schoolId])->get()->pluck(cn::USERS_ID_COL);
-
+            $teacherListIds =   User::where([
+                                    cn::USERS_ROLE_ID_COL => cn::TEACHER_ROLE_ID,
+                                    cn::USERS_SCHOOL_ID_COL => $schoolId
+                                ])
+                                ->get()
+                                ->pluck(cn::USERS_ID_COL);
             if(isset($request->reportLearningType) && !empty($request->reportLearningType)){
                 $reportLearningType = $request->reportLearningType;
             }
@@ -679,12 +720,17 @@ class ProgressReportController extends Controller
 
             // Get pre-configured data for the questions
             $PreConfigurationDifficultyLevel = array();
-            $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
+            // $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
+            $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get()->toArray();
             if(isset($PreConfigurationDiffiltyLevelData)){
                 $PreConfigurationDifficultyLevel = array_column($PreConfigurationDiffiltyLevelData,cn::PRE_CONFIGURE_DIFFICULTY_TITLE_COL,cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_COL);
             }
 
-            $teacherClassSubjectAssign = GradeSchoolMappings::where(cn::GRADES_MAPPING_SCHOOL_ID_COL,$schoolId)->get();
+            $teacherClassSubjectAssign = GradeSchoolMappings::where([
+                                            cn::GRADES_MAPPING_SCHOOL_ID_COL => $schoolId,
+                                            cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear()
+                                        ])
+                                        ->get();
             $gradeArray = array();
             $classArray = array();
             foreach($teacherClassSubjectAssign as $teacherGrades){
@@ -702,7 +748,10 @@ class ProgressReportController extends Controller
             }
             $teacherGradesFirst = $teacherClassSubjectAssign[0];
             if(isset($request->grade_id) && !empty($request->grade_id)){
-                $teacherClassSubjectAssignNew = GradeSchoolMappings::where(cn::GRADES_MAPPING_SCHOOL_ID_COL,$schoolId)
+                $teacherClassSubjectAssignNew = GradeSchoolMappings::where([
+                                                        cn::GRADES_MAPPING_SCHOOL_ID_COL => $schoolId,
+                                                        cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear()
+                                                    ])
                                                 ->where(cn::GRADES_MAPPING_GRADE_ID_COL,$request->grade_id)->get();
                 if(isset($teacherClassSubjectAssignNew[0]) && !empty($teacherClassSubjectAssignNew[0])){
                     $teacherGradesFirst = $teacherClassSubjectAssignNew[0];
@@ -711,9 +760,12 @@ class ProgressReportController extends Controller
             if(!empty($teacherGradesFirst['grade_id'])){
                 $gradeData = Grades::find($teacherGradesFirst['grade_id']);
                 if(!empty($gradeData)){
-                    $GradeClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$teacherGradesFirst['grade_id'])
-                                ->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
-                                ->get();
+                    $GradeClassData =   GradeClassMapping::where([
+                                            cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $teacherGradesFirst['grade_id'],
+                                            cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId
+                                        ])
+                                        ->get();
 
                     foreach($GradeClassData as $gradeClasss){
                         if(isset($request->class_type_id) && !empty($request->class_type_id)){
@@ -767,17 +819,27 @@ class ProgressReportController extends Controller
                         if(isset($gradeArray)){
                             $gradeid = $gradeArray[0];
                             $gradeData = Grades::find($gradeid);
-                            $GradeClassData =   GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$gradeid)
+                            $GradeClassData =   GradeClassMapping::where([
+                                                    cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                    cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $gradeid,
+                                                    cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId
+                                                ])
                                                 ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$classArray)
-                                                ->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
                                                 ->get();
                             if(isset($GradeClassData) && !empty($GradeClassData)){
                                 $gradeClasss = $GradeClassData[0];
-                                $studentList =  User::where(cn::USERS_GRADE_ID_COL,$gradeid)
-                                                ->where(cn::USERS_CLASS_ID_COL,$gradeClasss->id)
-                                                ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                                                ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                                ->get();
+                                // $studentList =  User::where(cn::USERS_GRADE_ID_COL,$gradeid)
+                                //                 ->where(cn::USERS_CLASS_ID_COL,$gradeClasss->id)
+                                //                 ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
+                                //                 ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                //                 ->get();
+                                $studentList =  User::where([
+                                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                                                    cn::USERS_SCHOOL_ID_COL => $schoolId
+                                                ])
+                                                ->get()
+                                                ->where('CurriculumYearGradeId',$gradeid)
+                                                ->where('CurriculumYearClassId',$gradeClasss->id);
                                 if(isset($studentList) && !empty($studentList)){
                                     foreach($studentList as $student){
                                         $countNoOfMasteredLearningObjectives = 0;
@@ -787,10 +849,10 @@ class ProgressReportController extends Controller
                                             $StudentLearningObjectiveAbility = 0;
                                             $countLearningObjectivesQuestion = 0;
                                             $learningObjectivesData = LearningsObjectives::find($learningObjectivesId);
-                                            $StrandUnitsObjectivesMappingsId = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strandId)
-                                                        ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnitsId)
-                                                        ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$learningObjectivesId)
-                                                        ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)->toArray();
+                                            $StrandUnitsObjectivesMappingsId =  StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strandId)
+                                                                                ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnitsId)
+                                                                                ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$learningObjectivesId)
+                                                                                ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)->toArray();
                                             if(isset($StrandUnitsObjectivesMappingsId) && !empty($StrandUnitsObjectivesMappingsId)){
                                                 $QuestionsList = Question::with('answers')
                                                                     ->whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL,$StrandUnitsObjectivesMappingsId)
@@ -802,9 +864,9 @@ class ProgressReportController extends Controller
                                                     $stud_id = $student->id;
                                                     $StudentAttemptedExamIds = $this->GetStudentAttemptedExamIds($stud_id) ?? [];
                                                     
-                                                    $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where('student_id', $stud_id)])
+                                                    $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id)])
                                                                 ->whereHas('attempt_exams', function($q) use($stud_id){
-                                                                    $q->where('student_id', '=', $stud_id);
+                                                                    $q->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, '=', $stud_id);
                                                                 })
                                                                 ->where(function ($query) use ($reportLearningType){
                                                                     if(isset($reportLearningType) && $reportLearningType == 1){  // $reportLearningType == 1 = 'Self-Learning Test
@@ -821,6 +883,7 @@ class ProgressReportController extends Controller
                                                                         });
                                                                     }
                                                                 })
+                                                                ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                                                 ->whereIn(cn::EXAM_TABLE_ID_COLS,$StudentAttemptedExamIds)
                                                                 ->orderBy(cn::EXAM_TABLE_ID_COLS,'DESC')
                                                                 ->get()
@@ -996,7 +1059,8 @@ class ProgressReportController extends Controller
 
             // Get pre-configured data for the questions
             $PreConfigurationDifficultyLevel = array();
-            $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
+            // $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
+            $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get()->toArray();
             if(isset($PreConfigurationDiffiltyLevelData)){
                 $PreConfigurationDifficultyLevel = array_column($PreConfigurationDiffiltyLevelData,cn::PRE_CONFIGURE_DIFFICULTY_TITLE_COL,cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_COL);
             }
@@ -1020,8 +1084,11 @@ class ProgressReportController extends Controller
             }
             $principalGradesFirst=$principalGradesList[0];
             if(isset($request->grade_id) && !empty($request->grade_id)){
-                $teacherClassSubjectAssignNew = GradeSchoolMappings::where(cn::GRADES_MAPPING_SCHOOL_ID_COL,$schoolId)
-                                                ->where(cn::GRADES_MAPPING_GRADE_ID_COL,$request->grade_id)->get();
+                $teacherClassSubjectAssignNew = GradeSchoolMappings::where([
+                                                    cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                    cn::GRADES_MAPPING_SCHOOL_ID_COL => $schoolId,
+                                                    cn::GRADES_MAPPING_GRADE_ID_COL => $request->grade_id
+                                                ])->get();
                 if(isset($teacherClassSubjectAssignNew[0]) && !empty($teacherClassSubjectAssignNew[0])){
                     $principalGradesFirst = $teacherClassSubjectAssignNew[0];
                 }
@@ -1029,10 +1096,11 @@ class ProgressReportController extends Controller
             if(!empty($principalGradesFirst['grade_id'])){
                 $gradeData = Grades::find($principalGradesFirst['grade_id']);
                 if(!empty($gradeData)){
-                    $GradeClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$principalGradesFirst['grade_id'])
-                                ->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
-                                ->get();
-
+                    $GradeClassData = GradeClassMapping::where([
+                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $principalGradesFirst['grade_id'],
+                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId
+                                    ])->get();
                     foreach($GradeClassData as $gradeClasss){
                         if(isset($request->class_type_id) && !empty($request->class_type_id)){
                             $classArray = $request->class_type_id;
@@ -1061,17 +1129,26 @@ class ProgressReportController extends Controller
             if(!empty($StrandList)){
                 $gradeid = $gradeArray[0];
                 $gradeData = Grades::find($gradeid);
-                $GradeClassData =   GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$gradeid)
+                $GradeClassData =   GradeClassMapping::where([
+                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $gradeid,
+                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId
+                                    ])
                                     ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$classArray)
-                                    ->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
                                     ->get();
                 $gradeClasss = $GradeClassData[0];
-                $studentList =  User::where(cn::USERS_GRADE_ID_COL,$gradeid)
-                                ->where(cn::USERS_CLASS_ID_COL,$gradeClasss->id)
-                                ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                                ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                ->get();
-
+                // $studentList =  User::where(cn::USERS_GRADE_ID_COL,$gradeid)
+                //                 ->where(cn::USERS_CLASS_ID_COL,$gradeClasss->id)
+                //                 ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
+                //                 ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                //                 ->get();
+                $studentList =  User::where([
+                                    cn::USERS_SCHOOL_ID_COL => $schoolId,
+                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
+                                ])
+                                ->get()
+                                ->where('CurriculumYearGradeId',$gradeid)
+                                ->where('CurriculumYearClassId',$gradeClasss->id);
                 foreach($studentList as $student){
                     $progressReportArray[$student->id]['student_data'][] = $student->toArray();
                     $no_of_learning_unit = count($LearningUnitsList);
@@ -1118,9 +1195,9 @@ class ProgressReportController extends Controller
                                                     $stud_id = $student->id;
                                                     $StudentAttemptedExamIds = $this->GetStudentAttemptedExamIds($stud_id) ?? [];
                                                     
-                                                    $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where('student_id', $stud_id)])
+                                                    $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id)])
                                                                 ->whereHas('attempt_exams', function($q) use($stud_id){
-                                                                    $q->where('student_id', '=', $stud_id);
+                                                                    $q->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id);
                                                                 })
                                                                 ->where(function ($query) use ($reportLearningType){
                                                                     if(isset($reportLearningType) && $reportLearningType == 1){  // $reportLearningType == 1 = 'Self-Learning Test
@@ -1137,6 +1214,7 @@ class ProgressReportController extends Controller
                                                                         });
                                                                     }
                                                                 })
+                                                                ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                                                 ->whereIn(cn::EXAM_TABLE_ID_COLS,$StudentAttemptedExamIds)
                                                                 ->orderBy(cn::EXAM_TABLE_ID_COLS,'DESC')
                                                                 ->get()
@@ -1270,7 +1348,8 @@ class ProgressReportController extends Controller
             $LearningsUnitsLbl = array();
             $LearningsObjectivesLbl = array();
             $PreConfigurationDifficultyLevel = array();
-            $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
+            // $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
+            $PreConfigurationDiffiltyLevelData = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get()->toArray();
             if(isset($PreConfigurationDiffiltyLevelData)){
                 $PreConfigurationDifficultyLevel = array_column($PreConfigurationDiffiltyLevelData,cn::PRE_CONFIGURE_DIFFICULTY_TITLE_COL,cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_COL);
             }
@@ -1333,7 +1412,7 @@ class ProgressReportController extends Controller
                                     $StudentAttemptedExamIds = $this->GetStudentAttemptedExamIds($stud_id) ?? [];
                                     $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id)])
                                                     ->whereHas('attempt_exams', function($q) use($stud_id){
-                                                        $q->where('student_id', '=', $stud_id);
+                                                        $q->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id);
                                                     })
                                                     ->where(function ($query) use ($reportLearningType){
                                                         if(isset($reportLearningType) && $reportLearningType == 1){ // $reportLearningType == 1 = 'Self-Learning Test
@@ -1350,6 +1429,7 @@ class ProgressReportController extends Controller
                                                             });
                                                         }
                                                     })
+                                                    ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                                     ->whereIn(cn::EXAM_TABLE_ID_COLS,$StudentAttemptedExamIds)
                                                     ->orderBy(cn::EXAM_TABLE_ID_COLS,'DESC')
                                                     ->get()->toArray();
@@ -1534,7 +1614,8 @@ class ProgressReportController extends Controller
             
             $gradeArray = array();
             $classArray = array();
-            $gradeData = Grades::find($studentData->grade_id);
+            //$gradeData = Grades::find($studentData->grade_id);
+            $gradeData = Grades::find($studentData->CurriculumYearGradeId);
             
             $GradesList[] = array('id' => $gradeData->id,'name' => $gradeData->name);
 
@@ -1571,10 +1652,10 @@ class ProgressReportController extends Controller
                                         $StudentLearningObjectiveAbility = 0;
                                         $countLearningObjectivesQuestion = 0;
                                         $learningObjectivesData = LearningsObjectives::find($learningObjectivesId);
-                                        $StrandUnitsObjectivesMappingsId = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strandId)
-                                                    ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnitsId)
-                                                    ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$learningObjectivesId)
-                                                    ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)->toArray();
+                                        $StrandUnitsObjectivesMappingsId =  StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strandId)
+                                                                            ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$learningUnitsId)
+                                                                            ->where(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,$learningObjectivesId)
+                                                                            ->pluck(cn::OBJECTIVES_MAPPINGS_ID_COL)->toArray();
                                         if(isset($StrandUnitsObjectivesMappingsId) && !empty($StrandUnitsObjectivesMappingsId)){
                                             $QuestionsList = Question::with('answers')
                                                                 ->whereIn(cn::QUESTION_OBJECTIVE_MAPPING_ID_COL,$StrandUnitsObjectivesMappingsId)
@@ -1586,9 +1667,9 @@ class ProgressReportController extends Controller
                                                 $stud_id = $studentData->id;
                                                 $StudentAttemptedExamIds = $this->GetStudentAttemptedExamIds($stud_id) ?? [];
                                                 
-                                                $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where('student_id', $stud_id)])
+                                                $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id)])
                                                             ->whereHas('attempt_exams', function($q) use($stud_id){
-                                                                $q->where('student_id', '=', $stud_id);
+                                                                $q->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id);
                                                             })
                                                             ->where(function ($query) use ($reportLearningType){
                                                                 if(isset($reportLearningType) && $reportLearningType == 1){  // $reportLearningType == 1 = 'Self-Learning Test
@@ -1605,6 +1686,7 @@ class ProgressReportController extends Controller
                                                                     });
                                                                 }
                                                             })
+                                                            ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                                             ->whereIn(cn::EXAM_TABLE_ID_COLS,$StudentAttemptedExamIds)
                                                             ->orderBy(cn::EXAM_TABLE_ID_COLS,'DESC')
                                                             ->get()
@@ -1627,7 +1709,9 @@ class ProgressReportController extends Controller
                                                                 if(in_array($filterAttemptQuestionAnswerValue['question_id'],$QuestionsDataList)){
                                                                     $countLearningObjectivesQuestion += count(array_intersect(explode(',',$ExamData['question_ids']),$QuestionsDataList));
                                                                     $QuestionsDataListFinal[] = $filterAttemptQuestionAnswerValue['question_id'];
-                                                                    $QuestionList = Question::with('answers')->where(cn::QUESTION_TABLE_ID_COL,$filterAttemptQuestionAnswerValue['question_id'])->get()->toArray();
+                                                                    $QuestionList = Question::with('answers')
+                                                                                    ->where(cn::QUESTION_TABLE_ID_COL,$filterAttemptQuestionAnswerValue['question_id'])
+                                                                                    ->get()->toArray();
                                                                     if(isset($PreConfigurationDifficultyLevel) && !empty($PreConfigurationDifficultyLevel) && isset($PreConfigurationDifficultyLevel[$QuestionList[0][cn::QUESTION_DIFFICULTY_LEVEL_COL]]) && !empty($PreConfigurationDifficultyLevel[$QuestionList[0][cn::QUESTION_DIFFICULTY_LEVEL_COL]])){
                                                                         $ApiRequestData['difficulty_list'][] = number_format($PreConfigurationDifficultyLevel[$QuestionList[0][cn::QUESTION_DIFFICULTY_LEVEL_COL]], 4, '.', '');
                                                                     }else{

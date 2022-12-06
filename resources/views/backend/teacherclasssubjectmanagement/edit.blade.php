@@ -29,7 +29,7 @@
                         {{ session()->get('error_msg') }}
                     </div>
                     @endif
-                    <form class="user-form" method="post" id="editAssignForm"  action="{{ route('teache-class-subject-assign.update',$data->id) }}">
+                    <form class="user-form" method="post" id="editAssignForm"  action="{{ route('teacher-class-subject-assign.update',$data->id) }}">
                         @csrf()
                         @method('patch')
                         <div class="form-row select-data">

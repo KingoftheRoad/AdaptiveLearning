@@ -44,7 +44,7 @@ class SchoolController extends Controller
             $Query = School::select('*');
             if(isset($request->filter)){
                 if(isset($request->SchoolName) && !empty($request->SchoolName)){
-                    $Query->where(cn::SCHOOL_SCHOOL_NAME_COL,'Like','%'.$request->SchoolName.'%');
+                    $Query->where(cn::SCHOOL_SCHOOL_NAME_COL,'Like','%'.$this->encrypt($request->SchoolName).'%');
                 }
                 if(isset($request->SchoolCode) && !empty($request->SchoolCode)){
                     $Query->where(cn::SCHOOL_SCHOOL_CODE_COL,$request->SchoolCode);
@@ -53,7 +53,7 @@ class SchoolController extends Controller
                     $Query->where(cn::SCHOOL_SCHOOL_STATUS,$request->Status);
                 }
                 if(isset($request->SchoolCity) && !empty($request->SchoolCity)){
-                    $Query->where(cn::SCHOOL_SCHOOL_CITY,'Like','%'.$request->SchoolCity.'%');
+                    $Query->where(cn::SCHOOL_SCHOOL_CITY,'Like','%'.$this->encrypt($request->SchoolCity).'%');
                 }
                 $TotalFilterData = $Query->count();
                 $schoolList = $Query->sortable()->orderBy(cn::SCHOOL_ID_COLS,'DESC')->paginate($items);
@@ -160,6 +160,7 @@ class SchoolController extends Controller
             }
             if(!empty($Schools)){
                 $school_add_in_user_table = array(
+                    cn::USERS_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                     cn::USERS_ROLE_ID_COL   => cn::SCHOOL_ROLE_ID,
                     cn::USERS_SCHOOL_ID_COL => $Schools->{cn::SCHOOL_ID_COLS},
                     cn::USERS_NAME_EN_COL   => $this->encrypt($request->school_name_en),

@@ -23,13 +23,50 @@
     <button class="btn btn-dark d-inline-block d-lg-none ml-auto" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
         <i class="fa fa-bars"></i>
     </button>
+    
+    @if(auth()->user()->role_id == 3)
+        @php
+        // Get Curriculum Year list by user
+        $CurriculumYearList = App\Helpers\Helper::getCurriculumYearList(auth()->user()->id);
+        @endphp
+        <!-- Selection for school year -->
+        <div class="years-selection-dropdown-main ml-auto">
+            <label>{{__('languages.curriculum_year')}}</label>
+            <select class="years-selection-dropdown selectpicker select-option" id="curriculum_year">
+                @if(isset($CurriculumYearList) && !empty($CurriculumYearList))
+                @foreach($CurriculumYearList as $CurriculumYearListKey => $curriculumYear)
+                <option value="{{$curriculumYear->id}}" @if(Auth::user()->curriculum_year_id == $curriculumYear->id) selected @endif>{{$curriculumYear->year}}</option>
+                @endforeach
+                @endif
+            </select>
+        </div>
+        <!-- End Selection for school year -->
+    @endif
+
+    @if(auth()->user()->role_id == 2 || auth()->user()->role_id == 5 || auth()->user()->role_id == 7 || auth()->user()->role_id == 1)
+    <?php
+        $CurriculumYearList = \App\Traits\Common::GetCurriculumCurrentYear();
+    ?>
+    <!-- Selection for school year -->
+    <div class="years-selection-dropdown-main ml-auto">
+        <label>{{__('languages.curriculum_year')}}</label>
+        <select class="years-selection-dropdown selectpicker select-option" id="curriculum_year">
+            @if(isset($CurriculumYearList) && !empty($CurriculumYearList))
+            @foreach($CurriculumYearList as $CurriculumYearListKey => $curriculumYear)
+            <option value="{{$curriculumYear->id}}" @if(Auth::user()->curriculum_year_id == $curriculumYear->id) selected @endif>{{$curriculumYear->year}}</option>
+            @endforeach
+            @endif
+        </select>
+    </div>
+    @endif
+
     <div class="langague-dropdown">
         <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                 {{ Config::get('languages')[App::getLocale()] }}
             </a>
             <ul class="dropdown-menu">
-                @foreach ($languageList as $language)
+                @foreach($languageList as $language)
                     @if ($language['code'] != App::getLocale())
                     <li>
                         <a href="{{ route('lang.switch', $language['code']) }}">{{$language['name']}}</a>
@@ -40,8 +77,9 @@
         </li>
     </div>
     <div class="super-admin-title">
-    <h4>{{ auth()->user()->id }} : {{ (auth()->user()->name_en) ? App\Helpers\Helper::decrypt(auth()->user()->name_en) : auth()->user()->name }}</h4>
+        <h4>{{ auth()->user()->id }} : {{ (auth()->user()->name_en) ? App\Helpers\Helper::decrypt(auth()->user()->name_en) : auth()->user()->name }}</h4>
     </div>
+
     
     <!-- <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="nav navbar-nav ml-auto">

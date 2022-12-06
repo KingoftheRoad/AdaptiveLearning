@@ -25,8 +25,8 @@
 								<div class="btn-sec">
 									<a href="javascript:void(0);" class="btn-back dark-blue-btn btn btn-primary mb-4" id="backButton">{{__('languages.back')}}</a>
 									@if (in_array('teacher_class_and_subject_assign_create', $permissions))
-										{{-- <a href="{{ route('teache-class-subject-assign.create') }}" class="dark-blue-btn btn btn-primary">{{__('languages.assign_teacher_to_class')}}</a> --}}
-										<a href="{{ route('teache-class-subject-assign.create') }}" class="dark-blue-btn btn btn-primary mb-4">{{__('languages.assign_teacher_to_class')}}</a>
+										{{-- <a href="{{ route('teacher-class-subject-assign.create') }}" class="dark-blue-btn btn btn-primary">{{__('languages.assign_teacher_to_class')}}</a> --}}
+										<a href="{{ route('teacher-class-subject-assign.create') }}" class="dark-blue-btn btn btn-primary mb-4">{{__('languages.assign_teacher_to_class')}}</a>
 									@endif
 								</div>
 							</div>
@@ -67,9 +67,14 @@
 										@if(!empty($List))
 										@foreach($List as $data)
 							        	<tr>
-											<td><input type="checkbox" name="" class="checkbox"></td>
-											
-											<td>{{ ($data->getTeacher->name_en) ?   App\Helpers\Helper::decrypt($data->getTeacher->name_en) : $data->getTeacher->name }}</td>
+											<td><input type="checkbox" name="" value="{{$data->id}}" class="checkbox"></td>
+											<td>
+												@if(!empty($data->getTeacher->name_en))
+												{{App\Helpers\Helper::decrypt($data->getTeacher->name_en) ?? 'N/A'}}
+												@else
+												{{$data->getTeacher->name ?? 'N/A'}}
+												@endif
+											</td>
 											<td>{{ ($data->getClass->name) ?? 'N/A' }}</td>
 											<td>{{ ( App\Helpers\Helper::getClassNames($data->class_name_id)) ?? 'N/A'}}</td>
 											<!-- <td>{{ $data->getSubjectNameById() }}</td> -->
@@ -82,7 +87,7 @@
 											</td>
 											<td class="btn-edit">
 											<!-- @if (in_array('teacher_class_and_subject_assign_update', $permissions))
-												<a href="{{ route('teache-class-subject-assign.edit', $data->id) }}" class="" title="{{__('languages.edit')}}"><i class="fa fa-pencil" aria-hidden="true"></i></a>
+												<a href="{{ route('teacher-class-subject-assign.edit', $data->id) }}" class="" title="{{__('languages.edit')}}"><i class="fa fa-pencil" aria-hidden="true"></i></a>
 											@endif -->
 											@if (in_array('teacher_class_and_subject_assign_delete', $permissions))
 												<a href="javascript:void(0);" class="pl-2" id="deleteTeacherClassSubject" data-id="{{$data->id}}" title="{{__('languages.delete')}}"><i class="fa fa-trash" aria-hidden="true"></i></a>

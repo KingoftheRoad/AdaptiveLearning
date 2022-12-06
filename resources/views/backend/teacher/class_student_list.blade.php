@@ -123,7 +123,8 @@
 											@endif
 											<td>{{ $User->getUserCreditPoints->no_of_credit_points ?? 0 }}</td>
 											<td class="btn-edit">
-												<a href="{{ route('teacher.student-profiles', $User->id) }}" class="" title="{{__('languages.my_class.view_profile')}}"><i class="fa fa-eye" aria-hidden="true"></i></a>
+												{{-- <a href="{{ route('teacher.student-profiles', $User->id) }}" class="" title="{{__('languages.my_class.view_profile')}}"><i class="fa fa-eye" aria-hidden="true"></i></a> --}}
+												<a href="{{ route('student-profiles', $User->id) }}" class="" title="{{__('languages.my_class.view_profile')}}"><i class="fa fa-eye" aria-hidden="true"></i></a>
 											</td>
 										</tr>
 										@endforeach

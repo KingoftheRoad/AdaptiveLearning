@@ -89,5 +89,6 @@ return [
 
     //Curriculum Year
     'current_curriculum_year',
+
 ];
 

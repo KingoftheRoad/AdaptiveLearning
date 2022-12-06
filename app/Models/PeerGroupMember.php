@@ -17,7 +17,8 @@ class PeerGroupMember extends Model
     protected $fillable = [
         cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,
         cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL,
-        cn::PEER_GROUP_MEMBERS_STATUS_COL
+        cn::PEER_GROUP_MEMBERS_STATUS_COL,
+        cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL
     ];
 
     function Student(){

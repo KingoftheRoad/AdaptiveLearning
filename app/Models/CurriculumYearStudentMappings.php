@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Constants\DbConstant as cn;
 use Kyslik\ColumnSortable\Sortable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\CurriculumYear;
 
 class CurriculumYearStudentMappings extends Model
 {
@@ -21,7 +22,14 @@ class CurriculumYearStudentMappings extends Model
         cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL,
         cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL,
         cn::CURRICULUM_YEAR_STUDENT_MAPPING_STATUS_COL,
+        cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL,
+        cn::CURRICULUM_YEAR_STUDENT_CLASS,
+        cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER
     ];
 
     public $timestamps = true;
+
+    public function CurriculumYear(){
+        return $this->hasOne(CurriculumYear::class,cn::CURRICULUM_YEAR_ID_COL,cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL);
+    }
 }

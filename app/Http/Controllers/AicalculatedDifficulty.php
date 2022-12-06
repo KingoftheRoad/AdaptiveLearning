@@ -10,24 +10,29 @@ use App\Models\AiCalculatedDiffiltyLevel;
 use Exception;
 use DB;
 use Log;
-use Illuminate\Support\Facades\Validator;
-use App\Helpers\Helper;
-use Illuminate\Support\Facades\Auth;
+use Validator;
+
+
 class AiCalculatedDifficulty extends Controller
 {
     use Common;
 
     public function index(Request $request){
         try{
-            if(!in_array('ai_calculate_difficulty_read', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
-            }
             $items = $request->items ?? 10;
             $TotalFilterData = '';
             $countAicalculatedData = AiCalculatedDiffiltyLevel::all()->count();
             $AicalculatedList = AiCalculatedDiffiltyLevel::sortable()->orderBy(cn::AI_CALCULATED_DIFFICULTY_ID_COL,'DESC')->paginate($items);
-            $difficultyLevels = $this->getDifficultyLevels();
-            $statusList = $this->getStatusList();
+            $difficultyLevels = array(
+                ['id' =>  1,"name" => '1 - Easy'],
+                ['id' =>  2,"name" => '2 - Medium'],
+                ['id' =>  3,"name" => '3 - Difficult'],
+                ['id' =>  4,"name" => '4 - Tough']
+            );
+            $statusList = array(
+                ['id' => 'active',"name" => 'Active'],
+                ['id' => 'inactive',"name" => 'Inactive']
+            );
             //Filteration on School code and School Name
             $Query = AiCalculatedDiffiltyLevel::select('*');
             if(isset($request->filter)){
@@ -49,22 +54,23 @@ class AiCalculatedDifficulty extends Controller
         }
     }
 
+   
     public function create(){
         try{
-            if(!in_array('ai_calculate_difficulty_create', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
-            }
-            $difficultyLevels = $this->getDifficultyLevels();
+            $difficultyLevels = array(
+                ['id' =>  1,"name" => '1 - Easy'],
+                ['id' =>  2,"name" => '2 - Medium'],
+                ['id' =>  3,"name" => '3 - Difficult'],
+                ['id' =>  4,"name" => '4 - Tough']
+            );
             return view('backend.ai_calculated_difficulty.add',compact('difficultyLevels'));
         }catch(Exception $exception){
-            return back()->with('error_msg', __('languages.problem_was_occur_please_try_again'));
+            return back()->with('error_msg', 'Problem was error accured.. Please try again..');
         }
     }
 
+   
     public function store(Request $request){
-        if(!in_array('ai_calculate_difficulty_create', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-            return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
-        }
         //  Check validation
         $validator = Validator::make($request->all(), AiCalculatedDiffiltyLevel::rules($request, 'create'), AiCalculatedDiffiltyLevel::rulesMessages('create'));
         if ($validator->fails()) {
@@ -78,13 +84,13 @@ class AiCalculatedDifficulty extends Controller
         if(AiCalculatedDiffiltyLevel::where(cn::AI_CALCULATED_DIFFICULTY_DIFFICULTY_LEVEL_COL,$request->difficultyLevel)->doesntExist()){
             $AiCalculatedDiffiltyLevel = AiCalculatedDiffiltyLevel::create($PostData);
             if(!empty($AiCalculatedDiffiltyLevel)){
-               $this->StoreAuditLogFunction($PostData,'AiCalculatedDiffiltyLevel','','','Create Ai Calculated Difficulty Level',cn::AI_CALCULATED_DIFFICULTY_TABLE_NAME,'');
-               return redirect('ai-calculated-difficulty')->with('success_msg', __('languages.ai_calculated_difficulty_level_added_successfully'));
+               $this->AuditLogfuncation($PostData,'AiCalculatedDiffiltyLevel','','','Create Ai Calculated Difficulty Level',cn::AI_CALCULATED_DIFFICULTY_TABLE_NAME,'');
+               return redirect('ai-calculated-difficulty')->with('success_msg', 'Ai Calculated Difficulty Level added successfully.');
             }else{
-               return back()->with('error_msg', __('languages.problem_was_occur_please_try_again'));
+               return back()->with('error_msg', 'Problem was error accured.. Please try again..');
             }
         }else{
-            return back()->with('error_msg', __('languages.difficulty_level_already_exists'));
+            return back()->with('error_msg', 'Difficulty Level Already Exists');
         }
     }
     
@@ -93,11 +99,13 @@ class AiCalculatedDifficulty extends Controller
      */
     public function edit($id){
         try{
-            if(!in_array('ai_calculate_difficulty_update', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
-            }
             $AicalculatedData = AiCalculatedDiffiltyLevel::where(cn::AI_CALCULATED_DIFFICULTY_ID_COL,$id)->first();
-            $difficultyLevels = $this->getDifficultyLevels();
+            $difficultyLevels = array(
+                ['id' =>  1,"name" => '1 - Easy'],
+                ['id' =>  2,"name" => '2 - Medium'],
+                ['id' =>  3,"name" => '3 - Difficult'],
+                ['id' =>  4,"name" => '4 - Tough']
+            );
             return view('backend.ai_calculated_difficulty.edit',compact('AicalculatedData','difficultyLevels'));
         }catch(Exception $exception){
             return redirect('ai-calculated-difficulty')->withError($exception->getMessage())->withInput(); 
@@ -109,9 +117,6 @@ class AiCalculatedDifficulty extends Controller
      * USE : Update detail for AI Difficulty
      */
     public function update(Request $request, $id){
-        if(!in_array('ai_calculate_difficulty_update', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-            return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
-        }
        //  Check validation
        $validator = Validator::make($request->all(), AiCalculatedDiffiltyLevel::rules($request, 'create'), AiCalculatedDiffiltyLevel::rulesMessages('create'));
         if ($validator->fails()) {
@@ -132,10 +137,10 @@ class AiCalculatedDifficulty extends Controller
         }
         // After successfully updated
         if($update){
-            $this->StoreAuditLogFunction($PostData,'AiCalculatedDiffiltyLevel','','','Update Ai Calculated Difficulty Level',cn::AI_CALCULATED_DIFFICULTY_TABLE_NAME,'');
-            return redirect('ai-calculated-difficulty')->with('success_msg', __('languages.ai_calculated_difficulty_level_updated_successfully'));
+            $this->AuditLogfuncation($PostData,'AiCalculatedDiffiltyLevel','','','Update Ai Calculated Difficulty Level',cn::AI_CALCULATED_DIFFICULTY_TABLE_NAME,'');
+            return redirect('ai-calculated-difficulty')->with('success_msg', 'Ai Calculated Difficulty Level updated successfully.');
         }else{
-            return back()->with('error_msg', __('languages.problem_was_occur_please_try_again'));
+            return back()->with('error_msg', 'Problem was error accured.. Please try again..');
         }
     }
 
@@ -144,15 +149,12 @@ class AiCalculatedDifficulty extends Controller
      */
     public function destroy($id){
         try{
-            if(!in_array('ai_calculate_difficulty_delete', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
-                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
-            }
             $AiCalculatedDiffiltyLevel = AiCalculatedDiffiltyLevel::find($id);
-            $this->StoreAuditLogFunction('','AiCalculatedDiffiltyLevel','','','Delete Ai Calculated Difficulty Level ID '.$id,cn::AI_CALCULATED_DIFFICULTY_TABLE_NAME,'');
+            $this->AuditLogfuncation('','AiCalculatedDiffiltyLevel','','','Delete Ai Calculated Difficulty Level ID '.$id,cn::AI_CALCULATED_DIFFICULTY_TABLE_NAME,'');
             if($AiCalculatedDiffiltyLevel->delete()){
-                return $this->sendResponse([], __('languages.ai_calculated_difficulty_level_deleted_successfully'));
+                return $this->sendResponse([], 'Ai Calculated Difficulty Level deleted successfully');
             }else{
-                return $this->sendError(__('languages.please_try_again'), 422);
+                return $this->sendError('Please try again...', 422);
             }
         }catch (\Exception $exception) {
             return $this->sendError($exception->getMessage(), 404);
