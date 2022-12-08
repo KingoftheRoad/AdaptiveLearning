@@ -31,7 +31,40 @@ class GradeSeeder extends Seeder
             [
                 cn::GRADES_NAME_COL => '4',
                 cn::GRADES_CODE_COL => 4
+            ],
+            [
+                cn::GRADES_NAME_COL => '5',
+                cn::GRADES_CODE_COL => 5,
+            ],
+            [
+                cn::GRADES_NAME_COL => '6',
+                cn::GRADES_CODE_COL => 6,
+            ],
+            [
+                cn::GRADES_NAME_COL => '7',
+                cn::GRADES_CODE_COL => 7
+            ],
+            [
+                cn::GRADES_NAME_COL => '8',
+                cn::GRADES_CODE_COL => 8
+            ],
+            [
+                cn::GRADES_NAME_COL => '9',
+                cn::GRADES_CODE_COL => 9,
+            ],
+            [
+                cn::GRADES_NAME_COL => '10',
+                cn::GRADES_CODE_COL => 10,
+            ],
+            [
+                cn::GRADES_NAME_COL => '11',
+                cn::GRADES_CODE_COL => 11
+            ],
+            [
+                cn::GRADES_NAME_COL => '12',
+                cn::GRADES_CODE_COL => 12
             ]
+
         ];
 
         if(!empty($data)){

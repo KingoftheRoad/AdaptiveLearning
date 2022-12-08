@@ -211,7 +211,7 @@
 											</td>
 											@if(!App\Helpers\Helper::isExternalUserLogin())
 												<td class="btn-edit">
-													<a href="javascript:void(0);" class="pl-2 preview_question_list"  data-id="{{$Question->id}}" title="{{__('languages.delete')}}">
+													<a href="javascript:void(0);" class="pl-2 preview_question_list"  data-id="{{$Question->id}}" title="{{__('languages.questions.preview_question')}}">
 														<i class="fa fa-eye" aria-hidden="true"></i>
 													</a>
 												@if (in_array('question_bank_update', $permissions))

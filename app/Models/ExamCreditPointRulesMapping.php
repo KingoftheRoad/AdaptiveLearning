@@ -20,6 +20,7 @@ class ExamCreditPointRulesMapping extends Model
        cn::EXAM_CREDIT_POINT_RULES_MAPPING_CREDIT_POINT_RULES_COL,
        cn::EXAM_CREDIT_POINT_RULES_MAPPING_RULES_VALUE_COL,
        cn::EXAM_CREDIT_POINT_RULES_MAPPING_STATUS_COL,
+       cn::EXAM_CREDIT_POINT_RULES_MAPPING_CURRICULUM_YEAR_ID_COL
     ];
 
     public $timestamps = true;

@@ -85,7 +85,7 @@ class LoginController extends Controller
                 // Set User Log Activities
                 //$this->UserActivitiesLogs('login');
                 $redirectUrl = $this->GetRedirectURL();                
-                return $this->sendResponse(['redirectUrl' => $redirectUrl], 'Login Successfully');
+                return $this->sendResponse(['redirectUrl' => $redirectUrl,'user_role' => Auth::user()->role_id], 'Login Successfully');
             }else{
                 return $this->sendError('Invalid Login Credentials', 422);
             }

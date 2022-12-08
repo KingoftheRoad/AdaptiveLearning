@@ -34,7 +34,8 @@
 							<hr class="blue-line">
 						</div>
 					</div>
-					<div class="row">
+					{{-- Class Promtion in year need to upgrade so some time this code is comment --}}
+					{{-- <div class="row">
 						<input type="hidden" id="school-id" value="{{ Auth::user()->id }}">
 						<div class="col-lg-3 col-md-3">
 							<div class="select-lng pt-2 pb-2">
@@ -62,7 +63,7 @@
 						<div class="col-lg-2 col-md-3">
 							<button type="button" id="class-promotion" class="dark-blue-btn btn btn-primary mt-2 mb-2">{{ __('languages.student_management.class_promotion') }}</button>
 						</div>
-					</div>
+					</div> --}}
 					
 					@if (session('error'))
 					<div class="alert alert-danger">{{ session('error') }}</div>
@@ -134,7 +135,7 @@
 
 					<div class="row">
 						<div class="col-md-12">
-							<div  class="question-bank-sec">
+							<div  class="question-bank-sec restrict-overflow">
 								<table class="display" style="width:100%">
 							    	<thead>
 							        	<tr>
@@ -148,7 +149,7 @@
 											<th class="selec-head">@sortablelink('class_id',__('languages.class_within_grade'))</th>
 
 											<th class="selec-head">@sortablelink('class_student_number',__('languages.profile.class_student_number'))</th>
-											<th class="selec-head">@sortablelink('permanent_reference_number',__('languages.permanent_reference_number'))</th>
+											<th class="selec-head">@sortablelink('permanent_reference_number',__('languages.std_number'))</th>
 											<th class="selec-head">@sortablelink('student_number_within_class',__('languages.student_number_with_class'))</th>
 											<th class="selec-head">@sortablelink('class',__('languages.class_and_grade'))</th>
 
@@ -190,13 +191,14 @@
 												@if (in_array('student_management_delete', $permissions))
 												<a href="javascript:void(0);" class="pl-2" id="deleteStudent" data-id="{{$User->id}}" title="{{__('languages.delete')}}"><i class="fa fa-trash" aria-hidden="true"></i></a>
 												@endif
-												<a href="{{ route('class-promotion-history', $User->id) }}" class="" title="{{__('languages.class_promotion')}}"><i class="fa fa-history" aria-hidden="true"></i></a>
+												<a href="{{ route('class-promotion-history', $User->id) }}" class="pl-2" title="{{__('languages.class_promotion')}}"><i class="fa fa-history" aria-hidden="true"></i></a>
 												@if(Auth::user()->role_id == 5)
 													@if (in_array('change_password_update', $permissions))
 														<a href="javascript:void(0);" class="pl-2 changeUserPassword"  data-id="{{$User->id}}" title="{{__('languages.change_password')}}"><i class="fa fa-unlock" aria-hidden="true"></i></a>
 													@endif
 												@endif
-												<a href="{{ route('student.student-profiles', $User->id) }}" class="" title="{{__('languages.my_class.view_profile')}}"><i class="fa fa-eye" aria-hidden="true"></i></a>
+												{{-- <a href="{{ route('student.student-profiles', $User->id) }}" class="pl-2" title="{{__('languages.my_class.view_profile')}}"><i class="fa fa-eye" aria-hidden="true"></i></a> --}}
+												<a href="{{ route('student-profiles', $User->id) }}" class="pl-2" title="{{__('languages.my_class.view_profile')}}"><i class="fa fa-eye" aria-hidden="true"></i></a>
 											</td>
 										</tr>
 										@endforeach
@@ -229,18 +231,6 @@
 										</form>
 									</div>
 								</div>
-								<div id="table_box_bootstrap">
-									<div class="table-export-table">
-										<div class="export-table setting-table">
-											<i class="fa fa-download"></i>
-											<p>Exported Selected</p>
-										</div>
-										<div class="configure-table setting-table">
-											<i class="fa fa-cog"></i>
-											<p>Exported Selected</p>
-										</div>
-									</div>
-								</div>
 							</div>
 						</div>
 					</div>
@@ -260,41 +250,5 @@
 						window.location = "{!! $UsersList->url(1) !!}&items=" + this.value;	
 				}; 
 		</script>
-		 <!-- Start Change password Popup -->
-		 <div class="modal" id="changeUserPwd" tabindex="-1" aria-labelledby="changeUserPwd" aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog modal-lg" style="max-width: 50%;">
-                <div class="modal-content">
-                    <form id="changepasswordUserFrom">	
-						@csrf()
-						<input type="hidden" value="" name="userId" id="changePasswordUserId">
-                        <div class="modal-header">
-                            <h4 class="modal-title w-100">{{__('languages.change_password')}}</h4>
-                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                        </div>
-                        <div class="modal-body">
-							<div class="form-row">
-								<div class="col-lg-12 col-md-12">
-									<label class="text-bold-600" for="newPassword">{{__('languages.new_password')}}</label>
-									<input type="password" class="form-control" name="newPassword" id="newPassword" placeholder="{{__('languages.new_password')}}" value="">
-									@if($errors->has('newPassword'))<span class="validation_error">{{ $errors->first('newPassword') }}</span>@endif
-								</div>
-							</div>
-							<div class="form-row">
-								<div class="col-lg-12 col-md-12">
-									<label class="text-bold-600" for="confirmPassword">{{__('languages.confirm_password')}}</label>
-									<input type="password" class="form-control" name="confirmPassword" id="confirmPassword" placeholder="{{__('languages.confirm_password')}}" value="">
-									@if($errors->has('confirmPassword'))<span class="validation_error">{{ $errors->first('confirmPassword') }}</span>@endif
-								</div>
-							</div>
-                        </div>
-                        <div class="modal-footer btn-sec">
-                            <button type="button" class="btn btn-default close-userChangePassword-popup" data-dismiss="modal">{{__('languages.close')}}</button>
-                            <button type="submit" class="blue-btn btn btn-primary submit-change-password-form">{{__('languages.submit')}}</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        <!-- End Change password Popup -->
 		@include('backend.layouts.footer')
 @endsection

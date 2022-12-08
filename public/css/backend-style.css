@@ -274,6 +274,9 @@ label.error {
     background: no-repeat center center;
     background-size: 100% 100%;
 }
+#remainder-upgrade-school-data-popup {
+    background: rgb(0 0 0 / 83%);
+}
 @media (max-width: 575.98px) {
     .sm-deskbord-main-sec .navbar-expand-sm > .container,
     .sm-deskbord-main-sec .navbar-expand-sm > .container-fluid {
@@ -866,7 +869,7 @@ button:focus {
 .blue-line {
     background: #2f1160;
 }
-.question-bank-sec.#DataTable {
+.question-bank-sec #DataTable {
     position: relative;
     padding: 15px;
     box-sizing: border-box;
@@ -4672,18 +4675,58 @@ form .classPerformanceReportInline {
 .MJX-TEX {
     white-space: unset !important;
 }
-#class-test-report-datatable {
+
+/*28/11/2022 For Scroll bar top and bottom in  a report comment below lines
+/* #class-test-report-datatable {
     width: 100%;
-    /* height: 600px; */
-    height: 800px;
+    height: 600px; 
+    max-height: 800px;
     position: relative;
     overflow-y: scroll;
     display: block;
-}
+} */
+/*28/11/2022 For Scroll bar top and bottom in  a report comment above lines*/
 #class-test-report-datatable thead {
     position: sticky;
     top: 0;
     z-index: 9;
+}
+/*  */
+.years-selection-dropdown-main {
+    color: #fff;
+}
+.years-selection-dropdown-main .years-selection-dropdown {
+    height: 30px;
+    width: 100px;
+    border-radius: 4px;
+}
+.years-selection-dropdown-main .select2 {
+    width: 100px !important;
+}
+.restrict-overflow {
+    overflow-x: scroll;
+}
+
+.Top-ScrollBar,
+.Bottom-ScrollBar {
+    width: 100%;
+    overflow-x: scroll;
+    overflow-y: hidden;
+}
+.Top-ScrollBar {
+    height: 20px;
+}
+.Bottom-ScrollBar {
+    /* height: 850px; */
+    max-height: 850px;
+    overflow-y: scroll;
+}
+.div1 {
+    height: 20px;
+}
+#current_curriculum_year.curriculum-select-option {
+    position: static !important;
+    width: auto !important;
 }
 
 /* Responsive - css */

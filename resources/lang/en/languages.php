@@ -1314,7 +1314,8 @@ return [
             'plot_title' => 'Question Analysis',
             'x_axis' => 'Student Ability',
             'left_y_axis' => 'No. of Students',
-            'right_y_axis' => 'Density'
+            'right_y_axis' => '%'
+            //'right_y_axis' => 'Density'
         ],
         'Plot_Analyze_Student' => [
             'label_1' => 'Student Ability',
@@ -1323,7 +1324,8 @@ return [
             'plot_title' => 'Student Performance',
             'x_axis' => 'Question Difficulty',
             'left_y_axis' => 'No. of questions',
-            'right_y_axis' => 'Density'
+            'right_y_axis' => '%'
+            //'right_y_axis' => 'Density'
         ],
         'Plot_Analyze_My_Class_Ability' => [
             'label_1' => 'Abilities of My Class',
@@ -1331,7 +1333,8 @@ return [
             'label_3' => '',
             'plot_title' => "My Class's Abilities",
             'left_y_axis' => 'No. of Students',
-            'right_y_axis' => 'Density',
+            'right_y_axis' => '%',
+            //'right_y_axis' => 'Density',
             'x_axis' => "Student's Ability",
         ],
         'Plot_Analyze_My_School_Ability' => [
@@ -1340,7 +1343,8 @@ return [
             'label_3' => '',
             'plot_title' => "My Class vs My School",
             'left_y_axis' => 'No. of Students',
-            'right_y_axis' => 'Density',
+            'right_y_axis' => '%',
+            //'right_y_axis' => 'Density',
             'x_axis' => "Student's Ability",
         ],
         'Plot_Analyze_All_Schools_Ability' => [
@@ -1349,7 +1353,8 @@ return [
             'label_3' => 'Abilities of All Schools',
             'plot_title' => "My Class vs My School vs All Schools",
             'left_y_axis' => 'No. of Students',
-            'right_y_axis' => 'Density',
+            'right_y_axis' => '%',
+            //'right_y_axis' => 'Density',
             'x_axis' => "Student's Ability",
         ],
         'abilities_of_my_class' => 'Abilities of My Class',
@@ -1400,4 +1405,14 @@ return [
     'upgrade_student_school_year' => 'Upgrade Student School Year',
     'student_upgraded_successfully' => 'Student School Year Upgrade Successfully',
     'current'   => 'Current',
+    'select_curriculum_year' => 'Select Curriculum Year',
+    'search_by_principal_name' => 'Search By Principal Name',
+    'please_select_class'   =>  'Please Select Class',
+    'please_enter_grade_name'   =>  'Please Enter Grade Name',
+    'please_select_teacher'     =>'Please Select Teacher',
+    'please_select_grade'       =>'Please Select Grade',
+    'please_select_subject'     => 'Please Select Subject',
+    'please_select_class_type' =>'Please Select Class Type',
+    'std_number'            => 'Std Number',
+    'remainder'  =>          'Remainder',
 ];

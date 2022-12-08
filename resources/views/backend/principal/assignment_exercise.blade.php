@@ -135,16 +135,10 @@ if($user_id){
 						@endforeach
 					@endif
 				</div>
-				{{-- <div class="row pb-4">
-                    <div class="col-sm-2 col-md-2 col-lg-2 ">
-						<a href="{{ route('myteaching.assignment-tests') }}" class="btn-search white-font">{{__('languages.my_studies.test')}}</a>
-                        <a href="{{ route('myteaching/assignment-exercise') }}" class="btn-search white-font">{{__('languages.excercise')}}</a>
-					</div>
-                </div> --}}
          </div>
          <div class="row">
             <div class="col-md-12">
-                <div class="question-bank-sec">
+                <div class="question-bank-sec restrict-overflow">
                     <table id="DataTable" class="display" style="width:100%">
                         <thead>
                             <tr>
@@ -278,10 +272,10 @@ if($user_id){
                                     <td class="btn-edit">
                                         <a href="{{ route('report.class-test-reports.correct-incorrect-answer', ['exam_id' => $assignmentExcercise->exam_id, 'filter' => 'filter', 'grade_id' => $assignmentExcercise->grade_id, 'class_type_id' => array($assignmentExcercise->class_id), 'group_id' => $assignmentExcercise->peer_group_id]) }}" title="{{__('languages.performance_report')}}"><i class="fa fa-bar-chart" aria-hidden="true"></i></a>
                                         <a href="javascript:void(0);" title="{{__('languages.ability_analysis')}}" class="getClassAbilityAnalysisReport" data-examid="{{$assignmentExcercise->exam_id}}" data-studentids="{{$assignmentExcercise->student_ids}}" data-isGroup="{{!empty($assignmentExcercise->peer_group_id) ? true : false}}" data-buttonText="{{!empty($assignmentExcercise->peer_group_id) ? __('languages.My Group') : __('languages.My Class')}}">
-                                            <i class="fa fa-bar-chart" aria-hidden="true"></i>
+                                            <i class="fa fa-bar-chart ml-2" aria-hidden="true"></i>
                                         </a>
                                         <a href="javascript:void(0);" title="{{__('languages.difficulty_analysis')}}" class="getTestDifficultyAnalysisReport" data-examid="{{$assignmentExcercise->exam_id}}">
-                                            <i class="fa fa-bar-chart" aria-hidden="true"></i>
+                                            <i class="fa fa-bar-chart ml-2" aria-hidden="true"></i>
                                         </a>
                                         @php
                                             if(isset($assignmentExcercise->grade_with_class) && !empty($assignmentExcercise->grade_with_class)){
@@ -579,163 +573,125 @@ if($user_id){
 </div>
 <!-- End list of Student Progress Report Popup --> 
 @include('backend.layouts.footer')
-<script>
-    $(function() {
-        $(document).on('click', '.test-tab', function() {
-            $('.test-tab').removeClass('active');
-            $('.tab-pane').removeClass('active');
-            $('#'+$(this).attr('data-id')).addClass('active');
-            $(this).addClass('active');
-            $('#documentbtn form .active_tab').val($(this).attr('data-id'));
-            $.cookie("PreviousTab", $(this).attr('data-id'));
-        });	
-        //Default remember tab selected into student panel and teacher panel
-        $('.test-tab').removeClass('active');
-        $('.tab-pane').removeClass('active');
-        if($.cookie("PreviousTab")){
-            $('#tab-'+$.cookie("PreviousTab")).addClass('active');
-            $('#'+$.cookie("PreviousTab")).addClass('active');
-        }else{
-            $('#tab-self-learning').addClass('active');
-            $('#self_learning').addClass('active');
-        }
-        
-        /*
-        This change display document in exam id
-        */
-        var listExamIdDoc = new Array();
-        $.each($(".main-my-study input[type=checkbox]"), function() {
-            if($(this).val()!='on'){
-                listExamIdDoc.push($(this).val());
-            }
-        });
+<script type="text/javascript">
+$(function() {
+	/*for pagination add this script added by mukesh mahanto*/ 
+		document.getElementById('pagination').onchange = function() {
+		window.location = "{!! $AssignmentExerciseList->url(1) !!}&items=" + this.value;
+	};
+	
+	/**
+	 * USE : Display on graph Get Class APerformance Analysis
+	 * Trigger : On click Performance graph icon into exams list action table
+	 * **/
+	$(document).on('click', '.getClassAbilityAnalysisReport', function(e) {
+		$("#cover-spin").show();
+		$('#class-ability-analysis-report').modal('show');
+		$studentIds = $(this).attr('data-studentids');
+		var isGroup = $(this).attr('data-isGroup');
+		$('.class-ability-graph-btn').attr('data-classAbilityIsGroup',isGroup);
+		$examId = $(this).attr('data-examid');
+		$('#exam_ids').val($examId);
+		$('.my_class_group_button').html($(this).attr('data-buttonText'));
+		$('#student_ids').val($studentIds);
+		if($studentIds && $examId){
+			$.ajax({
+				url: BASE_URL + '/my-teaching/get-class-ability-analysis-report',
+				type: 'post',
+				data : {
+					'_token': $('meta[name="csrf-token"]').attr('content'),
+					'examid' : $examId,
+					'studentIds' : $studentIds,
+					'graph_type' : 'my-class',
+					'isGroup' : isGroup
+				},
+				success: function(response) {
+					var ResposnseData = JSON.parse(JSON.stringify(response));
+					if(ResposnseData.data != 0){
+						// Append image src attribute with base64 encode image
+						$('#class-ability-analysis-report-image').attr('src','data:image/jpg;base64,'+ ResposnseData.data);
+						$('#class-ability-analysis-report').modal('show');
+					}else{
+						toastr.error(DATA_NOT_FOUND);
+					}
+					$("#cover-spin").hide();
+				},
+				error: function(response) {
+					ErrorHandlingMessage(response);
+				}
+			});
+		}
+	});
     
-        $(document).on('change', '#AllTabs', function() {
-            if($(this).prop('checked')){
-                $(".categories-main-list .categories-list input[type=checkbox]").prop('checked',true);
-            }else{
-                $(".categories-main-list .categories-list input[type=checkbox]").prop('checked',false);
-            }
-        });
-    });
-    </script>
-    <script type="text/javascript">
-    $(function() {
-		 /*for pagination add this script added by mukesh mahanto*/ 
-		 document.getElementById('pagination').onchange = function() {
-			window.location = "{!! $AssignmentExerciseList->url(1) !!}&items=" + this.value;
-		};
-        /**
-         * USE : Display on graph Get Class APerformance Analysis
-         * Trigger : On click Performance graph icon into exams list action table
-         * **/
-        $(document).on('click', '.getClassAbilityAnalysisReport', function(e) {
-            $("#cover-spin").show();
-            $('#class-ability-analysis-report').modal('show');
-            $studentIds = $(this).attr('data-studentids');
-			var isGroup = $(this).attr('data-isGroup');
-			$('.class-ability-graph-btn').attr('data-classAbilityIsGroup',isGroup);
-            $examId = $(this).attr('data-examid');
-            $('#exam_ids').val($examId);
-			$('.my_class_group_button').html($(this).attr('data-buttonText'));
-            $('#student_ids').val($studentIds);
-            if($studentIds && $examId){
-                $.ajax({
-                    url: BASE_URL + '/my-teaching/get-class-ability-analysis-report',
-                    type: 'post',
-                    data : {
-                        '_token': $('meta[name="csrf-token"]').attr('content'),
-                        'examid' : $examId,
-                        'studentIds' : $studentIds,
-                        'graph_type' : 'my-class',
-						'isGroup' : isGroup
-                    },
-                    success: function(response) {
-                        var ResposnseData = JSON.parse(JSON.stringify(response));
-                        if(ResposnseData.data != 0){
-                            // Append image src attribute with base64 encode image
-                            $('#class-ability-analysis-report-image').attr('src','data:image/jpg;base64,'+ ResposnseData.data);
-                            $('#class-ability-analysis-report').modal('show');
-                        }else{
-                            toastr.error(DATA_NOT_FOUND);
-                        }
-                        $("#cover-spin").hide();
-                    },
-                    error: function(response) {
-                        ErrorHandlingMessage(response);
-                    }
-                });
-            }
-        });
-    
-        /**
-         * USE : Click on the diffrent button like this 'my-class', 'my-school', 'all-school'
-         * **/
-        $(document).on('click', '.class-ability-graph-btn', function(e) {
-            $("#cover-spin").show();
-            $studentIds = $('#student_ids').val();
-            $examId = $('#exam_ids').val();
-            if($studentIds && $examId){
-                $.ajax({
-                    url: BASE_URL + '/my-teaching/get-class-ability-analysis-report',
-                    type: 'post',
-                    data : {
-                        '_token': $('meta[name="csrf-token"]').attr('content'),
-                        'examid' : $examId,
-                        'studentIds' : $studentIds,
-                        'graph_type' : $(this).attr('data-graphtype'),
-						'isGroup' : $(this).attr('data-classAbilityIsGroup')
-                    },
-                    success: function(response) {
-                        var ResposnseData = JSON.parse(JSON.stringify(response));
-                        if(ResposnseData.data != 0){
-                            // Append image src attribute with base64 encode image
-                            $('#class-ability-analysis-report-image').attr('src','data:image/jpg;base64,'+ ResposnseData.data);
-                            $('#class-ability-analysis-report').modal('show');
-                        }else{
-                            toastr.error(DATA_NOT_FOUND);
-                        }
-                        $("#cover-spin").hide();
-                    },
-                    error: function(response) {
-                        ErrorHandlingMessage(response);
-                    }
-                });
-            }
-        });
-        // get student progress report
-        $(document).on('click', '.student-progress-report', function(e) {
-            $("#cover-spin").show();
-            $examId = $(this).attr('data-examid');
-            $studentIds = $(this).attr('data-studentids');
-            if($examId && $studentIds){
-                $.ajax({
-                    url: BASE_URL + '/myteaching/student-progress-report',
-                    type: 'post',
-                    data : {
-                        '_token': $('meta[name="csrf-token"]').attr('content'),
-                        'examid' : $examId,
-                        'studentIds' : $studentIds
-                    },
-                    success: function(response) {
-                        if(response.data.length != 0){
-                            $("#student-list").DataTable().destroy();
-                            $("#student-list tbody").html(response.data);
-                            $("#student-list").DataTable({
-                                order: [[0, "desc"]],
-                            });
-                            $("#modal-student-progress-report").modal('show');
-                        }else{
-                            toastr.error(DATA_NOT_FOUND);
-                        }
-                        $("#cover-spin").hide();
-                    },
-                    error: function(response) {
-                        ErrorHandlingMessage(response);
-                    }
-                });
-            }
-        });
-    });
-    </script>
+	/**
+	 * USE : Click on the diffrent button like this 'my-class', 'my-school', 'all-school'
+	 * **/
+	$(document).on('click', '.class-ability-graph-btn', function(e) {
+		$("#cover-spin").show();
+		$studentIds = $('#student_ids').val();
+		$examId = $('#exam_ids').val();
+		if($studentIds && $examId){
+			$.ajax({
+				url: BASE_URL + '/my-teaching/get-class-ability-analysis-report',
+				type: 'post',
+				data : {
+					'_token': $('meta[name="csrf-token"]').attr('content'),
+					'examid' : $examId,
+					'studentIds' : $studentIds,
+					'graph_type' : $(this).attr('data-graphtype'),
+					'isGroup' : $(this).attr('data-classAbilityIsGroup')
+				},
+				success: function(response) {
+					var ResposnseData = JSON.parse(JSON.stringify(response));
+					if(ResposnseData.data != 0){
+						// Append image src attribute with base64 encode image
+						$('#class-ability-analysis-report-image').attr('src','data:image/jpg;base64,'+ ResposnseData.data);
+						$('#class-ability-analysis-report').modal('show');
+					}else{
+						toastr.error(DATA_NOT_FOUND);
+					}
+					$("#cover-spin").hide();
+				},
+				error: function(response) {
+					ErrorHandlingMessage(response);
+				}
+			});
+		}
+	});
+
+	// get student progress report
+	$(document).on('click', '.student-progress-report', function(e) {
+		$("#cover-spin").show();
+		$examId = $(this).attr('data-examid');
+		$studentIds = $(this).attr('data-studentids');
+		if($examId && $studentIds){
+			$.ajax({
+				url: BASE_URL + '/myteaching/student-progress-report',
+				type: 'post',
+				data : {
+					'_token': $('meta[name="csrf-token"]').attr('content'),
+					'examid' : $examId,
+					'studentIds' : $studentIds
+				},
+				success: function(response) {
+					if(response.data.length != 0){
+						$("#student-list").DataTable().destroy();
+						$("#student-list tbody").html(response.data);
+						$("#student-list").DataTable({
+							order: [[0, "desc"]],
+						});
+						$("#modal-student-progress-report").modal('show');
+					}else{
+						toastr.error(DATA_NOT_FOUND);
+					}
+					$("#cover-spin").hide();
+				},
+				error: function(response) {
+					ErrorHandlingMessage(response);
+				}
+			});
+		}
+	});
+});
+</script>
 @endsection

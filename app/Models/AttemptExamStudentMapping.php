@@ -17,7 +17,8 @@ class AttemptExamStudentMapping extends Model
     public $fillable = [
         cn::ATTEMPT_EXAM_STUDENT_MAPPING_EXAM_ID_COL,
         cn::ATTEMPT_EXAM_STUDENT_MAPPING_STUDENT_ID_COL,
-        cn::ATTEMPT_EXAM_STUDENT_MAPPING_STATUS_COL
+        cn::ATTEMPT_EXAM_STUDENT_MAPPING_STATUS_COL,
+        cn::ATTEMPT_EXAM_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL
     ];
 
     public $timestamps = true;

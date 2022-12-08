@@ -47,67 +47,42 @@
 						{{ session()->get('error_msg') }}
 					</div>
 					@endif
-					{{-- <form class="addUserFilterForm" id="addUserFilterForm" method="get">	
-					    <div class="row">
-					        <div class="select-lng pt-2 pb-2 col-lg-2 col-md-4">                            
-                                <select name="school_id"  class="form-control select-option selectpicker"  data-show-subtext="true" data-live-search="true" id="user_filter_school">
-                                    <option value="">{{ __('languages.user_management.school') }}</option>
-                                    @if(!empty($schoolList))
-                                        @foreach($schoolList as $school)
-                                        <option value="{{$school->id}}" {{ request()->get('school_id') == $school['id'] ? 'selected' : '' }}>{{ $school->school_name}}</option>
-                                        @endforeach
-                                    @endif
-                                </select>
-                                @if($errors->has('school_id'))
-                                    <span class="validation_error">{{ $errors->first('school_id') }}</span>
-                                @endif
-                            </div>
+					<form class="addPrincipalFilterForm" id="addPrincipalFilterForm" method="get">	
+						<div class="row">
+							
+							<div class="col-lg-3 col-md-3">
+								<div class="select-lng pt-2 pb-2">
+									<input type="text" class="input-search-box mr-2" name="principalname" value="{{request()->get('principalname')}}" placeholder="{{__('languages.search_by_principal_name')}}">
+									@if($errors->has('principalname'))
+										<span class="validation_error">{{ $errors->first('principalname') }}</span>
+									@endif
+								</div>
+							</div>
 
-                            <div class="col-lg-2 col-md-4">
-                                <div class="select-lng pt-2 pb-2">
-                                    <select class="selectpicker form-control" data-show-subtext="true" data-live-search="true" name="Role" id="user_filter_role">
-                                        <option value=''>{{ __('languages.user_management.select_role') }}</option>
-                                        @if(!empty($roleList))
-                                            @foreach($roleList as $role)
-                                            <option value="{{$role['id']}}" {{ request()->get('Role') == $role['id'] ? 'selected' : '' }}>{{ $role['role_name']}}</option>
-                                            @endforeach
-                                        @endif
-                                    </select>
-                                    @if($errors->has('Role'))
-                                        <span class="validation_error">{{ $errors->first('Role') }}</span>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <div class="select-lng pt-2 pb-2 col-lg-2 col-md-4">                            
-                                <select name="grade_id"  class="form-control select-option selectpicker" data-show-subtext="true" data-live-search="true" id="user_filter_grade">
-                                    <option value="">{{ __('languages.user_management.grade') }}</option>
-                                    @if(!empty($gradeList))
-                                        @foreach($gradeList as $grade)
-                                        <option value="{{$grade->id}}" {{ request()->get('grade_id') == $grade->id ? 'selected' : '' }}>{{ $grade->name}}</option>
-                                        @endforeach
-                                    @endif
-                                </select>
-                                @if($errors->has('grade_id'))
-                                    <span class="validation_error">{{ $errors->first('grade_id') }}</span>
-                                @endif
-                            </div>
-                            <div class="col-lg-2 col-md-3">
-                                <div class="select-lng pt-2 pb-2">
-                                    <input type="text" class="input-search-box mr-2" name="username" value="{{request()->get('username')}}" placeholder="{{__('languages.user_management.search_by_username')}}">
-                                    @if($errors->has('username'))
-                                        <span class="validation_error">{{ $errors->first('username') }}</span>
-                                    @endif
-                                </div>
-                            </div>
-
-                            <div class="col-lg-2 col-md-3">
-                                <div class="select-lng pt-2 pb-2">
-                                    <button type="submit" name="filter" value="filter" class="btn-search">{{ __('languages.user_management.search') }}</button>
-                                </div>
-                            </div>
-                        </div>
-				    </form> --}}
+							<div class="col-lg-2 col-md-3">
+								<div class="select-lng pt-2 pb-2">
+									<input type="text" class="input-search-box mr-2" name="email" value="{{request()->get('email')}}" placeholder="{{__('languages.search_by_email')}}">
+									@if($errors->has('email'))
+										<span class="validation_error">{{ $errors->first('email') }}</span>
+									@endif
+								</div>
+							</div>
+							
+							<div class="select-lng pt-2 pb-2 col-lg-2 col-md-4">                            
+								<select name="status" class="form-control select-option" id="status">
+									<option value="">{{__('languages.select_status')}}</option>
+									<option value="active" {{ request()->get('status') == "active" ? 'selected' : '' }}>{{__("languages.active")}}</option>
+									<option value="pending" {{ request()->get('status') == "pending" ? 'selected' : '' }}>{{__("languages.pending")}}</option>
+									<option value="inactive" {{ request()->get('status') == "inactive" ? 'selected' : '' }}>{{__("languages.inactive")}}</option>
+								</select>
+							</div>
+							<div class="col-lg-2 col-md-3">
+								<div class="select-lng pt-2 pb-2">
+									<button type="submit" name="filter" value="filter" class="btn-search">{{ __('languages.search') }}</button>
+								</div>
+							</div>
+						</div>
+					</form>
 
 					<div class="row">
 						<div class="col-md-12">
@@ -209,41 +184,5 @@
 				}; 
 		</script>
 
-		 <!-- Start Change password Popup -->
-		 <div class="modal" id="changeUserPwd" tabindex="-1" aria-labelledby="changeUserPwd" aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog modal-lg" style="max-width: 50%;">
-                <div class="modal-content">
-                    <form id="changepasswordUserFrom">	
-						@csrf()
-						<input type="hidden" value="" name="userId" id="changePasswordUserId">
-                        <div class="modal-header">
-                            <h4 class="modal-title w-100">{{__('languages.change_password')}}</h4>
-                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                        </div>
-                        <div class="modal-body">
-							<div class="form-row">
-								<div class="col-lg-12 col-md-12">
-									<label class="text-bold-600" for="newPassword">{{__('languages.new_password')}}</label>
-									<input type="password" class="form-control" name="newPassword" id="newPassword" placeholder="{{__('languages.new_password')}}" value="">
-									@if($errors->has('newPassword'))<span class="validation_error">{{ $errors->first('newPassword') }}</span>@endif
-								</div>
-							</div>
-							<div class="form-row">
-								<div class="col-lg-12 col-md-12">
-									<label class="text-bold-600" for="confirmPassword">{{__('languages.confirm_password')}}</label>
-									<input type="password" class="form-control" name="confirmPassword" id="confirmPassword" placeholder="{{__('languages.confirm_password')}}" value="">
-									@if($errors->has('confirmPassword'))<span class="validation_error">{{ $errors->first('confirmPassword') }}</span>@endif
-								</div>
-							</div>
-                        </div>
-                        <div class="modal-footer btn-sec">
-                            <button type="button" class="btn btn-default close-userChangePassword-popup" data-dismiss="modal">{{__('languages.close')}}</button>
-                            <button type="submit" class="blue-btn btn btn-primary submit-change-password-form">{{__('languages.submit')}}</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        <!-- End Change password Popup -->
 		@include('backend.layouts.footer')
 @endsection

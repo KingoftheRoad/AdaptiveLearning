@@ -36,101 +36,50 @@ class AlpAiGraphController extends Controller
             $response = [];
             $performanceResult = [];
             $PreConfigurationDifficultyLevel = array();
-            $PreConfigurationDifficultyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
+            // $PreConfigurationDifficultyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
+            $PreConfigurationDifficultyLevelData = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get()->toArray();
             if(isset($PreConfigurationDifficultyLevelData)){
                 $PreConfigurationDifficultyLevel = array_column($PreConfigurationDifficultyLevelData,cn::PRE_CONFIGURE_DIFFICULTY_TITLE_COL,cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_COL);
             }
             if(!empty($request->student_id) && !empty($request->exam_id)){
-                $arrayOfExams = explode(',',$request->exam_id);
-                if(count($arrayOfExams) == 1){
-                    $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$request->student_id)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$request->exam_id)->first();
-                    if(isset($AttemptExamData) && !empty($AttemptExamData)){
-                        $performanceResult['student_ability'] = $AttemptExamData->student_ability;
-                    }
-                    $ExamData = Exam::find($request->exam_id);
-                    if(isset($ExamData) && !empty($ExamData)){
-                        if(!empty($ExamData->question_ids)){
-                            $questionIds = explode(',',$ExamData->question_ids);
-                            $QuestionList = Question::with('answers')->whereIn(cn::QUESTION_TABLE_ID_COL,$questionIds)->get();
-                            if(isset($QuestionList) && !empty($QuestionList)){
-                                foreach($QuestionList as $QuestionKey => $question){
-                                    $countQuestions = count($QuestionList);
-                                    $AnswerDetail = $question->answers;
-                                    if(isset($AttemptExamData['question_answers'])){
-                                        $filterAttemptQuestionAnswer = array_filter(json_decode($AttemptExamData['question_answers']), function ($var) use($question){
-                                            if($var->question_id == $question['id']){
-                                                return $var ?? [];
-                                            }
-                                        });
-                                    }
-                                    if(isset($filterAttemptQuestionAnswer) && !empty($filterAttemptQuestionAnswer)){
-                                        foreach($filterAttemptQuestionAnswer as $fanswer){
-                                            // Save the question result
-                                            if($fanswer->answer == $AnswerDetail->{'correct_answer_'.$fanswer->language}){
-                                                $performanceResult['student_results_list'][] = true;
-                                            }else{
-                                                $performanceResult['student_results_list'][] = false;
-                                            }
-
-                                            // Get Questions difficulty Level value
-                                            if(isset($PreConfigurationDifficultyLevel) && !empty($PreConfigurationDifficultyLevel) && isset($PreConfigurationDifficultyLevel[$question->{cn::QUESTION_DIFFICULTY_LEVEL_COL}]) && !empty($PreConfigurationDifficultyLevel[$question->{cn::QUESTION_DIFFICULTY_LEVEL_COL}])){
-                                                $performanceResult['questions_difficulties_list'][] = number_format($PreConfigurationDifficultyLevel[$question->{cn::QUESTION_DIFFICULTY_LEVEL_COL}], 4, '.', '');
-                                            }else{
-                                                $performanceResult['questions_difficulties_list'][] = 0;
-                                            }
+                $AttemptExamData =  AttemptExams::where([
+                                        cn::ATTEMPT_EXAMS_EXAM_ID => $request->exam_id,
+                                        cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $request->student_id
+                                    ])
+                                    ->first();
+                if(isset($AttemptExamData) && !empty($AttemptExamData)){
+                    $performanceResult['student_ability'] = $AttemptExamData->student_ability;
+                }
+                $ExamData = Exam::find($request->exam_id);
+                if(isset($ExamData) && !empty($ExamData)){
+                    if(!empty($ExamData->question_ids)){
+                        $questionIds = explode(',',$ExamData->question_ids);
+                        $QuestionList = Question::with('answers')->whereIn(cn::QUESTION_TABLE_ID_COL,$questionIds)->get();
+                        if(isset($QuestionList) && !empty($QuestionList)){
+                            foreach($QuestionList as $QuestionKey => $question){
+                                $countQuestions = count($QuestionList);
+                                $AnswerDetail = $question->answers;
+                                if(isset($AttemptExamData['question_answers'])){
+                                    $filterAttemptQuestionAnswer = array_filter(json_decode($AttemptExamData['question_answers']), function ($var) use($question){
+                                        if($var->question_id == $question['id']){
+                                            return $var ?? [];
                                         }
-                                    }
+                                    });
                                 }
-                            }
-                        }
-                    }
-                }else{
-                    // For Group Test Result
-                    $countQuestions = 0;
-                    if(!empty(explode(',',$request->exam_id))){
-                        foreach(explode(',',$request->exam_id) as $exams){
-                            $ExamData = Exam::find($exams);
-                            if(!empty($ExamData)){
-                                $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$request->student_id)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$exams)->first();
-                                if(isset($AttemptExamData) && !empty($AttemptExamData)){
-                                    $performanceResult['student_ability'] = $AttemptExamData->student_ability;
-                                }
-                                if(isset($AttemptExamData) && !empty($AttemptExamData)){
-                                    if(!empty($ExamData->question_ids)){
-                                        $questionIds = explode(',',$ExamData->question_ids);
-                                        $QuestionList = Question::with('answers')->whereIn(cn::QUESTION_TABLE_ID_COL,$questionIds)->get();
-                                        if(isset($QuestionList) && !empty($QuestionList)){
-                                            $countQuestions += count($QuestionList);
-                                            foreach($QuestionList as $questionKey => $question){
-                                                $AnswerDetail = $question->answers;
-                                                if(isset($question)){
-                                                    if(isset($AttemptExamData['question_answers'])){
-                                                        $filterAttemptQuestionAnswer = array_filter(json_decode($AttemptExamData['question_answers']), function ($var) use($question){
-                                                            if($var->question_id == $question['id']){
-                                                                return $var ?? [];
-                                                            }
-                                                        });
-                                                    }
-                                                }
-            
-                                                if(isset($filterAttemptQuestionAnswer) && !empty($filterAttemptQuestionAnswer)){
-                                                    foreach($filterAttemptQuestionAnswer as $fanswer){
-                                                        // Save the question result
-                                                        if($fanswer->answer == $AnswerDetail->{'correct_answer_'.$fanswer->language}){
-                                                            $performanceResult['student_results_list'][] = true;
-                                                        }else{
-                                                            $performanceResult['student_results_list'][] = false;
-                                                        }
+                                if(isset($filterAttemptQuestionAnswer) && !empty($filterAttemptQuestionAnswer)){
+                                    foreach($filterAttemptQuestionAnswer as $fanswer){
+                                        // Save the question result
+                                        if($fanswer->answer == $AnswerDetail->{'correct_answer_'.$fanswer->language}){
+                                            $performanceResult['student_results_list'][] = true;
+                                        }else{
+                                            $performanceResult['student_results_list'][] = false;
+                                        }
 
-                                                        // Get Questions difficulty Level value
-                                                        if(isset($PreConfigurationDifficultyLevel) && !empty($PreConfigurationDifficultyLevel) && isset($PreConfigurationDifficultyLevel[$question->{cn::QUESTION_DIFFICULTY_LEVEL_COL}]) && !empty($PreConfigurationDifficultyLevel[$question->{cn::QUESTION_DIFFICULTY_LEVEL_COL}])){
-                                                            $performanceResult['questions_difficulties_list'][] = number_format($PreConfigurationDifficultyLevel[$question->{cn::QUESTION_DIFFICULTY_LEVEL_COL}], 4, '.', '');
-                                                        }else{
-                                                            $performanceResult['questions_difficulties_list'][] = 0;
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                        // Get Questions difficulty Level value
+                                        if(isset($PreConfigurationDifficultyLevel) && !empty($PreConfigurationDifficultyLevel) && isset($PreConfigurationDifficultyLevel[$question->{cn::QUESTION_DIFFICULTY_LEVEL_COL}]) && !empty($PreConfigurationDifficultyLevel[$question->{cn::QUESTION_DIFFICULTY_LEVEL_COL}])){
+                                            $performanceResult['questions_difficulties_list'][] = number_format($PreConfigurationDifficultyLevel[$question->{cn::QUESTION_DIFFICULTY_LEVEL_COL}], 4, '.', '');
+                                        }else{
+                                            $performanceResult['questions_difficulties_list'][] = 0;
                                         }
                                     }
                                 }
@@ -142,11 +91,11 @@ class AlpAiGraphController extends Controller
                 if(isset($performanceResult) && !empty($performanceResult) && !empty($performanceResult['student_results_list']) && !empty($performanceResult['questions_difficulties_list'])){
                     $requestPayload = new Request();
                     $requestPayload = $requestPayload->replace([
-                        'student_ability' => (float)$performanceResult['student_ability'],
-                        'student_results_list' => $performanceResult['student_results_list'],
-                        'questions_difficulties_list' => array_map('floatval', $performanceResult['questions_difficulties_list']),
-                        'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_Student.uri')),
-                        'format' => 'base64'
+                        'student_ability'               => (float)$performanceResult['student_ability'],
+                        'student_results_list'          => $performanceResult['student_results_list'],
+                        'questions_difficulties_list'   => array_map('floatval', $performanceResult['questions_difficulties_list']),
+                        'labels'                        => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_Student.uri')),
+                        'format'                        => 'base64'
                     ]);
                     // Call to AI API from AI Server
                     $response = $this->AIApiService->getPloatAnalayzeStudent($requestPayload);
@@ -175,34 +124,45 @@ class AlpAiGraphController extends Controller
                 $gradeClassId = array();
 
                 if($this->isTeacherLogin()){
-                    $gradesListId = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)->toArray();
-                    $gradeClass = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray();
+                    $gradesListId = TeachersClassSubjectAssign::where([
+                                        cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}
+                                    ])
+                                    ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)
+                                    ->toArray();
+                    $gradeClass = TeachersClassSubjectAssign::where([
+                                    cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                    cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}
+                                ])
+                                ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray();
                     if(isset($gradeClass) && !empty($gradeClass)){
-                        $gradeClass=implode(',', $gradeClass);
-                        $gradeClassId=explode(',',$gradeClass);
+                        $gradeClass = implode(',', $gradeClass);
+                        $gradeClassId = explode(',',$gradeClass);
                     }
-                    $studentidlist = User::whereIn(cn::USERS_GRADE_ID_COL,$gradesListId)
-                                        ->whereIn(cn::USERS_CLASS_ID_COL,$gradeClassId)
-                                        ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                                        ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                        ->pluck(cn::USERS_ID_COL)
-                                        ->toArray();
+                    // $studentidlist = User::whereIn(cn::USERS_GRADE_ID_COL,$gradesListId)
+                    //                 ->whereIn(cn::USERS_CLASS_ID_COL,$gradeClassId)
+                    //                 ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
+                    //                 ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                    //                 ->pluck(cn::USERS_ID_COL)
+                    //                 ->toArray();
+                    $studentidlist = User::where([
+                                        cn::USERS_SCHOOL_ID_COL => $schoolId,
+                                        cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
+                                    ])
+                                    ->get()
+                                    ->whereIn('CurriculumYearGradeId',$gradesListId)
+                                    ->whereIn('CurriculumYearClassId',$gradeClassId)
+                                    ->pluck(cn::USERS_ID_COL)
+                                    ->toArray();
                 }
 
-                if($this->isPrincipalLogin()){
+                if($this->isPrincipalLogin() || $this->isSchoolLogin()){
                     $studentidlist = User::where(cn::USERS_SCHOOL_ID_COL,$schoolId)
                                         ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
                                         ->pluck(cn::USERS_ID_COL)
                                         ->toArray();
                 }
-
-                if($this->isSchoolLogin()){
-                    $studentidlist = User::where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                                        ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                        ->pluck(cn::USERS_ID_COL)
-                                        ->toArray();
-                }
-
+                
                 $TeachersStudentIdList = array_intersect($studentIds,$studentidlist);
 
                 // Get Data based on types of graph option select
@@ -213,27 +173,23 @@ class AlpAiGraphController extends Controller
                         $totalQuestion = explode(',',$examData->question_ids);
                         if(isset($TeachersStudentIdList) && !empty($TeachersStudentIdList)){
                             foreach($TeachersStudentIdList as $studentid){
-                                $ExamAttemptData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$request->examid)->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentid)->first();
+                                $ExamAttemptData =  AttemptExams::where([
+                                                        cn::ATTEMPT_EXAMS_EXAM_ID => $request->examid,
+                                                        cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $studentid
+                                                    ])
+                                                    ->first();
                                 if(isset($ExamAttemptData) && !empty($ExamAttemptData)){
                                     $studentAbility[] = $ExamAttemptData->student_ability;
                                 }
                             }
                         }
                         $dataList2 = array();
-                        // $gradesListId = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}])
-                        //                     ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)
-                        //                     ->toArray();
-                                            
-                        // $studentidlist = User::whereIn(cn::USERS_GRADE_ID_COL,$gradesListId)
-                        //                     ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
-                        //                     ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                        //                     ->pluck(cn::USERS_ID_COL)
-                        //                     ->toArray();
                         
-
                         if(isset($studentidlist) && !empty($studentidlist)){
                             foreach ($studentidlist as $studentid_id) {
-                                $ExamAttemptData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$request->examid)->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentid_id)->first();
+                                $ExamAttemptData =  AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$request->examid)
+                                                    ->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentid_id)
+                                                    ->first();
                                 if(isset($ExamAttemptData) && !empty($ExamAttemptData)){
                                     $dataList2[] = $ExamAttemptData->student_ability;
                                 }
@@ -244,8 +200,8 @@ class AlpAiGraphController extends Controller
                         if(isset($studentAbility) && !empty($studentAbility)){
                             $requestPayload = new Request();
                             $requestPayload = $requestPayload->replace([
-                                'data_list1' => array_values(array_unique(array_map('floatval', $studentAbility))),
-                                'data_list2' => array_values(array_unique(array_map('floatval', $dataList2))),
+                                'data_list1' => array_values(array_map('floatval', $studentAbility)),
+                                'data_list2' => array_values(array_map('floatval', $dataList2)),
                                 "format" => "base64",
                                 'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_My_School_Ability.uri'),$isGroup)
                             ]);
@@ -259,14 +215,20 @@ class AlpAiGraphController extends Controller
                         $totalQuestion = explode(',',$examData->question_ids);
                         if(isset($TeachersStudentIdList) && !empty($TeachersStudentIdList)){
                             foreach($TeachersStudentIdList as $studentid){
-                                $ExamAttemptData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$request->examid)->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentid)->first();
+                                $ExamAttemptData =  AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$request->examid)
+                                                    ->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentid)
+                                                    ->first();
                                 if(isset($ExamAttemptData) && !empty($ExamAttemptData)){
                                     $studentAbility[] = $ExamAttemptData->student_ability;
                                 }
                             }
                         }
                         $dataList2 = array();
-                        $studentidlist = User::where(cn::USERS_SCHOOL_ID_COL,$schoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
+                        $studentidlist = User::where([
+                                            cn::USERS_SCHOOL_ID_COL => $schoolId,
+                                            cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
+                                        ])
+                                        ->pluck(cn::USERS_ID_COL)->toArray();
                         if(isset($studentidlist) && !empty($studentidlist)){
                             foreach ($studentidlist as $studentid_id) {
                                 $ExamAttemptData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$request->examid)->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentid_id)->first();
@@ -291,9 +253,9 @@ class AlpAiGraphController extends Controller
                         if(isset($studentAbility) && !empty($studentAbility)){
                             $requestPayload = new Request();
                             $requestPayload = $requestPayload->replace([
-                                'data_list1' => array_values(array_unique(array_map('floatval', $studentAbility))),
-                                'data_list2' => array_values(array_unique(array_map('floatval', $dataList2))),
-                                'data_list3' => array_values(array_unique(array_map('floatval', $dataList3))),
+                                'data_list1' => array_values(array_map('floatval', $studentAbility)),
+                                'data_list2' => array_values(array_map('floatval', $dataList2)),
+                                'data_list3' => array_values(array_map('floatval', $dataList3)),
                                 'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_All_Schools_Ability.uri'), $isGroup),
                                 "format" => "base64"
                             ]);
@@ -317,7 +279,7 @@ class AlpAiGraphController extends Controller
                         if(isset($studentAbility) && !empty($studentAbility)){
                             $requestPayload = new Request();
                             $requestPayload = $requestPayload->replace([
-                                'data_list' => array_values(array_unique(array_map('floatval', $studentAbility))),
+                                'data_list' => array_values(array_map('floatval', $studentAbility)),
                                 "format" => "base64",
                                 'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_My_Class_Ability.uri'),$isGroup)
                             ]);
@@ -375,7 +337,8 @@ class AlpAiGraphController extends Controller
             $QuestionAnalysisResult = [];
             if(!empty($request->student_id) && !empty($request->exam_id)){
                 $PreConfigurationDifficultyLevel = array();
-                $PreConfigurationDifficultyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
+                // $PreConfigurationDifficultyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
+                $PreConfigurationDifficultyLevelData = PreConfigurationDiffiltyLevel::where(cn::PRE_CONFIGURE_DIFFICULTY_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->get()->toArray();
                 if(isset($PreConfigurationDifficultyLevelData)){
                     $PreConfigurationDifficultyLevel = array_column($PreConfigurationDifficultyLevelData,cn::PRE_CONFIGURE_DIFFICULTY_TITLE_COL,cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_COL);
                 }
@@ -384,7 +347,7 @@ class AlpAiGraphController extends Controller
                     $ExamData = Exam::find($request->exam_id);
                     $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$request->exam_id)->get()->toArray();
                     $QuestionList = Question::with('answers')->where(cn::QUESTION_TABLE_ID_COL,$request->question_id)->get();
-                    foreach ($AttemptExamData as $key => $value) {
+                    foreach($AttemptExamData as $key => $value){
                         if(isset($QuestionList) && !empty($QuestionList)){
                             foreach($QuestionList as $QuestionKey => $question){
                                 $QuestionAnalysisResult['question_difficulty'] = $PreConfigurationDifficultyLevel[$question['dificulaty_level']];
@@ -416,11 +379,11 @@ class AlpAiGraphController extends Controller
             if(isset($QuestionAnalysisResult) && !empty($QuestionAnalysisResult)){
                 $requestPayload = new Request();
                 $requestPayload = $requestPayload->replace([
-                    'question_difficulty' => floatval($QuestionAnalysisResult['question_difficulty']),
-                    'question_results_list' => $QuestionAnalysisResult['question_results_list'],
-                    'student_abilities_list' => array_map('floatval', $QuestionAnalysisResult['student_abilities_list']),
-                    'format' => 'base64',
-                    'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_Question.uri'))
+                    'question_difficulty'       => floatval($QuestionAnalysisResult['question_difficulty']),
+                    'question_results_list'     => $QuestionAnalysisResult['question_results_list'],
+                    'student_abilities_list'    => array_map('floatval', $QuestionAnalysisResult['student_abilities_list']),
+                    'format'                    => 'base64',
+                    'labels'                    => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_Question.uri'))
                 ]);
                 // Call to AI API from AI Server
                 $response = $this->AIApiService->getPloatAnalayzeQuestion($requestPayload);
@@ -431,6 +394,9 @@ class AlpAiGraphController extends Controller
         }
     }
 
+    /**
+     * USE : Get Student Ability API
+     */
     public function getStudentAbilityApi($exam_list,$student_id){
         $PreConfigurationDifficultyLevel = array();
         $PreConfigurationDifficultyLevelData = PreConfigurationDiffiltyLevel::get()->toArray();
@@ -438,10 +404,11 @@ class AlpAiGraphController extends Controller
             $PreConfigurationDifficultyLevel = array_column($PreConfigurationDifficultyLevelData,cn::PRE_CONFIGURE_DIFFICULTY_TITLE_COL,cn::PRE_CONFIGURE_DIFFICULTY_DIFFICULTY_LEVEL_COL);
         }
         $ExamData = array();
-        $AttemptExamData = Exam::with('attempt_exams')->whereHas('attempt_exams', function ($query) use ($student_id,$exam_list){
-            $query->whereIn(cn::ATTEMPT_EXAMS_EXAM_ID,$exam_list);
-            $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$student_id);
-        })->get()->toArray();
+        $AttemptExamData =  Exam::with('attempt_exams')
+                            ->whereHas('attempt_exams', function ($query) use ($student_id,$exam_list){
+                                $query->whereIn(cn::ATTEMPT_EXAMS_EXAM_ID,$exam_list);
+                                $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$student_id);
+                            })->get()->toArray();
         if(isset($AttemptExamData) && !empty($AttemptExamData)){
             foreach($AttemptExamData as $questionKey => $question){
                 if(isset($question['attempt_exams'][0][cn::ATTEMPT_EXAMS_QUESTION_ANSWER_COL])){
@@ -477,12 +444,10 @@ class AlpAiGraphController extends Controller
         if(isset($ExamData) && !empty($ExamData)){
             $requestPayload = new Request();
             $requestPayload = $requestPayload->replace([
-                'questions_results'=> array(
-                    $ExamData['questions_results']
-                ),
-                'num_of_ans_list' => $ExamData['num_of_ans_list'],
-                'difficulty_list' => array_map('floatval', $ExamData['difficulty_list']),
-                'max_student_num' => 1
+                'questions_results' => array($ExamData['questions_results']),
+                'num_of_ans_list'   => $ExamData['num_of_ans_list'],
+                'difficulty_list'   => array_map('floatval', $ExamData['difficulty_list']),
+                'max_student_num'   => 1
             ]);
             $data = $this->AIApiService->getStudentProgressReport($requestPayload);
             if(isset($data) && !empty($data) && isset($data[0]) && !empty($data[0])){
@@ -509,7 +474,10 @@ class AlpAiGraphController extends Controller
         if(!empty($ExamsIds)){
             $examData = Exam::find($examId);
             foreach($students as $key => $student){
-                $attemptedStudentExams = AttemptExams::where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$student)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$examId)->first();
+                $attemptedStudentExams = AttemptExams::where([
+                                            cn::ATTEMPT_EXAMS_EXAM_ID => $examId,
+                                            cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $student
+                                        ])->first();
                 if(isset($attemptedStudentExams) && !empty($attemptedStudentExams)){
                     $max_student_num++;
                     if(isset($attemptedStudentExams->{cn::ATTEMPT_EXAMS_QUESTION_ANSWER_COL})){

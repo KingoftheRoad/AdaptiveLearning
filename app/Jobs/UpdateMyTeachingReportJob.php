@@ -53,7 +53,9 @@ class UpdateMyTeachingReportJob implements ShouldQueue
         $this->AlpAiGraphController = new AlpAiGraphController();
         ini_set('max_execution_time', -1);
         $ExamIds = [];
-        $ExamIds = ExamSchoolMapping::whereIn(cn::EXAM_SCHOOL_MAPPING_STATUS_COL,['draft','publish'])->pluck(cn::EXAM_SCHOOL_MAPPING_EXAM_ID_COL);
+        $ExamIds =  ExamSchoolMapping::where(cn::EXAM_SCHOOL_MAPPING_CURRICULUM_YEAR_ID_COL,Helper::getGlobalConfiguration('current_curriculum_year'))
+                    ->whereIn(cn::EXAM_SCHOOL_MAPPING_STATUS_COL,['draft','publish'])
+                    ->pluck(cn::EXAM_SCHOOL_MAPPING_EXAM_ID_COL);
         if(!empty($ExamIds)){
             $ExamIds = $ExamIds->toArray();
         }
@@ -75,10 +77,14 @@ class UpdateMyTeachingReportJob implements ShouldQueue
                                     $SchoolClass = GradeClassMapping::where([cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $SchoolId,cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $Grade->grades->id])->get();
                                     if($SchoolClass->isNotEmpty()){
                                         foreach($SchoolClass as $ClassKey => $Class){
-                                            $StudentList = User::where(cn::USERS_SCHOOL_ID_COL,$SchoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->where(cn::USERS_GRADE_ID_COL,$Grade->grades->id)->where(cn::USERS_CLASS_ID_COL,$Class->id)->get();
+                                            // $StudentList = User::where(cn::USERS_SCHOOL_ID_COL,$SchoolId)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->where(cn::USERS_GRADE_ID_COL,$Grade->grades->id)->where(cn::USERS_CLASS_ID_COL,$Class->id)->get();
+                                            $StudentList = User::where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                                            ->where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($Grade->grades->id,$Class->id,$SchoolId, Helper::getGlobalConfiguration('current_curriculum_year')))
+                                                            ->get();
                                             $StudentIds = $StudentList->pluck(cn::USERS_ID_COL);
                                             if($StudentList->isNotEmpty()){
                                                 $GetCurrentGradeClassStudent = ExamGradeClassMappingModel::where([
+                                                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                                                                                 cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $ExamData->{cn::EXAM_TABLE_ID_COLS},
                                                                                 cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $SchoolId,
                                                                                 cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL => $Grade->grades->id,
@@ -94,6 +100,7 @@ class UpdateMyTeachingReportJob implements ShouldQueue
                                                     $GradeClassStudents = explode(',',$GetCurrentGradeClassStudent->toArray()[0]);
                                                 }else{
                                                     $GetCurrentGradeClassStudent = ExamGradeClassMappingModel::where([
+                                                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                                                                                         cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $ExamData->{cn::EXAM_TABLE_ID_COLS},
                                                                                         cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $SchoolId
                                                                                     ])
@@ -101,12 +108,16 @@ class UpdateMyTeachingReportJob implements ShouldQueue
                                                                                     ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STUDENT_IDS_COL);
                                                     if($GetCurrentGradeClassStudent->isNotEmpty()){
                                                         $GroupStudentIds = explode(',',implode(',',$GetCurrentGradeClassStudent->toArray()));
-                                                        $AssignedStudentIds = User::where([
-                                                                                    cn::USERS_SCHOOL_ID_COL => $SchoolId,
-                                                                                    cn::USERS_GRADE_ID_COL => $Grade->grades->id,
-                                                                                    cn::USERS_CLASS_ID_COL => $Class->id,
-                                                                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
-                                                                                ])
+                                                        // $AssignedStudentIds = User::where([
+                                                        //                             cn::USERS_SCHOOL_ID_COL => $SchoolId,
+                                                        //                             cn::USERS_GRADE_ID_COL => $Grade->grades->id,
+                                                        //                             cn::USERS_CLASS_ID_COL => $Class->id,
+                                                        //                             cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
+                                                        //                         ])
+                                                        //                         ->whereIn(cn::USERS_ID_COL,$GroupStudentIds)
+                                                        //                         ->pluck(cn::USERS_ID_COL);
+                                                        $AssignedStudentIds = User::where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                                                                ->where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($Grade->grades->id,$Class->id,$SchoolId, Helper::getGlobalConfiguration('current_curriculum_year')))
                                                                                 ->whereIn(cn::USERS_ID_COL,$GroupStudentIds)
                                                                                 ->pluck(cn::USERS_ID_COL);
                                                         $GradeClassStudents = $AssignedStudentIds->toArray();
@@ -213,17 +224,19 @@ class UpdateMyTeachingReportJob implements ShouldQueue
                                                     $MyTeaching['date_time'] = date('Y-m-d H:i:s',strtotime($ExamData->{cn::EXAM_TABLE_CREATED_AT}));
 
                                                     if(isset($MyTeaching) && !empty($MyTeaching)){
-                                                        $ExistingRecord = MyTeachingReport::where([cn::TEACHING_REPORT_REPORT_TYPE_COL => $MyTeaching['report_type'],
-                                                        cn::TEACHING_REPORT_STUDY_TYPE_COL => $MyTeaching['study_type'],
-                                                        cn::TEACHING_REPORT_SCHOOL_ID_COL => $MyTeaching['school_id'],
-                                                        cn::TEACHING_REPORT_EXAM_ID_COL => $MyTeaching['exam_id'],
-                                                        cn::TEACHING_REPORT_GRADE_ID_COL => $MyTeaching['grade_id'],
-                                                        cn::TEACHING_REPORT_CLASS_ID_COL => $MyTeaching['class_id'],
-                                                        cn::TEACHING_REPORT_GRADE_WITH_CLASS_COL => $MyTeaching['grade_with_class'],                                               
-                                                        ])->first();
+                                                        $ExistingRecord =   MyTeachingReport::where([cn::TEACHING_REPORT_REPORT_TYPE_COL => $MyTeaching['report_type'],
+                                                                                cn::TEACHING_REPORT_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
+                                                                                cn::TEACHING_REPORT_STUDY_TYPE_COL => $MyTeaching['study_type'],
+                                                                                cn::TEACHING_REPORT_SCHOOL_ID_COL => $MyTeaching['school_id'],
+                                                                                cn::TEACHING_REPORT_EXAM_ID_COL => $MyTeaching['exam_id'],
+                                                                                cn::TEACHING_REPORT_GRADE_ID_COL => $MyTeaching['grade_id'],
+                                                                                cn::TEACHING_REPORT_CLASS_ID_COL => $MyTeaching['class_id'],
+                                                                                cn::TEACHING_REPORT_GRADE_WITH_CLASS_COL => $MyTeaching['grade_with_class'],                                               
+                                                                            ])->first();
                                                         if(!empty($ExistingRecord)){
                                                             MyTeachingReport::find($ExistingRecord->{cn::TEACHING_REPORT_ID_COL})->update($MyTeaching);
                                                         }else{
+                                                            $MyTeaching[cn::TEACHING_REPORT_CURRICULUM_YEAR_ID_COL]  = $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL};
                                                             MyTeachingReport::Create($MyTeaching);
                                                         }
                                                     }
@@ -237,6 +250,7 @@ class UpdateMyTeachingReportJob implements ShouldQueue
 
                             if(isset($ExamData->{cn::EXAM_TABLE_PEER_GROUP_IDS_COL}) && !empty($ExamData->{cn::EXAM_TABLE_PEER_GROUP_IDS_COL})){
                                 $PeerGroupIds = ExamGradeClassMappingModel::where([
+                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                                                         cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $ExamData->{cn::EXAM_TABLE_ID_COLS},
                                                         cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $SchoolId
                                                     ])
@@ -348,6 +362,7 @@ class UpdateMyTeachingReportJob implements ShouldQueue
                                                     if(!empty($ExistingRecord)){
                                                         MyTeachingReport::find($ExistingRecord->{cn::TEACHING_REPORT_ID_COL})->update($MyTeaching);
                                                     }else{
+                                                        $MyTeaching[cn::TEACHING_REPORT_CURRICULUM_YEAR_ID_COL]  = $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL};
                                                         MyTeachingReport::Create($MyTeaching);
                                                     }
                                                 }

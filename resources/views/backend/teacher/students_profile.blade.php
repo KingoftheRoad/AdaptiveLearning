@@ -28,7 +28,11 @@
 							<div class="col-md-10">
 								<div class="profile-detail">
 									<div class="personal_details_main create_line">
-										<h5>{{__('languages.my_class.personal_details') }} <a href="{{route('profile.index')}}"><span class="fa fa-pencil"></a></span></h5>
+										<h5>{{__('languages.my_class.personal_details') }} <a href="{{route('profile.index')}}">
+											@if(Auth::user()->role_id==3)
+												<span class="fa fa-pencil"></a></span>
+											@endif
+										</h5>
 										<div class="detail-sec">
 											<p class="detail-s"><strong>{{ __('languages.user_activity.english_name') }} :</strong></p>
 											<p class="detail-p"> {{($profile->name_en) ? App\Helpers\Helper::decrypt($profile->name_en) :'N/A'}} </p>
@@ -47,15 +51,15 @@
 										</div>
 										<div class="detail-sec">
 											<p class="detail-s"><strong>{{ __('languages.grade') }} :</strong>  </p>
-											<p class="detail-p"> {{$profile->grade_id}}  </p>
+											<p class="detail-p"> {{(!empty($profile->CurriculumYearData)) ? App\Helpers\Helper::getGradeName($profile->CurriculumYearData->grade_id) : 'N/A'}}  </p>
 										</div>
 										<div class="detail-sec">
 											<p class="detail-s"><strong>{{ __('languages.class') }} :</strong>  </p>
-											<p class="detail-p"> {{(App\Helpers\Helper::getSingleClassName($profile->class_id)) ? App\Helpers\Helper::getSingleClassName($profile->class_id) : 'N/A'}}  </p>
+											<p class="detail-p"> {{(!empty($profile->CurriculumYearData)) ? App\Helpers\Helper::getSingleClassName($profile->CurriculumYearData->class_id) : 'N/A'}}  </p>
 										</div>
 										<div class="detail-sec">
 											<p class="detail-s"><strong>{{ __('languages.profile.class_student_number') }} :</strong>  </p>
-											<p class="detail-p"> {{ ($profile->class_student_number) ? $profile->class_student_number : ''}}  </p>
+											<p class="detail-p"> {{ ($profile->CurriculumYearData->class_student_number) ? $profile->CurriculumYearData->class_student_number : ''}}  </p>
 										</div>
 										<div class="detail-sec">
 											<p class="detail-s"><strong>{{ __('languages.user_management.city') }} :</strong>  </p>

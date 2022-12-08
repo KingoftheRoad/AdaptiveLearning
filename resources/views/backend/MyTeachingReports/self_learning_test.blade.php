@@ -130,14 +130,7 @@
 						</div>
 						@endforeach
 					@endif
-					
 				</div>
-                {{-- <div class="row pb-4">
-                    <div class="col-sm-2 col-md-2 col-lg-2">
-						<a href="{{ route('myteaching.selflearning-tests') }}" class="btn-search active-btn">{{__('languages.tests')}}</a>
-                        <a href="{{ route('myteaching/selflearning-exercise') }}" class="btn-search white-font inactive-btn">{{__('languages.exercises')}}</a>
-					</div>
-                </div> --}}
                 <div class="row">
                     <div class="col-md-12">
                         <div class="question-bank-sec">
@@ -184,7 +177,7 @@
                                                 </div>
                                             </td>
                                             
-                                            @php 
+                                            @php
                                                 if(!empty($selflearningTest->attempt_exams)){
                                                     $ability =  $selflearningTest->attempt_exams[0]->student_ability ?? 0;
                                                     $accuracy_type  = App\Helpers\Helper::getAbilityType($ability);
@@ -201,7 +194,6 @@
                                             
                                             @php
                                                 $progressQuestions = App\Helpers\Helper::getQuestionDifficultiesLevelPercent($selflearningTest->exam_id, $selflearningTest->student_ids);
-                                                
                                             @endphp
                                             <td>
                                                 <div class="progress" style="height: 1rem">
@@ -230,7 +222,7 @@
                                                     <i class="fa fa-bar-chart" aria-hidden="true"></i>
                                                 </a> --}}
                                                 <a href="javascript:void(0);" title="{{__('languages.difficulty_analysis')}}" class="getTestDifficultyAnalysisReport" data-examid="{{$selflearningTest->exam_id}}">
-                                                    <i class="fa fa-bar-chart" aria-hidden="true"></i>
+                                                    <i class="fa fa-bar-chart ml-2" aria-hidden="true"></i>
                                                 </a>
 
                                                 @php
@@ -315,7 +307,7 @@
 <!-- End Result Summary Popup -->
 
 <!-- Start Performance Analysis Popup -->
-<div class="modal" id="class-ability-analysis-report" tabindex="-1" aria-labelledby="class-ability-analysis-report" aria-hidden="true" data-backdrop="static">
+<!-- <div class="modal" id="class-ability-analysis-report" tabindex="-1" aria-labelledby="class-ability-analysis-report" aria-hidden="true" data-backdrop="static">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
 			<form method="post">
@@ -348,7 +340,7 @@
 			</form>
 		</div>
 	</div>
-</div>
+</div> -->
 <!-- End Performance Analysis Popup -->
 
 <!-- Start list of difficulties of the questions in the test Analysis Popup -->
@@ -373,7 +365,7 @@
 <!-- End list of difficulties of the questions in the test Analysis Popup -->
 
 <!-- Start Student create self learning test Popup -->
-<div class="modal" id="studentCreateSelfLearningTestModal" tabindex="-1" aria-labelledby="studentCreateSelfLearningTestModal" aria-hidden="true" data-backdrop="static">
+<!-- <div class="modal" id="studentCreateSelfLearningTestModal" tabindex="-1" aria-labelledby="studentCreateSelfLearningTestModal" aria-hidden="true" data-backdrop="static">
 	<div class="modal-dialog modal-lg">
 		<div class="modal-content">
 			<form class="student-generate-test-form" method="get" id="student-generate-test-form">
@@ -392,7 +384,7 @@
 							<select name="strand_id[]" class="form-control select-option" id="strand_id" multiple>
 								@if(isset($strandsList) && !empty($strandsList))
 									@foreach ($strandsList as $strandKey => $strand)
-										<option value="{{ $strand->id }}" <?php if($strandKey == 0){echo 'selected';}?>>{{ $strand->{'name_'.app()->getLocale()} }}</option>
+										<option value="{{ $strand->id }}" <?php //if($strandKey == 0){echo 'selected';}?>>{{ $strand->{'name_'.app()->getLocale()} }}</option>
 									@endforeach
 								@else
 									<option value="">{{__('languages.no_strands_available')}}</option>
@@ -459,8 +451,9 @@
 			</form>
 		</div>
 	</div>
-</div>
+</div> -->
 <!-- End Student create self learning test Popup -->
+
 @include('backend.layouts.footer')
 
 <script>
@@ -470,33 +463,33 @@
 			window.location = "{!! $SelfLearningTestList->url(1) !!}&items=" + this.value;
 		};
 
-        $(document).on('click', '.test-tab', function() {
-            $('.test-tab').removeClass('active');
-            $('.tab-pane').removeClass('active');
-            $('#'+$(this).attr('data-id')).addClass('active');
-            $(this).addClass('active');
-            $('#documentbtn form .active_tab').val($(this).attr('data-id'));
-            $.cookie("PreviousTab", $(this).attr('data-id'));
-        });
+        // $(document).on('click', '.test-tab', function() {
+        //     $('.test-tab').removeClass('active');
+        //     $('.tab-pane').removeClass('active');
+        //     $('#'+$(this).attr('data-id')).addClass('active');
+        //     $(this).addClass('active');
+        //     $('#documentbtn form .active_tab').val($(this).attr('data-id'));
+        //     $.cookie("PreviousTab", $(this).attr('data-id'));
+        // });
         
         //Defalut remember tab selected into student panel and teacher panel
-        $('.test-tab').removeClass('active');
-        $('.tab-pane').removeClass('active');
-        if($.cookie("PreviousTab")){
-            $('#tab-'+$.cookie("PreviousTab")).addClass('active');
-            $('#'+$.cookie("PreviousTab")).addClass('active');
-        }else{
-            $('#tab-self-learning').addClass('active');
-            $('#self_learning').addClass('active');
-        }
+        // $('.test-tab').removeClass('active');
+        // $('.tab-pane').removeClass('active');
+        // if($.cookie("PreviousTab")){
+        //     $('#tab-'+$.cookie("PreviousTab")).addClass('active');
+        //     $('#'+$.cookie("PreviousTab")).addClass('active');
+        // }else{
+        //     $('#tab-self-learning').addClass('active');
+        //     $('#self_learning').addClass('active');
+        // }
         
-        $(document).on('change', '#AllTabs', function() {
-            if($(this).prop('checked')){
-                $(".categories-main-list .categories-list input[type=checkbox]").prop('checked',true);
-            }else{
-                $(".categories-main-list .categories-list input[type=checkbox]").prop('checked',false);
-            }
-        });
+        // $(document).on('change', '#AllTabs', function() {
+        //     if($(this).prop('checked')){
+        //         $(".categories-main-list .categories-list input[type=checkbox]").prop('checked',true);
+        //     }else{
+        //         $(".categories-main-list .categories-list input[type=checkbox]").prop('checked',false);
+        //     }
+        // });
     });
     
     $(function() {
@@ -504,40 +497,40 @@
          * USE : Display on graph Get Class APerformance Analysis
          * Trigger : On click Performance graph icon into exams list action table
          * **/
-        $(document).on('click', '.getClassAbilityAnalysisReport', function(e) {
-            $("#cover-spin").show();
-            $('#class-ability-analysis-report').modal('show');
-            $studentIds = $(this).attr('data-studentids');
-            $examId = $(this).attr('data-examid');
-            $('#exam_ids').val($examId);
-            $('#student_ids').val($studentIds);
-            if($studentIds && $examId){
-                $.ajax({
-                    url: BASE_URL + '/my-teaching/get-class-ability-analysis-report',
-                    type: 'post',
-                    data : {
-                        '_token': $('meta[name="csrf-token"]').attr('content'),
-                        'examid' : $examId,
-                        'studentIds' : $studentIds,
-                        'graph_type' : 'my-class'
-                    },
-                    success: function(response) {
-                        var ResposnseData = JSON.parse(JSON.stringify(response));
-                        if(ResposnseData.data != 0){
-                            // Append image src attribute with base64 encode image
-                            $('#class-ability-analysis-report-image').attr('src','data:image/jpg;base64,'+ ResposnseData.data);
-                            $('#class-ability-analysis-report').modal('show');
-                        }else{
-                            toastr.error('Data not found');
-                        }
-                        $("#cover-spin").hide();
-                    },
-                    error: function(response) {
-                        ErrorHandlingMessage(response);
-                    }
-                });
-            }
-        });
+        // $(document).on('click', '.getClassAbilityAnalysisReport', function(e) {
+        //     $("#cover-spin").show();
+        //     $('#class-ability-analysis-report').modal('show');
+        //     $studentIds = $(this).attr('data-studentids');
+        //     $examId = $(this).attr('data-examid');
+        //     $('#exam_ids').val($examId);
+        //     $('#student_ids').val($studentIds);
+        //     if($studentIds && $examId){
+        //         $.ajax({
+        //             url: BASE_URL + '/my-teaching/get-class-ability-analysis-report',
+        //             type: 'post',
+        //             data : {
+        //                 '_token': $('meta[name="csrf-token"]').attr('content'),
+        //                 'examid' : $examId,
+        //                 'studentIds' : $studentIds,
+        //                 'graph_type' : 'my-class'
+        //             },
+        //             success: function(response) {
+        //                 var ResposnseData = JSON.parse(JSON.stringify(response));
+        //                 if(ResposnseData.data != 0){
+        //                     // Append image src attribute with base64 encode image
+        //                     $('#class-ability-analysis-report-image').attr('src','data:image/jpg;base64,'+ ResposnseData.data);
+        //                     $('#class-ability-analysis-report').modal('show');
+        //                 }else{
+        //                     toastr.error('Data not found');
+        //                 }
+        //                 $("#cover-spin").hide();
+        //             },
+        //             error: function(response) {
+        //                 ErrorHandlingMessage(response);
+        //             }
+        //         });
+        //     }
+        // });
     
         /**
          * USE : Click on the diffrent button like this 'my-class', 'my-school', 'all-school'
@@ -648,94 +641,94 @@
         /**
          * USE : Get Learning Units from multiple strands
          * **/
-        $(document).on('change', '#strand_id', function() {
-            $strandIds = $('#strand_id').val();
-            if($strandIds != ""){
-                $.ajax({
-                    url: BASE_URL + '/getLearningUnitFromMultipleStrands',
-                    type: 'POST',
-                    data: {
-                        '_token': $('meta[name="csrf-token"]').attr('content'),
-                        'grade_id': $('#grade-id').val(),
-                        'subject_id': $('#subject-id').val(),
-                        'strands_ids': $strandIds
-                    },
-                    success: function(response) {
-                        $('#learning_unit').html('');
-                        $("#cover-spin").hide();
-                        var data = JSON.parse(JSON.stringify(response));
-                        if(data){
-                            if(data.data){
-                                $(data.data).each(function() {
-                                    var option = $('<option />');
-                                    option.attr('value', this.id).text(this["name_"+APP_LANGUAGE]);
-                                    option.attr('selected', 'selected');
-                                    $('#learning_unit').append(option);
-                                });
-                            }else{
-                                $('#learning_unit').html('<option value="">'+LEARNING_UNITS_NOT_AVAILABLE+'</option>');
-                            }
-                        }else{
-                            $('#learning_unit').html('<option value="">'+LEARNING_UNITS_NOT_AVAILABLE+'</option>');
-                        }
-                        $('#learning_unit').multiselect("rebuild");
-                        $('#learning_unit').trigger("change");
-                    },
-                    error: function(response) {
-                        ErrorHandlingMessage(response);
-                    }
-                });
-            }else{
-                $('#learning_unit, #learning_objectives').html('');
-                $('#learning_unit, #learning_objectives').multiselect("rebuild");
-            }
-        });
+        // $(document).on('change', '#strand_id', function() {
+        //     $strandIds = $('#strand_id').val();
+        //     if($strandIds != ""){
+        //         $.ajax({
+        //             url: BASE_URL + '/getLearningUnitFromMultipleStrands',
+        //             type: 'POST',
+        //             data: {
+        //                 '_token': $('meta[name="csrf-token"]').attr('content'),
+        //                 'grade_id': $('#grade-id').val(),
+        //                 'subject_id': $('#subject-id').val(),
+        //                 'strands_ids': $strandIds
+        //             },
+        //             success: function(response) {
+        //                 $('#learning_unit').html('');
+        //                 $("#cover-spin").hide();
+        //                 var data = JSON.parse(JSON.stringify(response));
+        //                 if(data){
+        //                     if(data.data){
+        //                         $(data.data).each(function() {
+        //                             var option = $('<option />');
+        //                             option.attr('value', this.id).text(this["name_"+APP_LANGUAGE]);
+        //                             option.attr('selected', 'selected');
+        //                             $('#learning_unit').append(option);
+        //                         });
+        //                     }else{
+        //                         $('#learning_unit').html('<option value="">'+LEARNING_UNITS_NOT_AVAILABLE+'</option>');
+        //                     }
+        //                 }else{
+        //                     $('#learning_unit').html('<option value="">'+LEARNING_UNITS_NOT_AVAILABLE+'</option>');
+        //                 }
+        //                 $('#learning_unit').multiselect("rebuild");
+        //                 $('#learning_unit').trigger("change");
+        //             },
+        //             error: function(response) {
+        //                 ErrorHandlingMessage(response);
+        //             }
+        //         });
+        //     }else{
+        //         $('#learning_unit, #learning_objectives').html('');
+        //         $('#learning_unit, #learning_objectives').multiselect("rebuild");
+        //     }
+        // });
     
         /**
          * USE : Get Multiple Learning units based on multiple learning units ids
          * **/
-        $(document).on('change', '#learning_unit', function() {
-            $strandIds = $('#strand_id').val();
-            $learningUnitIds = $('#learning_unit').val();
-            if($learningUnitIds != ""){
-                $.ajax({
-                    url: BASE_URL + '/getLearningObjectivesFromMultipleLearningUnits',
-                    type: 'POST',
-                    data: {
-                        '_token': $('meta[name="csrf-token"]').attr('content'),
-                        'grade_id': $('#grade-id').val(),
-                        'subject_id': $('#subject-id').val(),
-                        'strand_id': $strandIds,
-                        'learning_unit_id': $learningUnitIds
-                    },
-                    success: function(response) {
-                        $('#learning_objectives').html('');
-                        $("#cover-spin").hide();
-                        var data = JSON.parse(JSON.stringify(response));
-                        if(data){
-                            if(data.data){
-                                $(data.data).each(function() {
-                                    var option = $('<option />');
-                                    option.attr('value', this.id).attr('selected','selected').text(this.foci_number + ' ' + this.title);
-                                    $('#learning_objectives').append(option);
-                                });
-                            }else{
-                                $('#learning_objectives').html('<option value="">'+LEARNING_OBJECTIVES_NOT_AVAILABLE+'</option>');
-                            }
-                        }else{
-                            $('#learning_objectives').html('<option value="">'+LEARNING_OBJECTIVES_NOT_AVAILABLE+'</option>');
-                        }
-                        $('#learning_objectives').multiselect("rebuild");
-                    },
-                    error: function(response) {
-                        ErrorHandlingMessage(response);
-                    }
-                });
-            }else{
-                $('#learning_objectives').html('');
-                $('#learning_objectives').multiselect("rebuild");
-            }
-        });
+        // $(document).on('change', '#learning_unit', function() {
+        //     $strandIds = $('#strand_id').val();
+        //     $learningUnitIds = $('#learning_unit').val();
+        //     if($learningUnitIds != ""){
+        //         $.ajax({
+        //             url: BASE_URL + '/getLearningObjectivesFromMultipleLearningUnits',
+        //             type: 'POST',
+        //             data: {
+        //                 '_token': $('meta[name="csrf-token"]').attr('content'),
+        //                 'grade_id': $('#grade-id').val(),
+        //                 'subject_id': $('#subject-id').val(),
+        //                 'strand_id': $strandIds,
+        //                 'learning_unit_id': $learningUnitIds
+        //             },
+        //             success: function(response) {
+        //                 $('#learning_objectives').html('');
+        //                 $("#cover-spin").hide();
+        //                 var data = JSON.parse(JSON.stringify(response));
+        //                 if(data){
+        //                     if(data.data){
+        //                         $(data.data).each(function() {
+        //                             var option = $('<option />');
+        //                             option.attr('value', this.id).attr('selected','selected').text(this.foci_number + ' ' + this.title);
+        //                             $('#learning_objectives').append(option);
+        //                         });
+        //                     }else{
+        //                         $('#learning_objectives').html('<option value="">'+LEARNING_OBJECTIVES_NOT_AVAILABLE+'</option>');
+        //                     }
+        //                 }else{
+        //                     $('#learning_objectives').html('<option value="">'+LEARNING_OBJECTIVES_NOT_AVAILABLE+'</option>');
+        //                 }
+        //                 $('#learning_objectives').multiselect("rebuild");
+        //             },
+        //             error: function(response) {
+        //                 ErrorHandlingMessage(response);
+        //             }
+        //         });
+        //     }else{
+        //         $('#learning_objectives').html('');
+        //         $('#learning_objectives').multiselect("rebuild");
+        //     }
+        // });
     });
     </script>
 @endsection

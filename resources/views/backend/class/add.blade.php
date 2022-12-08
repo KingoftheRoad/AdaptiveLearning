@@ -36,10 +36,22 @@
 							@csrf()
                                 <div class="form-row select-data">
                                     <div class="form-group col-md-6 mb-50">
+                                        <label class="text-bold-600" for="name">{{ __('languages.grade') }}</label>
+                                        <select name="name" class="form-control select-option" id="name"  >
+                                        @if(!empty($GradeList))
+                                        <option value="" >{{__('languages.select_grade')}}</option>
+                                            @foreach($GradeList as $grade)
+                                                <option value="{{$grade->id}}" >{{ $grade->name}}</option>
+                                            @endforeach
+                                        @endif
+                                        </select>
+                                        @if($errors->has('name'))<span class="validation_error">{{ $errors->first('name') }}</span>@endif
+                                    </div>
+                                    {{-- <div class="form-group col-md-6 mb-50">
                                         <label class="text-bold-600" for="exampleInputUsername1">{{ __('languages.grade') }}</label>
                                         <input type="text" class="form-control" name="name" id="name" placeholder="{{ __('languages.grade') }} {{__('languages.grade_sample_example')}}" value="{{old('name')}}">
                                         @if($errors->has('name'))<span class="validation_error">{{ $errors->first('name') }}</span>@endif
-                                    </div>
+                                    </div> --}}
                                     <!-- <div class="form-group col-md-6 mb-50">
                                         <label class="text-bold-600" for="exampleInputUsername1">{{ __('languages.code') }}</label>
                                         <input type="text" class="form-control" name="code" id="code" placeholder="{{ __('languages.code') }}" value="{{old('code')}}">

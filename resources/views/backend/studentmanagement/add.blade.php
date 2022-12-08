@@ -66,8 +66,9 @@
                                         @if($errors->has('student_number'))<span class="validation_error">{{ $errors->first('student_number') }}</span>@endif
                                     </div>
                                     <div class="form-group col-md-6 mb-50">
-                                        <label class="text-bold-600">{{ __('languages.permanent_reference_number') }} </label>
-                                        <input type="text" class="form-control" id="permanent_refrence_number" name="permanent_refrence_number" placeholder="{{ __('languages.permanent_reference_number') }}" value="{{old('permanent_refrence_number')}}">
+                                        {{-- <label class="text-bold-600">{{ __('languages.permanent_reference_number') }} </label> --}}
+                                        <label class="text-bold-600">{{ __('languages.std_number') }} </label>
+                                        <input type="text" class="form-control" id="permanent_refrence_number" name="permanent_refrence_number" placeholder="{{ __('languages.std_number') }}" value="{{old('permanent_refrence_number')}}">
                                        
                                         @if($errors->has('permanent_refrence_number'))<span class="validation_error">{{ $errors->first('permanent_refrence_number') }}</span>@endif
                                     </div>

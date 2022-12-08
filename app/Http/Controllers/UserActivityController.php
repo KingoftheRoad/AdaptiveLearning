@@ -37,7 +37,8 @@ class UserActivityController extends Controller
                 }
                 //search by grade
                 if(isset($request->grade_id) && !empty($request->grade_id)){
-                    $Query->where(cn::USERS_GRADE_ID_COL,$request->grade_id)->get();  
+                    // $Query->where(cn::USERS_GRADE_ID_COL,$request->grade_id)->get();
+                    $Query->where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($request->grade_id,'',''));
                 }
                 //search by role
                 if(isset($request->role_id) && !empty($request->role_id)){

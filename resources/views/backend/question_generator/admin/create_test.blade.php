@@ -306,11 +306,9 @@
                                             <input type="checkbox" name="all_learning_objective_checkbox" value="" class="all_learning_objective_checkbox" checked> {{__('languages.question_generators_menu.select_all')}}
                                         </div>
                                         @foreach ($LearningObjectives as $learningObjectivesKey => $learningObjectives)
-
                                         @php
-                                            $noOfQuestionPerLearningObjective=App\Helpers\Helper::getNoOfQuestionPerLearningObjective($learningObjectives->learning_unit_id,$learningObjectives->id);
+                                        $noOfQuestionPerLearningObjective = App\Helpers\Helper::getNoOfQuestionPerLearningObjective($learningObjectives->learning_unit_id,$learningObjectives->id);
                                         @endphp
-                                        
                                         <div class="selected-learning-objectives-difficulty">
                                             <input type="checkbox" name="learning_unit[{{$learningObjectives->learning_unit_id}}][learning_objective][{{ $learningObjectives->id }}]" value="{{ $learningObjectives->id }}" class="learning_objective_checkbox" checked>
                                             <label>{{ $learningObjectives->foci_number }} {{ $learningObjectives->{'title_'.app()->getLocale()} }}</label>

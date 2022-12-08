@@ -27,6 +27,42 @@ if(Auth::user()->role_id == 1){
 </footer>
 
 
+<!-- Start Change password Popup -->
+<div class="modal" id="changeUserPwd" tabindex="-1" aria-labelledby="changeUserPwd" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-lg" style="max-width: 50%;">
+        <div class="modal-content">
+            <form id="changepasswordUserFrom">	
+                @csrf()
+                <input type="hidden" value="" name="userId" id="changePasswordUserId">
+                <div class="modal-header">
+                    <h4 class="modal-title w-100">{{__('languages.change_password')}}</h4>
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="col-lg-12 col-md-12">
+                            <label class="text-bold-600" for="newPassword">{{__('languages.new_password')}}</label>
+                            <input type="password" class="form-control" name="newPassword" id="newPassword" placeholder="{{__('languages.new_password')}}" value="">
+                            @if($errors->has('newPassword'))<span class="validation_error">{{ $errors->first('newPassword') }}</span>@endif
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="col-lg-12 col-md-12">
+                            <label class="text-bold-600" for="confirmPassword">{{__('languages.confirm_password')}}</label>
+                            <input type="password" class="form-control" name="confirmPassword" id="confirmPassword" placeholder="{{__('languages.confirm_password')}}" value="">
+                            @if($errors->has('confirmPassword'))<span class="validation_error">{{ $errors->first('confirmPassword') }}</span>@endif
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer btn-sec">
+                    <button type="button" class="btn btn-default close-userChangePassword-popup" data-dismiss="modal">{{__('languages.close')}}</button>
+                    <button type="submit" class="blue-btn btn btn-primary submit-change-password-form">{{__('languages.submit')}}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- End Change password Popup -->
 
 <!-- Full Solution Start Popup in Report -->
 <div class="modal" id="SolutionImageModal" tabindex="-1" aria-labelledby="SolutionImageModal" aria-hidden="true" data-backdrop="static">
@@ -48,6 +84,7 @@ if(Auth::user()->role_id == 1){
     </div>
 </div>
 <!-- Full Solution End Popup in Report -->
+
 <!-- Start list of questions list preview  Popup -->
 <div class="modal" id="teacher-question-list-preview" tabindex="-1" aria-labelledby="teacher-question-list-preview" aria-hidden="true" data-backdrop="static">
 	<div class="modal-dialog question-list-modal-lg">
@@ -74,16 +111,17 @@ if(Auth::user()->role_id == 1){
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">{{__('languages.change_exam_date')}}</h5>
-                    <button type="button" class="close closeAddMoreSchoolModal" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close changeExamResultOrEndDate" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <form method="POST" action="{{route('ChangeExamEndDate')}}" id="changeExamEndDateForm">
                 @CSRF
                 @method("POST")
-                <div class="modal-body add-More-Schools-modal-body">
+                <div class="modal-body ChangeEndDateModal-modal-body">
                     <input type="hidden" name="ExamId" id="ExamId" value =""/>
-                    <input type="hidden" name="ExamType" id="ExamType" value =""/>
+                    {{-- <input type="hidden" name="ExamType" id="ExamType" value =""/> --}}
+                    <input type="hidden" name="dateType" id="dateType" value =""/>
                     <div>
                         <p><strong>{{__('languages.title')}}</strong> : <span class="test_title">ABC</span></p>
                     </div>
@@ -93,7 +131,7 @@ if(Auth::user()->role_id == 1){
                     <div>
                         <label class="SetLabelOfChangeDate"><strong>{{__('languages.question_generators_menu.end_date')}}</strong></label>
                         <div class="test-list-clandr">
-                            <input type="text" class="form-control date-picker" id="examToDate" name="to_date" value="" placeholder="{{__('languages.select_date')}}" autocomplete="off">
+                            <input type="text" class="form-control changeExamDate" id="examToDate" name="to_date" value="" placeholder="{{__('languages.select_date')}}" autocomplete="off">
                             <div class="input-group-addon input-group-append">
                                 <div class="input-group-text">
                                     <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>
@@ -105,15 +143,37 @@ if(Auth::user()->role_id == 1){
                 </div>
                 <div class="modal-footer">
                     <div calss="col-lg-3 col-md-3 col-sm-3">
-                        <button type="submit" class="btn btn-search add-more-school-btn">{{__('languages.submit')}}</button>
+                        <button type="submit" class="btn btn-search">{{__('languages.submit')}}</button>
                     </div>
-                    <button type="button" class="btn btn-secondary closeAddMoreSchoolModal" data-dismiss="modal">{{__('languages.test.close')}}</button>
+                    <button type="button" class="btn btn-secondary changeExamResultOrEndDate" data-dismiss="modal">{{__('languages.test.close')}}</button>
                 </div>
                 </form>
             </div>
         </div>
     </div>
 <!-- End: Change End Date of Exam Model -->
+
+<!-- USE: Remainder upgrade school year data popup -->
+<div class="modal" id="remainder-upgrade-school-data-popup" tabindex="-1" aria-hidden="true" data-backdrop="static">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<form method="get">
+				<div class="modal-header">
+					<h4 class="modal-title w-100">{{__('languages.remainder')}}</h4>
+					<button type="button" class="close closeRemainderPopup" data-dismiss="modal" aria-hidden="true">&times;</button>
+				</div>
+				<div class="modal-body modal-xl">
+                    <p>Please be reminded to upload the new student css file for the new curriculum year {{(((int)date('Y')+1).'-'.((int)(date('y'))+2))}}. <a href="{{route('student.import.upgrade-school-year')}}">Click here</a> to upload it otherwise, the users of your school will not be able to access the data of {{(((int)date('Y')+1).'-'.((int)(date('y'))+2))}} after 1st Sept {{((int)date('Y')+1)}}.</p>
+                    <p>You will also need to re-assign teachers to classes for the new curriculum year. <a href="{{url('teacher-class-subject-assign')}}">Click here.</a></p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default closeRemainderPopup" data-dismiss="modal">{{__('languages.close')}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<!-- End: Remainder upgrade school year data popup -->
 
 <script>
 /**
@@ -148,5 +208,4 @@ $(function (){
         }
     });
 });
-
 </script>

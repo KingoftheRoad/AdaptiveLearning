@@ -1,7 +1,7 @@
 /**************************************************************************
  * Alp-Chat configurations
  * ************************************************************************/
- switch(ALP_SERVER) {
+switch (ALP_SERVER) {
     case "localhost":
         var FIREBASE_CONFIG = {
             apiKey: "AIzaSyC8HgrhDACWkvBmiRtE-wNXOvTl80IXYFc",
@@ -11,7 +11,7 @@
             storageBucket: "alp-chat-local.appspot.com",
             messagingSenderId: "982339270839",
             appId: "1:982339270839:web:922df8c0a6113b9af33532",
-            measurementId: "G-D0QWQ1FZLZ"
+            measurementId: "G-D0QWQ1FZLZ",
         };
         break;
     case "alp3":
@@ -23,7 +23,7 @@
             storageBucket: "alp-chat-alp3.appspot.com",
             messagingSenderId: "695240121582",
             appId: "1:695240121582:web:fe8fdb03a7cafa46e267ff",
-            measurementId: "G-V89YV704F1"
+            measurementId: "G-V89YV704F1",
         };
         break;
     case "alpweb":
@@ -35,8 +35,8 @@
             storageBucket: "alp-web-chat.appspot.com",
             messagingSenderId: "1060906848738",
             appId: "1:1060906848738:web:782de8fe38fb1cad9ee9bb",
-            measurementId: "G-1XB9741FLB"
-          };
+            measurementId: "G-1XB9741FLB",
+        };
         break;
     default:
         var FIREBASE_CONFIG = {
@@ -52,7 +52,7 @@
 }
 
 /****** Start Chat Server URl configurations ******************************/
- var ALP_CHAT_BASE_URL = ALP_CHAT_BASE_URL;  // <- This variable defined into app.blade.php
+var ALP_CHAT_BASE_URL = ALP_CHAT_BASE_URL; // <- This variable defined into app.blade.php
 /***** End Chat Server URl configurations *********************************/
 
 /***** Start FireBase Initialization Configurations ***********************/

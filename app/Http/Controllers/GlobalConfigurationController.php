@@ -34,7 +34,6 @@ class GlobalConfigurationController extends Controller
         // If Request Type is Patch and update the key bay config value
         if ($request->isMethod('PATCH')){
             foreach(config()->get('GlobalConfigurationKey') as $configKey){
-
                 if(GlobalConfiguration::where(cn::GLOBAL_CONFIGURATION_KEY_COL, $configKey)->exists()){
                     if(in_array($configKey,array('question_difficulty_easy','question_difficulty_medium','question_difficulty_hard','question_difficulty_level1','question_difficulty_level2','question_difficulty_level3','question_difficulty_level4','question_difficulty_level5'))){
                         $postdata = [
@@ -80,7 +79,6 @@ class GlobalConfigurationController extends Controller
                         ]);
                     }else{
                         if(is_array($request->{$configKey})){
-                            echo  json_encode($request->{$configKey});
                             GlobalConfiguration::Create([
                                 cn::GLOBAL_CONFIGURATION_KEY_COL => $configKey,
                                 cn::GLOBAL_CONFIGURATION_VALUE_COL => json_encode($request->{$configKey})
@@ -94,7 +92,7 @@ class GlobalConfigurationController extends Controller
                     }
                 }
             }
-            return redirect('global-configuration')->with('success_msg', __('languages.global_configuration_updated_successfully'));
         }
+        return redirect('global-configuration')->with('success_msg', __('languages.global_configuration_updated_successfully'));
     }
 }

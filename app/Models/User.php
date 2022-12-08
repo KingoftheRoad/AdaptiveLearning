@@ -13,6 +13,7 @@ use App\Models\Section;
 use App\Models\School;
 use App\Models\GradeClassMapping;
 use App\Models\ClassPromotionHistory;
+use App\Models\CurriculumYearStudentMappings;
 use App\Constants\DbConstant as cn;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Validation\Rule;
@@ -29,6 +30,7 @@ class User extends Authenticatable
      * @var array
      */
     protected $fillable = [
+        cn::USERS_CURRICULUM_YEAR_ID_COL,
         cn::USERS_ALP_CHAT_USER_ID_COL,
         cn::USERS_ROLE_ID_COL,
         cn::USERS_GRADE_ID_COL,
@@ -55,7 +57,7 @@ class User extends Authenticatable
         cn::STUDENT_NUMBER_WITHIN_CLASS,
         cn::USERS_CLASS,
         cn::USERS_IMPORT_DATE_COL,
-        cn::USERS_CLASS_STUDENT_NUMBER
+        cn::USERS_CLASS_STUDENT_NUMBER,
     ];
 
     // Enable sortable columns name
@@ -91,7 +93,7 @@ class User extends Authenticatable
         cn::USERS_REMEMBER_TOKEN_COL,
     ];
 
-    protected $appends = ['DecryptNameEn','DecryptNameCh','NormalizedOverAllAbility'];
+    protected $appends = ['DecryptNameEn','DecryptNameCh','NormalizedOverAllAbility','CurriculumYearData','CurriculumYearGradeId','CurriculumYearClassId'];
 
     /**
      * The attributes that should be cast to native types.
@@ -102,9 +104,42 @@ class User extends Authenticatable
         cn::USERS_EMAIL_VERIFID_AT_COL => 'datetime',
     ];
 
+    public function getCurriculumYearDataAttribute(){
+        $CurriculumYearData = [];
+        $UserData = Self::find($this->id);
+        if(!empty($this->id) && $UserData->role_id == cn::STUDENT_ROLE_ID){
+            $CurriculumYearData = $this->GetStudentDataByCurriculumYear($this->GetCurriculumYear(),$this->id);
+        }
+        return $CurriculumYearData;
+    }
+
+    public function getCurriculumYearGradeIdAttribute(){
+        $CurriculumYearGradeId = 0;
+        $UserData = Self::find($this->id);
+        if(!empty($this->id) && $UserData->role_id == cn::STUDENT_ROLE_ID){
+            $Data = $this->GetStudentDataByCurriculumYear($this->GetCurriculumYear(),$this->id);
+            if(isset($Data) && !empty($Data)){
+                $CurriculumYearGradeId = $Data['grade_id'];
+            }
+        }
+        return $CurriculumYearGradeId;
+    }
+
+    public function getCurriculumYearClassIdAttribute(){
+        $CurriculumYearClassId = 0;
+        $UserData = Self::find($this->id);
+        if(!empty($this->id) && $UserData->role_id == cn::STUDENT_ROLE_ID){
+            $Data = $this->GetStudentDataByCurriculumYear($this->GetCurriculumYear(),$this->id);
+            if(isset($Data) && !empty($Data)){
+                $CurriculumYearClassId = $Data['class_id'];
+            }
+        }
+        return $CurriculumYearClassId;
+    }
+
     public function getNormalizedOverAllAbilityAttribute(){
         $overall_ability = null;
-        if(!empty($this->overall_ability)){
+        if(!empty($this->overall_ability) && $this->role_id == cn::STUDENT_ROLE_ID){
             $overall_ability = Helper::getNormalizedAbility($this->overall_ability);
         }  
         return $overall_ability;
@@ -114,7 +149,7 @@ class User extends Authenticatable
         $name_en = null;
         if(!empty($this->name_en)){
             $name_en = $this->decrypt($this->name_en);
-        }  
+        }
         return $name_en;
     }
 
@@ -125,7 +160,6 @@ class User extends Authenticatable
         }  
         return $name_ch;
     }
-
 
     /**
      ** Validation Rules for users
@@ -150,6 +184,7 @@ class User extends Authenticatable
                     if($request->role == 2){
                         $rules = [
                             'role' => ['required'],
+                            cn::USERS_EMAIL_COL   => [Rule::unique(cn::USERS_TABLE_NAME)->whereNull(cn::USERS_DELETED_AT_COL)],
                             'school' => ['required']
                         ];
                     }
@@ -167,12 +202,14 @@ class User extends Authenticatable
                         $rules = [
                             'grade_id' => ['required'],
                             'role' => ['required'],
+                            cn::USERS_EMAIL_COL   => [Rule::unique(cn::USERS_TABLE_NAME)->whereNull(cn::USERS_DELETED_AT_COL)],
                             'school' => ['required']
                         ];
                     }
                     if($request->role == 5){
                         $rules = [
-                            'role' => ['required']
+                            'role' => ['required'],
+                            cn::USERS_EMAIL_COL   => [Rule::unique(cn::USERS_TABLE_NAME)->whereNull(cn::USERS_DELETED_AT_COL)],
                         ];
                     }
                 }
@@ -194,7 +231,8 @@ class User extends Authenticatable
                     if($request->role == 2){
                         $rules = [
                             'role' => ['required'],
-                            'school' => ['required']
+                            'school' => ['required'],
+                            cn::USERS_EMAIL_COL => ['required', Rule::unique(cn::USERS_TABLE_NAME)->ignore($id)->whereNull(cn::USERS_DELETED_AT_COL)],
                         ];
                     }
                     if($request->role == 3){
@@ -211,12 +249,14 @@ class User extends Authenticatable
                         $rules = [
                             'grade_id' => ['required'],
                             'role' => ['required'],
-                            'school' => ['required']
+                            'school' => ['required'],
+                            cn::USERS_EMAIL_COL => ['required', Rule::unique(cn::USERS_TABLE_NAME)->ignore($id)->whereNull(cn::USERS_DELETED_AT_COL)],
                         ];
                     }
                     if($request->role == 5){
                         $rules = [
-                            'role' => ['required']
+                            'role' => ['required'],
+                            cn::USERS_EMAIL_COL => ['required', Rule::unique(cn::USERS_TABLE_NAME)->ignore($id)->whereNull(cn::USERS_DELETED_AT_COL)],
                         ];
                     }
                 }
@@ -262,12 +302,18 @@ class User extends Authenticatable
         return $this->belongsTo(Role::Class,cn::USERS_ROLE_ID_COL);
     }
 
+    public function curriculum_year_mapping(){
+        return $this->hasOne(CurriculumYearStudentMappings::Class,cn::CURRICULUM_YEAR_STUDENT_MAPPING_ID_COL,'curriculum_year_mapping_id');
+    }
+
     public function grades(){
-        return $this->hasOne(Grades::Class, cn::GRADES_ID_COL, cn::USERS_GRADE_ID_COL);
+        //return $this->hasOne(Grades::Class, cn::GRADES_ID_COL, cn::USERS_GRADE_ID_COL);
+        return $this->hasOne(Grades::Class, cn::GRADES_ID_COL, 'CurriculumYearGradeId');
     }
 
     public function class(){
-        return $this->hasOne(GradeClassMapping::Class, cn::GRADE_CLASS_MAPPING_ID_COL, cn::USERS_CLASS_ID_COL);
+        //return $this->hasOne(GradeClassMapping::Class, cn::GRADE_CLASS_MAPPING_ID_COL, cn::USERS_CLASS_ID_COL);
+        return $this->hasOne(GradeClassMapping::Class, cn::GRADE_CLASS_MAPPING_ID_COL, 'CurriculumYearClassId');
     }
 
     public function schools(){
@@ -287,7 +333,8 @@ class User extends Authenticatable
         if(!empty($userid)){
             $userdata = User::find($userid);
             if(isset($userdata) && !empty($userdata)){
-                $classId = $userdata->class_id ?? null;
+                //$classId = $userdata->class_id ?? null;
+                $classId = $userdata->CurriculumYearClassId ?? null;
                 if($classId){
                     $Result = GradeClassMapping::find($classId);
                     if(isset($Result) && !empty($Result)){

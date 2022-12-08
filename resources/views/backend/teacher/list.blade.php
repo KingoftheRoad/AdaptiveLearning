@@ -177,42 +177,6 @@
 						window.location = "{!! $UsersList->url(1) !!}&items=" + this.value;	
 				}; 
 		</script>
-		 <!-- Start Change password Popup -->
-		 <div class="modal" id="changeUserPwd" tabindex="-1" aria-labelledby="changeUserPwd" aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog modal-lg" style="max-width: 50%;">
-                <div class="modal-content">
-                    <form id="changepasswordUserFrom">	
-						@csrf()
-						<input type="hidden" value="" name="userId" id="changePasswordUserId">
-                        <div class="modal-header">
-                            <h4 class="modal-title w-100">{{__('languages.change_password')}}</h4>
-                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                        </div>
-                        <div class="modal-body">
-							<div class="form-row">
-								<div class="col-lg-12 col-md-12">
-									<label class="text-bold-600" for="newPassword">{{__('languages.new_password')}}</label>
-									<input type="password" class="form-control" name="newPassword" id="newPassword" placeholder="{{__('languages.new_password')}}" value="">
-									@if($errors->has('newPassword'))<span class="validation_error">{{ $errors->first('newPassword') }}</span>@endif
-								</div>
-							</div>
-							<div class="form-row">
-								<div class="col-lg-12 col-md-12">
-									<label class="text-bold-600" for="confirmPassword">{{__('languages.confirm_password')}}</label>
-									<input type="password" class="form-control" name="confirmPassword" id="confirmPassword" placeholder="{{__('languages.confirm_password')}}" value="">
-									@if($errors->has('confirmPassword'))<span class="validation_error">{{ $errors->first('confirmPassword') }}</span>@endif
-								</div>
-							</div>
-                        </div>
-                        <div class="modal-footer btn-sec">
-                            <button type="button" class="btn btn-default close-userChangePassword-popup" data-dismiss="modal">{{__('languages.close')}}</button>
-                            <button type="submit" class="blue-btn btn btn-primary submit-change-password-form">{{__('languages.submit')}}</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        <!-- End Change password Popup -->
 		@include('backend.layouts.footer')
 
 @endsection

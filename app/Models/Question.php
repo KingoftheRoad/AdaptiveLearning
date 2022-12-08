@@ -139,15 +139,14 @@ class Question extends Model
     }
 
     public function objectiveMapping(){
-        $currentLanguage='EN';
-        $STRANDS_NAME=cn::STRANDS_NAME_EN_COL;
-        $LEARNING_UNITS_NAME=cn::LEARNING_UNITS_NAME_EN_COL;
-        $LEARNING_OBJECTIVES_TITLE=cn::LEARNING_OBJECTIVES_TITLE_EN_COL;
-        if(app()->getLocale()=='ch')
-        {
-            $STRANDS_NAME=cn::STRANDS_NAME_CH_COL;
-            $LEARNING_UNITS_NAME=cn::LEARNING_UNITS_NAME_CH_COL;
-            $LEARNING_OBJECTIVES_TITLE=cn::LEARNING_OBJECTIVES_TITLE_CH_COL;
+        $currentLanguage = 'EN';
+        $STRANDS_NAME = cn::STRANDS_NAME_EN_COL;
+        $LEARNING_UNITS_NAME = cn::LEARNING_UNITS_NAME_EN_COL;
+        $LEARNING_OBJECTIVES_TITLE = cn::LEARNING_OBJECTIVES_TITLE_EN_COL;
+        if(app()->getLocale() == 'ch'){
+            $STRANDS_NAME = cn::STRANDS_NAME_CH_COL;
+            $LEARNING_UNITS_NAME = cn::LEARNING_UNITS_NAME_CH_COL;
+            $LEARNING_OBJECTIVES_TITLE = cn::LEARNING_OBJECTIVES_TITLE_CH_COL;
         }
         return $this->hasOne(StrandUnitsObjectivesMappings::class, cn::OBJECTIVES_MAPPINGS_ID_COL, cn::QUESTION_OBJECTIVE_MAPPING_ID_COL)
                 ->join(cn::GRADES_TABLE_NAME,cn::OBJECTIVES_MAPPINGS_TABLE_NAME.'.'.cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,'=',cn::GRADES_TABLE_NAME.'.'.cn::GRADES_ID_COL)
@@ -166,7 +165,6 @@ class Question extends Model
     }
 
     public function SunjectNameFromQuestion(){
-        
         return $this->hasOne(StrandUnitsObjectivesMappings::class, cn::OBJECTIVES_MAPPINGS_ID_COL, cn::QUESTION_OBJECTIVE_MAPPING_ID_COL)
                 ->leftjoin(cn::SUBJECTS_TABLE_NAME,cn::OBJECTIVES_MAPPINGS_TABLE_NAME.'.'.cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,'=',cn::SUBJECTS_TABLE_NAME.'.'.cn::SUBJECTS_ID_COL)
                 ->select(cn::OBJECTIVES_MAPPINGS_TABLE_NAME.'.*',cn::SUBJECTS_TABLE_NAME.'.'.cn::SUBJECTS_NAME_COL.' as subjectName',

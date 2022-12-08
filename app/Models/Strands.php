@@ -84,6 +84,6 @@ class Strands extends Model
     }
 
     function LearningUnit(){
-        return $this->hasMany(LearningsUnits::class, 'strand_id', 'id');
+        return $this->hasMany(LearningsUnits::class, cn::LEARNING_UNITS_STRANDID_COL, cn::STRANDS_ID_COL);
     }
 }

@@ -57,7 +57,7 @@ OnPageLoadEvent = {
         }
 
         $(
-            ".select-search,#nodeModal #main_node_id,#addNodesForm #sub_node_id,#updateNodesForm #sub_node_id,#nodeModal #parent-node-id,#question_filter_grade,#question_filter_difficulty,#question_filter_question_type,#question_filter_status,#user_filter_school,#user_filter_role,#user_filter_grade,#role,#school_id,#grade_id,#status,#add_student_group_grade,#add_student_group_status,#School,#filter_test_template_difficult_lvl,#filter_test_template_template_type,#template_type,#difficulty_level,#learningReportStrand,#reportLearningType,#pass_only_and_or,#curriculum,#test_type,#select-report-date,#select-no-of-per-trials-question,#difficulty_mode,#select-display-hints,#select-display-full-solutions,#select-display-pr-answer-hints,#select-randomize-answers,#select-randomize-order,#test_start_time,#test_end_time,#use_of_modes,#assignStudentIntoGroup,#leaderboard_type,#learning_tutor_language_id,#is_approved_question,.performance_exam_id,#current_curriculum_year"
+            ".select-search,#nodeModal #main_node_id,#addNodesForm #sub_node_id,#updateNodesForm #sub_node_id,#nodeModal #parent-node-id,#question_filter_grade,#question_filter_difficulty,#question_filter_question_type,#question_filter_status,#user_filter_school,#user_filter_role,#user_filter_grade,#role,#school_id,#grade_id,#status,#add_student_group_grade,#add_student_group_status,#School,#filter_test_template_difficult_lvl,#filter_test_template_template_type,#template_type,#difficulty_level,#learningReportStrand,#reportLearningType,#pass_only_and_or,#curriculum,#test_type,#select-report-date,#select-no-of-per-trials-question,#difficulty_mode,#select-display-hints,#select-display-full-solutions,#select-display-pr-answer-hints,#select-randomize-answers,#select-randomize-order,#test_start_time,#test_end_time,#use_of_modes,#assignStudentIntoGroup,#leaderboard_type,#learning_tutor_language_id,#is_approved_question,.performance_exam_id,#current_curriculum_year,#curriculum_year"
         ).select2({
             width: "100%",
         });
@@ -537,6 +537,12 @@ OnPageLoadEvent = {
             yearRange: "1950:" + new Date().getFullYear(),
         });
 
+        //Change Exam Date From Modal Exam Result Date and End Date
+        $(".changeExamDate").datepicker({
+            dateFormat: "dd/mm/yy",
+            changeMonth: true,
+            changeYear: true,
+        });
         // Common time picker
         $(".timepicker").timepicker({
             timeFormat: "h:mm p",
@@ -702,6 +708,26 @@ OnPageLoadEvent = {
 // All Page OnChange Jquery Events
 OnChangeEvent = {
     init: function () {
+        /**
+         * USE : Change event after changing the curriculum Year
+         */
+        $(document).on("change", "#curriculum_year", function () {
+            if (this.value != "") {
+                $("#cover-spin").show();
+                $.ajax({
+                    url: BASE_URL + "/set-curriculum-year",
+                    type: "GET",
+                    data: {
+                        CurriculumYearId: this.value,
+                    },
+                    success: function (response) {
+                        $("#cover-spin").hide();
+                        location.reload();
+                    },
+                });
+            }
+        });
+
         /******Learning Tutor  *******/
 
         // Get Learning Units based on Strand
@@ -1805,6 +1831,7 @@ OnChangeEvent = {
                             $('meta[name="csrf-token"]').attr("content")
                         );
                         fd.append("user_file", files[0]);
+                        fd.append("curriculum_year_id", $("#curriculum").val());
                         $.ajax({
                             url:
                                 BASE_URL +
@@ -2460,7 +2487,7 @@ OnChangeEvent = {
                             $.ajax({
                                 url:
                                     BASE_URL +
-                                    "/teache-class-subject-assign/delete/" +
+                                    "/teacher-class-subject-assign/delete/" +
                                     dataid,
                                 type: "GET",
                                 success: function (response) {
@@ -2701,7 +2728,11 @@ OnChangeEvent = {
                 // On change event School_id in usermanagement module
                 $(document).on("change", "#school_id", function () {
                     $("#grade_id").html("");
-                    if (tmp_role_id != "2" && tmp_role_id != "6") {
+                    if (
+                        tmp_role_id != "2" &&
+                        tmp_role_id != "6" &&
+                        tmp_role_id != "7"
+                    ) {
                         $("#grade_id").prop("disabled", false);
                         var sid = $(this).val();
                         if (sid != "") {
@@ -3053,7 +3084,8 @@ OnClickEvent = {
             $(".test_reference_number").html($(this).attr("refrence_no"));
             $(".test_title").html($(this).attr("title"));
             $(".SetLabelOfChangeDate").html($(this).attr("dateType"));
-            $("#ExamType").val($(this).attr("dateType"));
+            // $("#ExamType").val($(this).attr("dateType"));
+            $("#dateType").val($(this).attr("dateType"));
             $(this).attr("dateType") != "EndDate"
                 ? $(".SetLabelOfChangeDate").html(RESULT_DATE)
                 : $(".SetLabelOfChangeDate").html(END_DATE);
@@ -3209,6 +3241,12 @@ OnClickEvent = {
             closePopupModal("addMoreSchoolModel");
         });
 
+        //Close Popup Modal End date or Result Date
+        $(document).on("click", ".changeExamResultOrEndDate", function () {
+            $(".ChangeEndDateModal-modal-body").innerHTML = "";
+            closePopupModal("ChangeEndDateModal");
+        });
+
         //Close Popup Modal close-FileEditModal-modal
         $(document).on("click", ".close-FileEditModal-modal", function () {
             closePopupModal("FileEditModal");
@@ -3254,6 +3292,14 @@ OnClickEvent = {
         $(document).on("click", ".closeQuestionPop", function () {
             $("#teacher-question-list-preview-data").attr("src", "");
             closePopupModal("teacher-question-list-preview");
+        });
+
+        //close pop up Modal of school reminder popup
+        $(document).on("click", ".closeRemainderPopup", function () {
+            var currentUrl = $(location).attr("href");
+            currentUrl.split("?")[0];
+            window.location = currentUrl.slice(0, currentUrl.indexOf("?"));
+            //$("#remainder-upgrade-school-data-popup").hide();
         });
 
         $(document).on(
@@ -3803,9 +3849,9 @@ OnClickEvent = {
          * Trigger Event : On click 'minus-icon' then close sub class test report page
          */
         $(document).on("click", ".minus-icon", function () {
-            $('.report-student-name').removeClass('minus-icon');
-            $('.report-student-name').addClass('plus-icon');
-            $('.child-report-section-detail').removeClass('expand-result');
+            $(".report-student-name").removeClass("minus-icon");
+            $(".report-student-name").addClass("plus-icon");
+            $(".child-report-section-detail").removeClass("expand-result");
         });
 
         /**
@@ -3816,13 +3862,18 @@ OnClickEvent = {
             $studentId = $(this).attr("data-id");
             $examid = $(this).attr("data-examid");
             var isGroupId = $(this).attr("data-isgroupid");
-            $('.report-student-name').removeClass('minus-icon');
-            $('.report-student-name').addClass('plus-icon');
-            $('.child-report-section-detail').removeClass('expand-result');
-            $(this).removeClass('plus-icon').addClass('minus-icon');
+            $(".report-student-name").removeClass("minus-icon");
+            $(".report-student-name").addClass("plus-icon");
+            $(".child-report-section-detail").removeClass("expand-result");
+            $(this).removeClass("plus-icon").addClass("minus-icon");
             // send ajax to get data
             $.ajax({
-                url:BASE_URL +"/exams/ajax/result/" +$examid +"/" +$studentId,
+                url:
+                    BASE_URL +
+                    "/exams/ajax/result/" +
+                    $examid +
+                    "/" +
+                    $studentId,
                 type: "GET",
                 data: {
                     _token: $('meta[name="csrf-token"]').attr("content"),
@@ -3850,9 +3901,9 @@ OnClickEvent = {
          * USE : Get The Single student detail report into class-test-report-performance
          */
         $(document).on("click", ".report-student-name-result", function () {
-            $('.child-report-section-detail').removeClass('expand-result');
-            $('.report-student-name-result').removeClass('minus-icon');
-            $('.report-student-name-result').addClass('plus-icon');
+            $(".child-report-section-detail").removeClass("expand-result");
+            $(".report-student-name-result").removeClass("minus-icon");
+            $(".report-student-name-result").addClass("plus-icon");
 
             $("#cover-spin").show();
             $studentId = $(this).attr("data-id");
@@ -4399,6 +4450,12 @@ OnClickEvent = {
         $(document).on("change", ".performance_exam_id", function () {
             $("#cover-spin").show();
             var exam_id = $(this).val();
+            var ExamType = $(this).find(":selected").data("examtype");
+            if (ExamType == 1) {
+                $(".class-performance-class-ability-report").hide();
+            } else {
+                $(".class-performance-class-ability-report").show();
+            }
             $.ajax({
                 url: BASE_URL + "/getExamGroupGradeClassList",
                 type: "GET",
@@ -4614,8 +4671,31 @@ OnClickEvent = {
                         } else {
                             $(".class-performance-grade-section").hide();
                         }
-
+                        //Comment on Date 30-11-2022 because of class id not selected shown on teacher and school panel to fix this issue.
                         // Set Grade Dropdown in Class performance report
+                        // if (data.data.grades_list !== undefined) {
+                        //     $(".class-performance-class-section").show();
+                        //     var ClassList = "";
+                        //     $.each(
+                        //         data.data.class_list,
+                        //         function (index, value) {
+                        //             ClassList +=
+                        //                 "<option value=" +
+                        //                 data.data.class_list[index].id +
+                        //                 ">" +
+                        //                 value.grade.name +
+                        //                 "-" +
+                        //                 data.data.class_list[index].name +
+                        //                 "</option>";
+                        //         }
+                        //     );
+                        //     $("#classType-select-option").html(ClassList);
+                        //     $("#classType-select-option").multiselect(
+                        //         "rebuild"
+                        //     );
+                        // } else {
+                        //     $(".class-performance-class-section").hide();
+                        // }
                         if (data.data.grades_list !== undefined) {
                             $(".class-performance-class-section").show();
                             var ClassList = "";
@@ -4630,12 +4710,42 @@ OnClickEvent = {
                                         "-" +
                                         data.data.class_list[index].name +
                                         "</option>";
+                                    var class_ids = $(
+                                        "#student_performance_grade_id"
+                                    )
+                                        .find(
+                                            "option[value=" +
+                                                value.grade_id +
+                                                "]"
+                                        )
+                                        .attr("class_ids");
+
+                                    if (class_ids != "") {
+                                        class_ids =
+                                            class_ids +
+                                            "," +
+                                            data.data.class_list[index].id;
+                                    } else {
+                                        class_ids =
+                                            data.data.class_list[index].id;
+                                    }
+                                    if (class_ids == "") {
+                                        class_ids = "";
+                                    }
+                                    $("#student_performance_grade_id")
+                                        .find(
+                                            "option[value=" +
+                                                value.grade_id +
+                                                "]"
+                                        )
+                                        .attr("class_ids", class_ids);
                                 }
                             );
                             $("#classType-select-option").html(ClassList);
                             $("#classType-select-option").multiselect(
                                 "rebuild"
                             );
+                            $("#student_performance_grade_id").change();
                         } else {
                             $(".class-performance-class-section").hide();
                         }
@@ -4797,7 +4907,22 @@ OnClickEvent = {
          * USE : GET THE GRADE DATA TO CLASS IN PERFORMANCE REPORT
          */
         $(document).on("change", "#student_performance_grade_id", function () {
-            $("#classType-select-option option").prop("disabled", false);
+            //$("#classType-select-option option").prop("disabled", false);
+            $.ajax({
+                url: BASE_URL + "/get-performance-report-class-type",
+                type: "GET",
+                data: {
+                    examId: $("#exam_id").val(),
+                    schoolId: $("#exam_school_id").val(),
+                    grade_id: $(this).val(),
+                },
+                success: function (response) {
+                    $("#cover-spin").hide();
+                    $("#classType-select-option").html(response.data);
+
+                    $("#classType-select-option").multiselect("rebuild");
+                },
+            });
             if (
                 $("#student_performance_grade_id option:selected").length != 0
             ) {
@@ -4809,10 +4934,10 @@ OnClickEvent = {
                     $("#classType-select-option").val(classIds);
                 }
             }
-            $("#classType-select-option option:not(:checked)").prop(
-                "disabled",
-                true
-            );
+            // $("#classType-select-option option:not(:checked)").prop(
+            //     "disabled",
+            //     true
+            // );
             $("#classType-select-option").multiselect("rebuild");
         });
 
@@ -4837,63 +4962,63 @@ OnClickEvent = {
         /**
          * USE : Delete multiple exams
          */
-        $(document).on("click", "#delete-multiple-exams-btn", function () {
-            $("#cover-spin").show();
-            var examIds = [];
-            $("input:checkbox[name=examids]:checked").each(function () {
-                examIds.push($(this).val());
-            });
-            // Check examid array is empty or not
-            if (examIds.length === 0) {
-                $("#cover-spin").hide();
-                toastr.error(
-                    PLEASE_SELECT_AT_LEAST_ONE_CHECKBOX_FOR_DELETE_TEST
-                );
-                return false;
-            }
-            // If array is not empty then delete multiple exams
-            $.confirm({
-                title: DELETE_TEST + "?",
-                content: CONFIRMATION,
-                autoClose: "Cancellation|8000",
-                buttons: {
-                    deleteUser: {
-                        text: DELETE_TEST,
-                        action: function () {
-                            $.ajax({
-                                url: BASE_URL + "/exams/delete/multiple",
-                                type: "POST",
-                                data: {
-                                    _token: $('meta[name="csrf-token"]').attr(
-                                        "content"
-                                    ),
-                                    examIds: examIds,
-                                },
-                                success: function (response) {
-                                    $("#cover-spin").hide();
-                                    var data = JSON.parse(
-                                        JSON.stringify(response)
-                                    );
-                                    if (data.status === "success") {
-                                        toastr.success(data.message);
-                                        location.reload();
-                                    } else {
-                                        toastr.error(data.message);
-                                        return false;
-                                    }
-                                },
-                                error: function (response) {
-                                    ErrorHandlingMessage(response);
-                                },
-                            });
-                        },
-                    },
-                    Cancellation: function () {
-                        $("#cover-spin").hide();
-                    },
-                },
-            });
-        });
+        // $(document).on("click", "#delete-multiple-exams-btn", function () {
+        //     $("#cover-spin").show();
+        //     var examIds = [];
+        //     $("input:checkbox[name=examids]:checked").each(function () {
+        //         examIds.push($(this).val());
+        //     });
+        //     // Check examid array is empty or not
+        //     if (examIds.length === 0) {
+        //         $("#cover-spin").hide();
+        //         toastr.error(
+        //             PLEASE_SELECT_AT_LEAST_ONE_CHECKBOX_FOR_DELETE_TEST
+        //         );
+        //         return false;
+        //     }
+        //     // If array is not empty then delete multiple exams
+        //     $.confirm({
+        //         title: DELETE_TEST + "?",
+        //         content: CONFIRMATION,
+        //         autoClose: "Cancellation|8000",
+        //         buttons: {
+        //             deleteUser: {
+        //                 text: DELETE_TEST,
+        //                 action: function () {
+        //                     $.ajax({
+        //                         url: BASE_URL + "/exams/delete/multiple",
+        //                         type: "POST",
+        //                         data: {
+        //                             _token: $('meta[name="csrf-token"]').attr(
+        //                                 "content"
+        //                             ),
+        //                             examIds: examIds,
+        //                         },
+        //                         success: function (response) {
+        //                             $("#cover-spin").hide();
+        //                             var data = JSON.parse(
+        //                                 JSON.stringify(response)
+        //                             );
+        //                             if (data.status === "success") {
+        //                                 toastr.success(data.message);
+        //                                 location.reload();
+        //                             } else {
+        //                                 toastr.error(data.message);
+        //                                 return false;
+        //                             }
+        //                         },
+        //                         error: function (response) {
+        //                             ErrorHandlingMessage(response);
+        //                         },
+        //                     });
+        //                 },
+        //             },
+        //             Cancellation: function () {
+        //                 $("#cover-spin").hide();
+        //             },
+        //         },
+        //     });
+        // });
 
         /**
          * USE : Use To Check Answer Is Right Or Not
@@ -6110,6 +6235,7 @@ Validation = {
 
         //Add Teacher Subject Assign Validation
         $("#addAssignForm").validate({
+            ignore: [],
             rules: {
                 teacher_id: {
                     required: true,
@@ -6141,32 +6267,33 @@ Validation = {
             },
         });
 
-        //Edit Teacher Subject Assign
-        $("#editAssignForm").validate({
-            rules: {
-                teacher_id: {
-                    required: true,
-                },
-                class_id: {
-                    required: true,
-                },
-            },
-            messages: {
-                teacher_id: {
-                    required: VALIDATIONS.PLEASE_SELECT_TEACHER,
-                },
-                class_id: {
-                    required: VALIDATIONS.PLEASE_SELECT_GRADE,
-                },
-            },
-            errorPlacement: function (error, element) {
-                if (element.attr("name") == "status") {
-                    error.appendTo("#error-status");
-                } else {
-                    error.insertAfter(element);
-                }
-            },
-        });
+        // //Edit Teacher Subject Assign
+        // $("#editAssignForm").validate({
+        //     ignore: [],
+        //     rules: {
+        //         teacher_id: {
+        //             required: true,
+        //         },
+        //         class_id: {
+        //             required: true,
+        //         },
+        //     },
+        //     messages: {
+        //         teacher_id: {
+        //             required: VALIDATIONS.PLEASE_SELECT_TEACHER,
+        //         },
+        //         class_id: {
+        //             required: VALIDATIONS.PLEASE_SELECT_GRADE,
+        //         },
+        //     },
+        //     errorPlacement: function (error, element) {
+        //         if (element.attr("name") == "status") {
+        //             error.appendTo("#error-status");
+        //         } else {
+        //             error.insertAfter(element);
+        //         }
+        //     },
+        // });
 
         //Add School Form Validation
         $("#addSchoolsForm").validate({
@@ -6387,6 +6514,7 @@ Validation = {
 
         //Add Class Form Validation
         $("#addClassForm").validate({
+            ignore: [],
             rules: {
                 name: {
                     required: true,
@@ -6398,7 +6526,7 @@ Validation = {
             },
             messages: {
                 name: {
-                    required: VALIDATIONS.PLEASE_ENTER_GRADE_NAME,
+                    required: VALIDATIONS.PLEASE_SELECT_GRADE,
                     number: VALIDATIONS.PLEASE_ENTER_ONLY_NUMERIC_VALUE,
                 },
                 "class_type[]": {
@@ -6420,6 +6548,7 @@ Validation = {
 
         //Edit Class Form Validation
         $("#editClassForm").validate({
+            ignore: [],
             rules: {
                 name: {
                     required: true,
@@ -6431,7 +6560,7 @@ Validation = {
             },
             messages: {
                 name: {
-                    required: VALIDATIONS.PLEASE_ENTER_GRADE_NAME,
+                    required: VALIDATIONS.PLEASE_SELECT_GRADE,
                     number: VALIDATIONS.PLEASE_ENTER_ONLY_NUMERIC_VALUE,
                 },
                 "class_type[]": {

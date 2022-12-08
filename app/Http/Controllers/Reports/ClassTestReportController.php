@@ -31,18 +31,22 @@ use App\Models\PeerGroupMember;
 use App\Helpers\Helper;
 use App\Http\Services\TeacherGradesClassService;
 use App\Models\ExamSchoolMapping;
+use App\Http\Services\AIApiService;
+use DB;
 
 class ClassTestReportController extends Controller
 {
     use Common, ResponseFormat;
 
     public $TeacherGradesClassService, $ExamSchoolMapping, $ExamGradeClassMappingModel, $CommonController;
+    protected $AIApiService;
 
     public function __construct(){
         $this->TeacherGradesClassService = new TeacherGradesClassService;
         $this->ExamSchoolMapping = new ExamSchoolMapping;
         $this->ExamGradeClassMappingModel = new ExamGradeClassMappingModel;
         $this->CommonController = new CommonController;
+        $this->AIApiService = new AIApiService();
     }
 
     /**
@@ -108,37 +112,55 @@ class ClassTestReportController extends Controller
 
 
     public function getExamGroupGradeClassList(Request $request){
-        $Response = [];
+        $Response = [];        
         if($this->isTeacherLogin()){
             $TeacherGradeClass = $this->TeacherGradesClassService->getTeacherAssignedGradesClass(Auth::user()->{cn::USERS_SCHOOL_ID_COL}, Auth::user()->{cn::USERS_ID_COL});
             if(!empty($TeacherGradeClass)){
-                $AvailableGradesIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$request->exam_id)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                $AvailableGradesIds =   $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
                                         ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,$TeacherGradeClass['grades'])
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
                                         ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL)->toArray();
                 if(!empty($AvailableGradesIds)){
                     $GradeData = Grades::whereIn(cn::GRADES_ID_COL,$AvailableGradesIds)->get()->toArray();
                     $Response['grades_list'] = $GradeData ?? [];
                 }
-                $AvailableClassIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$request->exam_id)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                $AvailableClassIds =    $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
                                         ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,$TeacherGradeClass['class'])
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
                                         ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();
                 if(!empty($AvailableClassIds)){
-                    $ClassData = GradeClassMapping::with('grade')->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)->where(cn::GRADE_CLASS_MAPPING_STATUS_COL,'active')->get()->toArray();
+                    $ClassData =    GradeClassMapping::with('grade')
+                                    ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
+                                    ->where([
+                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::GRADE_CLASS_MAPPING_STATUS_COL => 'active'
+                                    ])
+                                    ->get()->toArray();
                     $Response['class_list'] = $ClassData ?? [];
                 }
 
                 $TeacherPeerGroupIds = $this->TeacherGradesClassService->GetTeachersPeerGroupIds(Auth::user()->{cn::USERS_ID_COL}, Auth::user()->{cn::USERS_SCHOOL_ID_COL});
-                $AvailablePeerGroupIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$request->exam_id)
-                                            ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
-                                            ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$TeacherPeerGroupIds)
-                                            ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
+                $AvailablePeerGroupIds =    $this->ExamGradeClassMappingModel->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$TeacherPeerGroupIds)
+                                            ->where([
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                            ])
                                             ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)->toArray();
                 if(!empty($AvailablePeerGroupIds)){
-                    $PeerGroupData = PeerGroup::select('id','group_name')->whereIn('id',$AvailablePeerGroupIds->toArray())->get()->toArray();
+                    $PeerGroupData =    PeerGroup::select(cn::PEER_GROUP_ID_COL,cn::PEER_GROUP_GROUP_NAME_COL)
+                                        ->where(cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                                        ->whereIn(cn::PEER_GROUP_ID_COL,$AvailablePeerGroupIds->toArray())
+                                        ->get()->toArray();
                     $Response['peer_group_list'] = $PeerGroupData ?? [];
                 }                
             }
@@ -160,19 +182,34 @@ class ClassTestReportController extends Controller
                     $peerGroupDataArray = $this->CommonController->getRoleBasedPeerGroupData($peerGroupIds);
                     $Response['peer_group_list'] = $peerGroupDataArray;
                 }else{
-                    $AvailableGradesIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$request->exam_id)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                        ->pluck('grade_id');
+                    $AvailableGradesIds =   $this->ExamGradeClassMappingModel->where([
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                            ])
+                                            ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL);
                     if(!empty($AvailableGradesIds)){
-                        $GradeData = Grades::whereIn('id',$AvailableGradesIds)->get()->toArray();
+                        $GradeData = Grades::whereIn(cn::GRADES_ID_COL,$AvailableGradesIds)->get()->toArray();
                         $Response['grades_list'] = $GradeData ?? [];
                     }
 
-                    $AvailableClassIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$request->exam_id)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                        ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL);
+                    $AvailableClassIds =    $this->ExamGradeClassMappingModel->where([
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                            ])
+                                            ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL);
                     if(!empty($AvailableClassIds)){
-                        $ClassData = GradeClassMapping::with('grade')->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)->where(cn::GRADE_CLASS_MAPPING_STATUS_COL,'active')->get()->toArray();
+                        $ClassData = GradeClassMapping::with('grade')
+                                    ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
+                                    ->where([
+                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                        cn::GRADE_CLASS_MAPPING_STATUS_COL => 'active'
+                                    ])
+                                    ->get()->toArray();
                         $Response['class_list'] = $ClassData ?? [];
                     }
                 }
@@ -189,57 +226,73 @@ class ClassTestReportController extends Controller
                     $examData = Exam::find($getExamId[0]);
                 }
             }
+             
             $examId = $examData->{cn::EXAM_TABLE_ID_COLS};
             if(!empty($examData)){
-                if(!empty($examData->{cn::EXAM_TABLE_PARENT_EXAM_ID_COLS}) && $examData->{cn::EXAM_TABLE_CREATED_BY_USER_COL} == 'super_admin'){
-                    $childExamsIds = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$examData->{cn::EXAM_TABLE_ID_COLS})->pluck(cn::EXAM_TABLE_ID_COLS)->toArray();
-                    $childSchoolIds = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$examData->{cn::EXAM_TABLE_ID_COLS})->pluck(cn::EXAM_TABLE_SCHOOL_COLS)->toArray();
-                    $schoolList = array();
-                    if(isset($childSchoolIds) && !empty($childSchoolIds)){
-                        foreach($childSchoolIds as $key => $value){
-                            $schoolIds = School::where(cn::SCHOOL_ID_COLS,$value)->where(cn::SCHOOL_SCHOOL_STATUS,'active')->first();
-                            if(isset($schoolIds) && !empty($schoolIds)){
-                                if($schoolIds->school_name_en != ""){
-                                    $school_name = $this->decrypt($schoolIds->school_name_en);
-                                }else{
-                                    $school_name = $schoolIds->school_name;
-                                }
-                                array_push($schoolList,array('id'=>$schoolIds->id,'name'=>$school_name));
-                            }
-                        }
+                // if(!empty($examData->{cn::EXAM_TABLE_PARENT_EXAM_ID_COLS}) && $examData->{cn::EXAM_TABLE_CREATED_BY_USER_COL} == 'super_admin'){
+                //     $childExamsIds = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$examData->{cn::EXAM_TABLE_ID_COLS})->pluck(cn::EXAM_TABLE_ID_COLS)->toArray();
+                //     $childSchoolIds = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$examData->{cn::EXAM_TABLE_ID_COLS})->pluck(cn::EXAM_TABLE_SCHOOL_COLS)->toArray();
+                //     // echo "<pre>";print_r($childSchoolIds);die;
+                //     $schoolList = array();
+                //     if(isset($childSchoolIds) && !empty($childSchoolIds)){
+                //         foreach($childSchoolIds as $key => $value){
+                //             $schoolIds = School::where(cn::SCHOOL_ID_COLS,$value)->where(cn::SCHOOL_SCHOOL_STATUS,'active')->first();
+                //             if(isset($schoolIds) && !empty($schoolIds)){
+                //                 if($schoolIds->school_name_en != ""){
+                //                     $school_name = $this->decrypt($schoolIds->school_name_en);
+                //                 }else{
+                //                     $school_name = $schoolIds->school_name;
+                //                 }
+                //                 array_push($schoolList,array('id'=>$schoolIds->id,'name'=>$school_name));
+                //             }
+                //         }
                         
-                    }
-                    $Response['school_List']=$schoolList;
-                    if(!empty($examData->peer_group_ids)){
-                        $peerGroupIds = explode(',',$examData->peer_group_ids);
-                        if(!empty($peerGroupIds)){
-                            foreach($peerGroupIds as $peerGroupId){
-                                $peerGroup = PeerGroup::find($peerGroupId);
-                                $peerGroupData = [
-                                    'id' => $peerGroupId,
-                                    'group_name' => $peerGroup->group_name
-                                ];
-                            }
-                        }
-                        $peerGroupDataArray = $this->CommonController->getRoleBasedPeerGroupData($peerGroupIds);
-                        $Response['peer_group_list'] = $peerGroupDataArray;
-                    }
-                    $AvailableGradesIds = $this->ExamGradeClassMappingModel->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
-                                            ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                            ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL);
-                    if(!empty($AvailableGradesIds)){
-                        $GradeData = Grades::whereIn(cn::GRADES_ID_COL,$AvailableGradesIds)->get()->toArray();
-                        $Response['grades_list'] = $GradeData ?? [];
-                    }
+                //     }
+                //     $Response['school_List'] = $schoolList;
 
-                    $AvailableClassIds = $this->ExamGradeClassMappingModel->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
-                                            ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                            ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL);
-                    if(!empty($AvailableClassIds)){
-                        $ClassData = GradeClassMapping::with('grade')->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)->where(cn::GRADE_CLASS_MAPPING_STATUS_COL,'active')->get()->toArray();
-                        $Response['class_list'] = $ClassData ?? [];
-                    }
-                }else{
+                //     if(!empty($examData->peer_group_ids)){
+                //         $peerGroupIds = explode(',',$examData->peer_group_ids);
+                //         if(!empty($peerGroupIds)){
+                //             foreach($peerGroupIds as $peerGroupId){
+                //                 $peerGroup = PeerGroup::find($peerGroupId);
+                //                 $peerGroupData = [
+                //                     'id' => $peerGroupId,
+                //                     'group_name' => $peerGroup->group_name
+                //                 ];
+                //             }
+                //         }
+                //         $peerGroupDataArray = $this->CommonController->getRoleBasedPeerGroupData($peerGroupIds);
+                //         $Response['peer_group_list'] = $peerGroupDataArray;
+                //     }
+                //     $AvailableGradesIds = $this->ExamGradeClassMappingModel->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
+                //                             ->where([
+                //                                 cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                //                                 cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish',
+                //                                 'school_id' => $schoolList[0]
+                //                             ])
+                //                             ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL);
+                //     if(!empty($AvailableGradesIds)){
+                //         $GradeData = Grades::whereIn(cn::GRADES_ID_COL,$AvailableGradesIds)->get()->toArray();
+                //         $Response['grades_list'] = $GradeData ?? [];
+                //     }
+                    
+                //     $AvailableClassIds = $this->ExamGradeClassMappingModel->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
+                //                             ->where([
+                //                                 cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                //                                 cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                //                             ])
+                //                             ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL);
+                //     if(!empty($AvailableClassIds)){
+                //         $ClassData = GradeClassMapping::with('grade')
+                //                     ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
+                //                     ->where([
+                //                         cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                //                         cn::GRADE_CLASS_MAPPING_STATUS_COL => 'active'
+                //                     ])
+                //                     ->get()->toArray();
+                //         $Response['class_list'] = $ClassData ?? [];
+                //     }
+                // }else{
                     $schoolList = array();
                     $schoolIds = $examData->{cn::EXAM_TABLE_SCHOOL_COLS};
                     if(isset($schoolIds) && !empty($schoolIds)){
@@ -260,16 +313,23 @@ class ClassTestReportController extends Controller
                     }
                     $Response['school_List'] = $schoolList;
 
-                    $AvailablePeerGroupIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$examId)
-                                                ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
+                    $AvailablePeerGroupIds = $this->ExamGradeClassMappingModel->where([
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $examId,
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                            ])
+                                            ->whereNotNull(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)
+                                            ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)
+                                            ->toArray();
+                    if(isset($request->exam_school_id) && !empty($request->exam_school_id)){
+                        $AvailablePeerGroupIds = $this->ExamGradeClassMappingModel->where([
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $examId,
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish',
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $request->exam_school_id
+                                                ])
                                                 ->whereNotNull(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)
                                                 ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)->toArray();
-                    if(isset($request->exam_school_id) && !empty($request->exam_school_id)){
-                        $AvailablePeerGroupIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$examId)
-                                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                                    ->whereNotNull(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)
-                                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$request->exam_school_id)
-                                                    ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)->toArray();
                     }
                     if(!empty($AvailablePeerGroupIds)){
                             foreach($AvailablePeerGroupIds as $peerGroupId){
@@ -282,21 +342,37 @@ class ClassTestReportController extends Controller
                         $peerGroupDataArray = $this->CommonController->getRoleBasedPeerGroupData($AvailablePeerGroupIds);
                         $Response['peer_group_list'] = $peerGroupDataArray;
                     }else{
-                        $AvailableGradesIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$examId)
-                                                ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
+                        $AvailableGradesIds =   $this->ExamGradeClassMappingModel->where([
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $examId,
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish',
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => (!empty($request->exam_school_id)) ? $request->exam_school_id : $schoolList[0]['id']
+                                                ])
                                                 ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL);
                         if(!empty($AvailableGradesIds)){
                             $GradeData = Grades::whereIn(cn::GRADES_ID_COL,$AvailableGradesIds)->get()->toArray();
                             $Response['grades_list'] = $GradeData ?? [];
                         }
-                        $AvailableClassIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$examId)
-                                                ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
+                        $AvailableClassIds =    $this->ExamGradeClassMappingModel->where([
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $examId,
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish',
+                                                    // 'school_id' => $schoolList[0]['id']
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => (!empty($request->exam_school_id)) ? $request->exam_school_id : $schoolList[0]['id']
+                                                ])
                                                 ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL);
                         if(!empty($AvailableClassIds)){
-                            $ClassData = GradeClassMapping::with('grade')->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)->where(cn::GRADE_CLASS_MAPPING_STATUS_COL,'active')->get()->toArray();
+                            $ClassData = GradeClassMapping::with('grade')
+                                        ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
+                                        ->where([
+                                            cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => (!empty($request->exam_school_id)) ? $request->exam_school_id : $schoolList[0]['id'],
+                                            cn::GRADE_CLASS_MAPPING_STATUS_COL => 'active'
+                                        ])
+                                        ->get()->toArray();                                        
                             $Response['class_list'] = $ClassData ?? [];
                         }
-                    }
+                    //}
                 }
             }
         }
@@ -306,7 +382,14 @@ class ClassTestReportController extends Controller
     /**
      * USE : Class test report, correct and incorrect (table version, correct/wrong)
      */
-    public function ClassTestResultCorrectIncorrectAnswers(Request $request){        
+    public function ClassTestResultCorrectIncorrectAnswers(Request $request){
+        $isRemainderEnable = false;
+        if(isset($request->isLoggedIn) && !empty($request->isLoggedIn)){
+            if($this->isSchoolLogin()){
+                $isRemainderEnable = Helper::isRemainderEnabledCheck();
+            }
+        }
+
         $getClasses = '';
         $GradeList = [];
         $ResultList = [];
@@ -321,48 +404,102 @@ class ClassTestReportController extends Controller
             if(isset($request->group_id) && !empty($request->group_id)){
                 $PeerGroupIds = $this->TeacherGradesClassService->GetTeachersPeerGroupIds(Auth::user()->{cn::USERS_ID_COL}, Auth::user()->{cn::USERS_SCHOOL_ID_COL});
                 if(!empty($PeerGroupIds)){
-                    $ExamPeerGroupIds = ExamGradeClassMappingModel::where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$request->exam_id)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                        ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$PeerGroupIds)->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL);
+                    $ExamPeerGroupIds = ExamGradeClassMappingModel::where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
+                                        ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$PeerGroupIds)
+                                        ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL);
                     if(!empty($ExamPeerGroupIds)){
-                        $PeerGroupList = PeerGroup::whereIn(cn::PEER_GROUP_ID_COL,$ExamPeerGroupIds->toArray())->where(cn::PEER_GROUP_STATUS_COL,1)->get();
+                        $PeerGroupList = PeerGroup::whereIn(cn::PEER_GROUP_ID_COL,$ExamPeerGroupIds->toArray())
+                                        ->where([
+                                            cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::PEER_GROUP_STATUS_COL => 1
+                                        ])->get();
                     }
-
+                    
                     // Find Peer Group Memeber selected by peer group
                     $PeerGroupMemberIds = PeerGroupMember::where([
+                                            cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                                             cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL => $request->group_id,
                                             cn::PEER_GROUP_MEMBERS_STATUS_COL => 1
                                         ])
                                         ->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL);
                     if(!empty($PeerGroupMemberIds)){
                         $PeerGroupMemberIds = $PeerGroupMemberIds->toArray();
-                        $studentList = User::whereIn(cn::USERS_ID_COL,$PeerGroupMemberIds)
-                                        ->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
-                                        ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                        ->with('grades')
+                        $studentList = User::with('grades')
+                                        ->whereIn(cn::USERS_ID_COL,$PeerGroupMemberIds)
+                                        ->where([
+                                            cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                            cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
+                                        ])
                                         ->pluck(cn::USERS_ID_COL)
                                         ->toArray();
                     }
                 }
             }
 
-            if(isset($request->grade_id) && !empty($request->class_type_id)){
+            if(isset($request->grade_id) && !empty($request->class_type_id)){  
                 //get All Teacher Assigned Classes 
                 $getClasses = $this->getClassesByRoles();
-
+                
                 $schoolId = $this->isTeacherLogin();
-                $GradeList = TeachersClassSubjectAssign::where([
-                                    cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->id
-                                ])->with('getClass')->pluck('class_id')->toArray();
-                $GradeList = Grades::where(cn::GRADES_ID_COL,$GradeList)->get();
+                $AvailableGradeIds =    $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
+                                        ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL)->toArray();
+                if(!empty($request->grade_id)){
+                    $AvailableGradeIds = (is_array($request->grade_id)) ? $request->grade_id : [$request->grade_id];
+                }                                        
+                // $GradeList =    TeachersClassSubjectAssign::with('getClass')
+                //                 ->where([
+                //                     cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                //                     cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL},
+                //                 ])
+                //                 ->whereIn( cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL,$AvailableGradeIds)
+                //                 ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)->toArray();
+
+                // $GradeList = Grades::whereIn(cn::GRADES_ID_COL,$GradeList)->get();
+                $GradeList = Grades::whereIn(cn::GRADES_ID_COL,$AvailableGradeIds)->get();
                 $gradeClassId = array();
-                $gradesListId = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)->toArray();
-                $gradeClass = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray();
+                $gradesListId = TeachersClassSubjectAssign::where([
+                                    cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                    cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}
+                                ])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)->toArray();
+                $gradeClass =   TeachersClassSubjectAssign::where([
+                                    cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                    cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}
+                                ])
+                                ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)
+                                ->toArray();
+                
                 if(isset($gradeClass) && !empty($gradeClass)){
                     $gradeClass = implode(',', $gradeClass);
                     $gradeClassId = explode(',',$gradeClass);
                 }
-                $studentList = User::whereIn(cn::USERS_GRADE_ID_COL,$gradesListId)->whereIn(cn::USERS_CLASS_ID_COL,$gradeClassId)->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->with('grades')->pluck('id')->toArray();
+                
+                // $studentList =  User::whereIn(cn::USERS_GRADE_ID_COL,$gradesListId)
+                //                 ->whereIn(cn::USERS_CLASS_ID_COL,$gradeClassId)
+                //                 ->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                //                 ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                //                 ->with('grades')
+                //                 ->pluck(cn::USERS_ID_COL)
+                //                 ->toArray();
+
+                $studentList =  User::with('grades')
+                                ->where([
+                                    cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
+                                ])
+                                ->get()
+                                ->whereIn('CurriculumYearGradeId',$gradesListId)
+                                ->whereIn('CurriculumYearClassId',$gradeClassId)
+                                ->pluck(cn::USERS_ID_COL)
+                                ->toArray();
             }
         }
         
@@ -376,11 +513,34 @@ class ClassTestReportController extends Controller
             if($this->isPrincipalLogin()){
                 $schoolId = $this->isPrincipalLogin();
             }
-            $GradeMapping = GradeSchoolMappings::with('grades')->where(cn::GRADES_MAPPING_SCHOOL_ID_COL, $schoolId)->get()->pluck(cn::GRADES_MAPPING_GRADE_ID_COL);
+            $AvailableGradeIds =    $this->ExamGradeClassMappingModel->where([
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId,
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                    ])
+                                    ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL)->toArray();
+            if(!empty($request->grade_id)){
+                $AvailableGradeIds = (is_array($request->grade_id)) ? $request->grade_id : [$request->grade_id];
+            }
+            $GradeMapping = GradeSchoolMappings::with('grades')
+                            ->where([
+                                cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                cn::GRADES_MAPPING_SCHOOL_ID_COL => $schoolId
+                            ])
+                            ->whereIn(cn::GRADES_MAPPING_GRADE_ID_COL,$AvailableGradeIds)
+                            ->get()
+                            ->pluck(cn::GRADES_MAPPING_GRADE_ID_COL);
             if(!empty($GradeMapping->toArray())){
                 $GradeList = Grades::whereIn(cn::GRADES_ID_COL,$GradeMapping->toArray())->get();
             }
-            $studentList = User::where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->with('grades')->pluck(cn::USERS_ID_COL)->toArray();
+            $studentList =  User::where([
+                                cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                                cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}
+                            ])                            
+                            ->with('grades')
+                            ->pluck(cn::USERS_ID_COL)
+                            ->toArray();
         }
 
         $grade_id = '';
@@ -389,14 +549,20 @@ class ClassTestReportController extends Controller
         $GradeClassListData = array();
         $schoolList = array();
         if($this->isAdmin() && isset($request->exam_id) && !empty($request->exam_id)){
+
             $examData = Exam::find($request->exam_id);
             if(!empty($examData->{cn::EXAM_TABLE_PARENT_EXAM_ID_COLS}) && $examData->{cn::EXAM_TABLE_CREATED_BY_USER_COL} == 'super_admin'){
-                $childExamsIds = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$examData->{cn::EXAM_TABLE_ID_COLS})->pluck(cn::EXAM_TABLE_ID_COLS)->toArray();
-                $childSchoolIds = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$examData->{cn::EXAM_TABLE_ID_COLS})->pluck(cn::EXAM_TABLE_SCHOOL_COLS)->toArray();
+                $childExamsIds = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$examData->{cn::EXAM_TABLE_ID_COLS})
+                                ->pluck(cn::EXAM_TABLE_ID_COLS)->toArray();
+                $childSchoolIds = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$examData->{cn::EXAM_TABLE_ID_COLS})
+                                ->pluck(cn::EXAM_TABLE_SCHOOL_COLS)->toArray();
                 $schoolList = array();
                 if(isset($childSchoolIds) && !empty($childSchoolIds)){
                     foreach($childSchoolIds as $key => $value){
-                        $schoolIds = School::where(cn::SCHOOL_ID_COLS,$value)->where(cn::SCHOOL_SCHOOL_STATUS,'active')->first();
+                        $schoolIds = School::where([
+                                        cn::SCHOOL_ID_COLS => $value,
+                                        cn::SCHOOL_SCHOOL_STATUS => 'active'
+                                    ])->first();
                         if(isset($schoolIds) && !empty($schoolIds)){
                             if($schoolIds->school_name_en != ""){
                                 $school_name = $this->decrypt($schoolIds->school_name_en);
@@ -408,8 +574,8 @@ class ClassTestReportController extends Controller
                     }
                 }
             }else{
-                $schoolList=array();
-                $schoolIds=$examData->{cn::EXAM_TABLE_SCHOOL_COLS};
+                $schoolList = array();
+                $schoolIds = $examData->{cn::EXAM_TABLE_SCHOOL_COLS};
                 if(isset($schoolIds) && !empty($schoolIds)){
                     $childSchoolIds = explode(',',$schoolIds);
                     if(isset($childSchoolIds) && !empty($childSchoolIds)){
@@ -421,7 +587,7 @@ class ClassTestReportController extends Controller
                                 }else{
                                     $school_name = $schoolIds->school_name;
                                 }
-                                array_push($schoolList,array('id'=>$schoolIds->id,'name'=>$school_name));
+                                array_push($schoolList,array('id' => $schoolIds->id,'name' => $school_name));
                             }
                         }
                     }
@@ -433,49 +599,125 @@ class ClassTestReportController extends Controller
             $grade_id = $request->grade_id;
             $filter = 1;
             if($this->isSchoolLogin() || $this->isPrincipalLogin()){
-                $GradeClassListData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$request->grade_id)
-                                        ->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
-                                        ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
-                                        ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
-                                        ->toArray();
-                $studentList = User::where(cn::USERS_GRADE_ID_COL,$request->grade_id)
-                                ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
+                $AvailableClassIds =    $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
+                                        ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();
+                if(!empty($request->class_type_id)){
+                    $AvailableClassIds = (is_array($request->class_type_id)) ? $request->class_type_id : [$request->class_type_id];
+                }
+                
+                $GradeClassListData = GradeClassMapping::where([
+                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->grade_id,
+                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId
+                                    ])
+                                    ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
+                                    ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
+                                    ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
+                                    ->toArray();
+                // $studentList = User::where(cn::USERS_GRADE_ID_COL,$request->grade_id)
+                //                 ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                //                 ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
+                //                 ->pluck(cn::USERS_ID_COL)->toArray();
+                $studentList =  User::where([
+                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                                    cn::USERS_SCHOOL_ID_COL => $schoolId
+                                ])
+                                ->get()
+                                ->where('CurriculumYearGradeId',$request->grade_id)
                                 ->pluck(cn::USERS_ID_COL)->toArray();
             }
+
+            // if($this->isTeacherLogin()){
+            //     $assignTeacherClasses = TeachersClassSubjectAssign::where([
+            //                                 cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+            //                                 cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $this->isTeacherLogin(),
+            //                                 cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth::user()->{cn::USERS_ID_COL}
+            //                             ])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray();
+            //     if(!empty($assignTeacherClasses)){
+            //         $AssignClass = implode(',',$assignTeacherClasses);
+            //         if(!empty($AssignClass)){
+            //             $GradeClassListData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+            //                                     ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,explode(',',$AssignClass))
+            //                                     ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
+            //                                     ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
+            //                                     ->toArray();
+            //             // $GradeClassListData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+            //             //                         ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,explode(',',$AssignClass))
+            //             //                         ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
+            //             //                         ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
+            //             //                         ->toArray();
+            //         }
+            //     }
+            //     // $studentList =  User::where([
+            //     //                     cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+            //     //                     cn::USERS_GRADE_ID_COL => $request->grade_id,
+            //     //                     cn::USERS_SCHOOL_ID_COL => $schoolId
+            //     //                 ])->pluck(cn::USERS_ID_COL)->toArray();
+            //     $studentList =  User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($request->grade_id,'',$schoolId))
+            //                         ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+            //                         ->pluck(cn::USERS_ID_COL)->toArray();
+            // }
             if($this->isTeacherLogin()){
-                $assignTeacherClasses = TeachersClassSubjectAssign::where([cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $this->isTeacherLogin(),cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth::user()->{cn::USERS_ID_COL}])->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray();
-                if(!empty($assignTeacherClasses)){
-                    $AssignClass = implode(',',$assignTeacherClasses);
-                    if(!empty($AssignClass)){
-                        $GradeClassListData = GradeClassMapping::whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,explode(',',$AssignClass))
-                                                ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
-                                                ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
-                                                ->toArray();
-                        $GradeClassListData = GradeClassMapping::whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,explode(',',$AssignClass))
-                                                ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
-                                                ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
-                                                ->toArray();
-                    }
+
+                $TeacherGradeClass = $this->TeacherGradesClassService->getTeacherAssignedGradesClass($schoolId, Auth::user()->{cn::USERS_ID_COL});
+                
+                $AvailableClassIds =  ExamGradeClassMappingModel::where([
+                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                                    ])
+                                                    ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,$TeacherGradeClass['class'])
+                                                    ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();
+                                                    
+                if(!empty($request->class_type_id)){
+                    $AvailableClassIds = (is_array($request->class_type_id)) ? $request->class_type_id : [$request->class_type_id];
                 }
-                $studentList = User::where(cn::USERS_GRADE_ID_COL,$request->grade_id)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->pluck(cn::USERS_ID_COL)->toArray();
+                if(!empty($AvailableGradeIds)){
+                    $AvailableGradeIds = (is_array($request->grade_id)) ? $request->grade_id : [$request->grade_id];
+                } 
+                
+                
+                $GradeClassListData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                                                        ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
+                                                        ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
+                                                        ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
+                                                        ->toArray();                                        
+                $studentList =  User::where(cn::USERS_ID_COL,$this->curriculum_year_mapping_student_ids($request->grade_id,'',$schoolId))
+                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                    ->pluck(cn::USERS_ID_COL)->toArray();                                         
             }
+
             if($this->isAdmin()){
-                $AvailableGradesIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$request->exam_id)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
+                $AvailableGradesIds =   $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL =>$this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
                                         ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL)->toArray();
 
-                $AvailableClassIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$request->exam_id)
-                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,$request->grade_id)
-                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
+                $AvailableClassIds = $this->ExamGradeClassMappingModel->where([
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL =>$this->GetCurriculumYear(),
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->grade_id,
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                    ])
                                     ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();
 
-                $AvailableStudentIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$request->exam_id)
-                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$request->grade_id)
-                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                    ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STUDENT_IDS_COL)->toArray();
+                $AvailableStudentIds =  $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL => $request->grade_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
+                                        ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STUDENT_IDS_COL)->toArray();
                 
-                $GradeClassListData = GradeClassMapping::whereIn(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$AvailableGradesIds)
+                $GradeClassListData =   GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                                        ->whereIn(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$AvailableGradesIds)
                                         ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
                                         ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
                                         ->toArray();
@@ -491,60 +733,155 @@ class ClassTestReportController extends Controller
 
         if(isset($request->grade_id) && !empty($request->grade_id) && isset($request->class_type_id) && !empty($request->class_type_id)){
             $filter=1;
-            $class_type_id = $request->class_type_id;
+            $class_type_id = is_array($request->class_type_id) ? $request->class_type_id : [$request->class_type_id];
+            
+            $GradeID = is_array($request->grade_id) ? $request->grade_id : [$request->grade_id];
             if($this->isSchoolLogin() || $this->isPrincipalLogin()){
-                $GradeClassMapping = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$request->grade_id)->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$request->class_type_id)->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)->pluck(cn::GRADE_CLASS_MAPPING_ID_COL)->toArray();
-                $studentList = User::where(cn::USERS_GRADE_ID_COL,$request->grade_id)->whereIn(cn::USERS_CLASS_ID_COL,$GradeClassMapping)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->pluck('id')->toArray();
+                $AvailableClassIds =    $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
+                                        ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,$class_type_id)
+                                        ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,$GradeID)
+                                        ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();
+                if(!empty($request->class_type_id)){
+                    $AvailableClassIds = (is_array($request->class_type_id)) ? $request->class_type_id : [$request->class_type_id];
+                }
+                if(!empty($AvailableGradeIds)){
+                    $AvailableGradeIds = (is_array($request->grade_id)) ? $request->grade_id : [$request->grade_id];
+                } 
+                $GradeClassMapping = GradeClassMapping::where([
+                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->grade_id,
+                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId
+                                    ])
+                                    ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
+                                    ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
+                                    ->pluck(cn::GRADE_CLASS_MAPPING_ID_COL)
+                                    ->toArray();
+                                    
+                // $studentList =  User::where(cn::USERS_GRADE_ID_COL,$request->grade_id)
+                //                 ->whereIn(cn::USERS_CLASS_ID_COL,$GradeClassMapping)
+                //                 ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                //                 ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
+                //                 ->pluck(cn::USERS_ID_COL)->toArray();
+                $studentList =  User::where([
+                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                                    cn::USERS_SCHOOL_ID_COL => $schoolId
+                                ])
+                                ->get()
+                                ->where('CurriculumYearGradeId',$request->grade_id)
+                                ->whereIn('CurriculumYearClassId',$GradeClassMapping)
+                                ->pluck(cn::USERS_ID_COL)->toArray();
             }
+
             if($this->isTeacherLogin()){
-                $GradeClassMapping = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$request->grade_id)->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$request->class_type_id)->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$this->isTeacherLogin())->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)->pluck(cn::GRADE_CLASS_MAPPING_ID_COL)->toArray();
-                $studentList = User::where(cn::USERS_GRADE_ID_COL,$request->grade_id)->whereIn(cn::USERS_CLASS_ID_COL,$GradeClassMapping)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->where(cn::USERS_SCHOOL_ID_COL,$schoolId)->pluck('id')->toArray();
+                $GradeClassMapping = GradeClassMapping::where([
+                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->grade_id,
+                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $this->isTeacherLogin()
+                                    ])
+                                    ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$request->class_type_id)
+                                    ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
+                                    ->pluck(cn::GRADE_CLASS_MAPPING_ID_COL)
+                                    ->toArray();
+                // $studentList =  User::where(cn::USERS_GRADE_ID_COL,$request->grade_id)
+                //                 ->whereIn(cn::USERS_CLASS_ID_COL,$GradeClassMapping)
+                //                 ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                //                 ->where(cn::USERS_SCHOOL_ID_COL,$schoolId)
+                //                 ->pluck('id')->toArray();
+                $studentList =  User::where([
+                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                                    cn::USERS_SCHOOL_ID_COL => $schoolId
+                                ])
+                                ->get()
+                                ->where('CurriculumYearGradeId',$request->grade_id)
+                                ->whereIn('CurriculumYearClassId',$GradeClassMapping)
+                                ->pluck(cn::USERS_ID_COL)->toArray();
             }
+
             if($this->isAdmin()){
                 $exam = Exam::find($request->exam_id);
                 $childExamsIds = array($request->exam_id);
                 if($exam->{cn::EXAM_TABLE_USE_OF_MODE_COLS} == 2 && $exam->{cn::EXAM_TABLE_CREATED_BY_USER_COL} == 'super_admin'){
                     $childExamsIds = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$request->exam_id)->pluck(cn::EXAM_TABLE_ID_COLS)->toArray();
                 }
-                $AvailableGradesIds = $this->ExamGradeClassMappingModel->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
+                $AvailableGradesIds =   $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
+                                        ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
                                         ->whereNotNull(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL)
                                         ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL)->toArray();
 
                 $GradeList = Grades::whereIn(cn::GRADES_ID_COL,$AvailableGradesIds)->get();
 
-                $AvailableClassIds = $this->ExamGradeClassMappingModel->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,$request->grade_id)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
+                $AvailableClassIds =    $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->grade_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
+                                        ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
                                         ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();
-                
-                $AvailableStudentIds = $this->ExamGradeClassMappingModel->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,$request->grade_id)
+                                
+                $AvailableStudentIds =  $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->grade_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
+                                        ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
                                         ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,$request->class_type_id)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
                                         ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STUDENT_IDS_COL)->toArray();
-                $GradeClassMapping = GradeClassMapping::whereIn(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$AvailableGradesIds)
-                                        ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
-                                        ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
-                                        ->pluck(cn::GRADE_CLASS_MAPPING_ID_COL)
-                                        ->toArray();
 
-                $GradeClassMappingName = GradeClassMapping::whereIn(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$AvailableGradesIds)
-                                            ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
-                                            ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
-                                            ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL)
-                                            ->toArray();
-                $GradeClassListData = GradeClassMapping::whereIn(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$AvailableGradesIds)
-                                        ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
-                                        ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
-                                        ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
-                                        ->toArray();
+                // $GradeClassMapping =    GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                //                         ->whereIn(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$AvailableGradesIds)
+                //                         ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
+                //                         ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
+                //                         ->pluck(cn::GRADE_CLASS_MAPPING_ID_COL)
+                //                         ->toArray();
+
+                // $GradeClassMappingName = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                //                         ->whereIn(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$AvailableGradesIds)
+                //                         ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
+                //                         ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
+                //                         ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL)
+                //                         ->toArray();
+
+                // $GradeClassListData =   GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                //                         ->whereIn(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$AvailableGradesIds)
+                //                         ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
+                //                         ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
+                //                         ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
+                //                         ->toArray();
+
+                $ClassIds = $this->ExamGradeClassMappingModel->with('grade_class_mapping')
+                            ->where([
+                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->grade_id,
+                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish',
+                                'school_id' => $request->exam_school_id
+                            ])
+                            ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
+                            ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();
+                                                    //echo '<pre>';print_r($ClassIds);die;
+
+                $GradeClassListData =   GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                                                        ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$ClassIds)
+                                                        ->groupBy(cn::GRADE_CLASS_MAPPING_NAME_COL)
+                                                        ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
+                                                        ->toArray();
                 if(isset($AvailableStudentIds) && !empty($AvailableStudentIds)){
                     $AvailableStudentIds = implode(',',$AvailableStudentIds);
-                    $studentList = User::whereIn(cn::USERS_ID_COL,explode(',',$AvailableStudentIds))->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
+                    $studentList =  User::whereIn(cn::USERS_ID_COL,explode(',',$AvailableStudentIds))
+                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                    ->pluck(cn::USERS_ID_COL)
+                                    ->toArray();
                 }
             }
         }
+
         if(isset($request->group_id) && !empty($request->group_id)){
             $group_id = $request->group_id;
             $school_id = Auth::user()->{cn::USERS_SCHOOL_ID_COL};
@@ -557,32 +894,55 @@ class ClassTestReportController extends Controller
                 if($exam->{cn::EXAM_TABLE_USE_OF_MODE_COLS} == 2 && $exam->{cn::EXAM_TABLE_CREATED_BY_USER_COL} == 'super_admin'){
                     $childExamsIds = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$request->exam_id)->pluck(cn::EXAM_TABLE_ID_COLS)->toArray();
                     $PeerGroupIds = ExamGradeClassMappingModel::whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
-                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
+                                    ->where([
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                    ])
                                     ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL);
                 }else{
                     $examId = $request->exam_id;
-                    $PeerGroupIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$examId)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                        ->whereNotNull(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)
-                                        ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)->toArray();
+                    $PeerGroupIds = $this->ExamGradeClassMappingModel->where([
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $examId,
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                    ])
+                                    ->whereNotNull(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)
+                                    ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)->toArray();
+
                     if(isset($request->exam_school_id) && !empty($request->exam_school_id)){
-                        $PeerGroupIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$examId)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
+                        $PeerGroupIds = $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $examId,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $request->exam_school_id,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
                                         ->whereNotNull(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)
-                                        ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$request->exam_school_id)
                                         ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)->toArray();
                     }
                 }
-                $PeerGroupList = PeerGroup::whereIn(cn::PEER_GROUP_ID_COL,$PeerGroupIds)->where(cn::PEER_GROUP_STATUS_COL,1)->get();
-                $PeerGroupStudentIds = PeerGroupMember::where(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$request->group_id)->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->toArray();
+                $PeerGroupList = PeerGroup::whereIn(cn::PEER_GROUP_ID_COL,$PeerGroupIds)
+                                ->where([
+                                    cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                    cn::PEER_GROUP_STATUS_COL => 1
+                                ])->get();
+                $PeerGroupStudentIds =  PeerGroupMember::where([
+                                            cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL => $request->group_id
+                                        ])
+                                        ->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->toArray();
                 if(isset($PeerGroupStudentIds) && !empty($PeerGroupStudentIds)){
                     if($exam->{cn::EXAM_TABLE_USE_OF_MODE_COLS} == 2 && $exam->{cn::EXAM_TABLE_CREATED_BY_USER_COL} == 'super_admin'){
-                        $studentListPeerGroup = User::whereIn(cn::USERS_ID_COL,$PeerGroupStudentIds)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
+                        $studentListPeerGroup = User::whereIn(cn::USERS_ID_COL,$PeerGroupStudentIds)
+                                                ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                                ->pluck(cn::USERS_ID_COL)->toArray();
                         if(isset($studentList) && !empty($studentList)){
                             $studentList = array_values(array_unique(array_merge($studentList,$studentListPeerGroup)));
                         }
                     }else{
-                        $studentList = User::whereIn(cn::USERS_ID_COL,$PeerGroupStudentIds)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
+                        $studentList =  User::whereIn(cn::USERS_ID_COL,$PeerGroupStudentIds)
+                                        ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                        ->pluck(cn::USERS_ID_COL)
+                                        ->toArray();
                     }
                 }else{
                     $studentList = array();
@@ -597,14 +957,27 @@ class ClassTestReportController extends Controller
                 if($this->isPrincipalLogin()){
                     $schoolId = $this->isPrincipalLogin();
                 }
-                $PeerGroupIds = ExamGradeClassMappingModel::where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$request->exam_id)
-                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$schoolId)
-                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                    ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)->toArray();
-                $PeerGroupList = PeerGroup::whereIn(cn::PEER_GROUP_ID_COL,$PeerGroupIds)->where(cn::PEER_GROUP_STATUS_COL,1)->get();
-                $PeerGroupStudentIds = PeerGroupMember::where(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$request->group_id)->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->toArray();
+                $PeerGroupIds = ExamGradeClassMappingModel::where([
+                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $request->exam_id,
+                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $schoolId,
+                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                ])
+                                ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL)->toArray();
+                $PeerGroupList = PeerGroup::whereIn(cn::PEER_GROUP_ID_COL,$PeerGroupIds)
+                                ->where([
+                                    cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                    cn::PEER_GROUP_STATUS_COL => 1
+                                ])
+                                ->get();
+                $PeerGroupStudentIds =  PeerGroupMember::where([
+                                            cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL => $request->group_id
+                                        ])->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->toArray();
                 if(isset($PeerGroupStudentIds) && !empty($PeerGroupStudentIds)){
-                    $studentList = User::whereIn(cn::USERS_ID_COL,$PeerGroupStudentIds)->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)->pluck(cn::USERS_ID_COL)->toArray();
+                    $studentList =  User::whereIn(cn::USERS_ID_COL,$PeerGroupStudentIds)
+                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                    ->pluck(cn::USERS_ID_COL)->toArray();
                 }else{
                     $studentList = array();
                 }
@@ -618,35 +991,48 @@ class ClassTestReportController extends Controller
                 $currentLoggedSchoolId = $this->isTeacherLogin();
                 $TeacherGradeClass = $this->TeacherGradesClassService->getTeacherAssignedGradesClass($currentLoggedSchoolId, Auth::user()->{cn::USERS_ID_COL});
                 if(!empty($TeacherGradeClass)){
-                    $AvailableGradesIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$currentLoggedSchoolId)
+                    $AvailableGradesIds =   $this->ExamGradeClassMappingModel->where([
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $currentLoggedSchoolId,
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL =>'publish'
+                                            ])
                                             ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,$TeacherGradeClass['grades'])
-                                            ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                            ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL)->toArray();
-
-                    $AvailableClassIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$currentLoggedSchoolId)
-                                            ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,$TeacherGradeClass['class'])
-                                            ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                            ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();
-                                            
-                    $AvailableGradesClassExamIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$currentLoggedSchoolId)
+                                            ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL)->toArray();                        
+                    $AvailableClassIds = $this->ExamGradeClassMappingModel->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $currentLoggedSchoolId,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
+                                        ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,$TeacherGradeClass['class'])
+                                        ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();  
+                    $AvailableGradesClassExamIds =  $this->ExamGradeClassMappingModel->where([
+                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $currentLoggedSchoolId,
+                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL=>'publish'
+                                                    ])
                                                     ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,$AvailableGradesIds)
                                                     ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,$AvailableClassIds)
-                                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
                                                     ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL)->toArray();
 
                     $TeacherPeerGroupIds = $this->TeacherGradesClassService->GetTeachersPeerGroupIds(Auth::user()->{cn::USERS_ID_COL}, $currentLoggedSchoolId);
-                    $AvailablePeerGroupExamIds = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$currentLoggedSchoolId)
-                                                    ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$TeacherPeerGroupIds)
-                                                    ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL,'publish')
-                                                    ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL)->toArray();
-
+                    $AvailablePeerGroupExamIds = $this->ExamGradeClassMappingModel->where([
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL=>$currentLoggedSchoolId,
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                                ])
+                                                ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$TeacherPeerGroupIds)
+                                                ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL)->toArray();
                     $examIds = array_merge($AvailableGradesClassExamIds,$AvailablePeerGroupExamIds);
-
                     $examIds = array_values(array_unique($examIds));
-
-                    $findSchoolExamIds = $this->ExamSchoolMapping->where([cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $examIds, cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'])->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL)->toArray();          
+                    $findSchoolExamIds = $this->ExamSchoolMapping->where([
+                                            cn::EXAM_SCHOOL_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $examIds,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                        ])
+                                        ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL)->toArray();          
                 }
             }
+
             if($this->isSchoolLogin()){
                 $currentLoggedSchoolId = $this->isSchoolLogin();
             }
@@ -656,36 +1042,68 @@ class ClassTestReportController extends Controller
             if(empty($findSchoolExamIds)){
                 $findSchoolExamIds = $this->ExamSchoolMapping->where([cn::EXAM_SCHOOL_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}, cn::EXAM_SCHOOL_MAPPING_STATUS_COL => 'publish'])->pluck(cn::EXAM_SCHOOL_MAPPING_EXAM_ID_COL)->toArray();
             }
+
             // Get Self-Learning Exam ids
             $selfLearningExamIds = [];
-            $selfLearningExamIds = Exam::whereRaw("find_in_set($currentLoggedSchoolId,school_id)")->where(cn::EXAM_TABLE_STATUS_COLS,'publish')->pluck('id')->toArray();
+            $selfLearningExamIds =  Exam::whereRaw("find_in_set($currentLoggedSchoolId,school_id)")
+                                    ->where([
+                                        cn::EXAM_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::EXAM_TABLE_STATUS_COLS => 'publish'
+                                    ])
+                                    ->pluck(cn::EXAM_TABLE_ID_COLS)
+                                    ->toArray();
 
-            $removeSelfLearningExamIds = Exam::whereRaw("find_in_set($currentLoggedSchoolId,school_id)")->where(cn::EXAM_TABLE_STATUS_COLS,'publish')->where('use_of_mode',2)->where(cn::EXAM_TABLE_CREATED_BY_USER_COL,'super_admin')->whereNull(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS)->pluck('id')->toArray();
+            $removeSelfLearningExamIds =    Exam::whereRaw("find_in_set($currentLoggedSchoolId,school_id)")
+                                            ->where([
+                                                cn::EXAM_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                cn::EXAM_TABLE_CREATED_BY_USER_COL => 'super_admin',
+                                                cn::EXAM_TABLE_USE_OF_MODE_COLS => 2,
+                                                cn::EXAM_TABLE_STATUS_COLS => 'publish'
+                                            ])
+                                            ->whereNull(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS)
+                                            ->pluck(cn::EXAM_TABLE_ID_COLS)->toArray();
 
-            $ExamList = Exam::whereIn(cn::EXAM_TABLE_ID_COLS,array_merge($findSchoolExamIds,$selfLearningExamIds))->whereNotIn(cn::EXAM_TABLE_ID_COLS,$removeSelfLearningExamIds)->where(cn::EXAM_TABLE_STATUS_COLS,'publish')->get();
+            $ExamList = Exam::whereIn(cn::EXAM_TABLE_ID_COLS,array_merge($findSchoolExamIds,$selfLearningExamIds))
+                        ->whereNotIn(cn::EXAM_TABLE_ID_COLS,$removeSelfLearningExamIds)
+                        ->where([
+                            cn::EXAM_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                            cn::EXAM_TABLE_STATUS_COLS => 'publish'
+                        ])->get();
         }else{
             $ExamList = Exam::where(function($query){
                             $query->whereIn(cn::EXAM_TABLE_USE_OF_MODE_COLS,[1,2])
-                            ->whereNull(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS);
+                            // ->whereNotNull(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS)
+                            ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                            ->where(cn::EXAM_TABLE_STATUS_COLS,'publish');
                         })
                         ->orWhere(cn::EXAM_TABLE_CREATED_BY_USER_COL,'student')
                         ->orderBy(cn::EXAM_TABLE_ID_COLS,'DESC')
-                        ->where(cn::EXAM_TABLE_STATUS_COLS,'publish')
+                        ->where([
+                            cn::EXAM_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                            cn::EXAM_TABLE_STATUS_COLS => 'publish'
+                        ])
                         ->get();
-        }
-        
+        }        
         $QuestionSkills = [];
         $studentCount = 0;
         $ExamData = '';
         $peerGroupData = collect();
         if(isset($request->filter)){
             if(isset($request->school_id)){
-                $ExamData = Exam::where(cn::EXAM_TABLE_ID_COLS,$request->exam_id)->whereRaw("find_in_set($request->school_id,school_id)")->first();
+                $ExamData = Exam::where([
+                                cn::EXAM_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                cn::EXAM_TABLE_ID_COLS => $request->exam_id
+                            ])
+                            ->whereRaw("find_in_set($request->school_id,school_id)")->first();
             }else if($this->isSchoolLogin() || $this->isTeacherLogin() || $this->isPrincipalLogin()){
-                $ExamData = Exam::where(cn::EXAM_TABLE_ID_COLS,$request->exam_id)->whereRaw("find_in_set($currentLoggedSchoolId,school_id)")->first();
+                $ExamData = Exam::where([
+                                cn::EXAM_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                cn::EXAM_TABLE_ID_COLS => $request->exam_id
+                            ])
+                            ->whereRaw("find_in_set($currentLoggedSchoolId,school_id)")->first();
             }else{
                 if($this->isAdmin()){
-                    $getClasses = $this->getClassesByRoles($request->exam_id);
+                    $getClasses = $this->getClassesByRoles($request->exam_id,$request->exam_school_id,$request->grade_id);
                 }
                 $ExamData = Exam::find($request->exam_id);
             }
@@ -694,16 +1112,27 @@ class ClassTestReportController extends Controller
                 if(!empty($ExamData->peer_group_ids)){
                     $peerGroupIDs = explode(',',$ExamData->peer_group_ids);
                     if($this->isTeacherLogin()){
-                        $peerGroupData = PeerGroup::whereIn(cn::PEER_GROUP_ID_COL,$peerGroupIDs)->where(cn::PEER_GROUP_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::PEER_GROUP_CREATED_BY_USER_ID_COL,Auth::user()->{cn::USERS_ID_COL})->get();
+                        $peerGroupData =    PeerGroup::whereIn(cn::PEER_GROUP_ID_COL,$peerGroupIDs)
+                                            ->where([
+                                                cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                cn::PEER_GROUP_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                                cn::PEER_GROUP_CREATED_BY_USER_ID_COL => Auth::user()->{cn::USERS_ID_COL}
+                                            ])
+                                            ->get();
                     }
                     if($this->isSchoolLogin() || $this->isPrincipalLogin()){
-                        $peerGroupData = PeerGroup::whereIn(cn::PEER_GROUP_ID_COL,$peerGroupIDs)->where(cn::PEER_GROUP_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->get();
+                        $peerGroupData = PeerGroup::whereIn(cn::PEER_GROUP_ID_COL,$peerGroupIDs)
+                                        ->where([
+                                            cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::PEER_GROUP_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}
+                                        ])
+                                        ->get();
                     }
                     if($this->isAdmin()){
-                        $peerGroupData = PeerGroup::whereIn(cn::PEER_GROUP_ID_COL,$peerGroupIDs)->get();
-                        // echo '<pre>';print_r($peerGroupData->toArray());die;
+                        $peerGroupData = PeerGroup::where(cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())->whereIn(cn::PEER_GROUP_ID_COL,$peerGroupIDs)->get();
                     }
                 }
+
                 if(!empty($ExamData->student_ids)){
                     $studentIds = explode(',',$ExamData->student_ids);
                     if($ExamData->exam_type == 2 || $ExamData->exam_type == 3){
@@ -722,29 +1151,30 @@ class ClassTestReportController extends Controller
                         }
                     }
                     $exam = Exam::find($request->exam_id);
-                    $examType = $exam->exam_type;
-                    $childExamsIds=array($request->exam_id);
+                    $examType = $exam->{cn::EXAM_TYPE_COLS};
+                    $childExamsIds = array($request->exam_id);
                     if($exam->{cn::EXAM_TABLE_USE_OF_MODE_COLS} == 2 && $exam->{cn::EXAM_TABLE_CREATED_BY_USER_COL} == 'super_admin' && $this->isAdmin()){
                         $childExamsIds = Exam::where(cn::EXAM_TABLE_PARENT_EXAM_ID_COLS,$request->exam_id)->pluck(cn::EXAM_TABLE_ID_COLS)->toArray();
                     }
-                    // dd($studentIds);
                     foreach($childExamsIds as $ExamsIds){
                         $ExamData = Exam::find($ExamsIds);
                         foreach($studentIds as $studentKey => $studentId){
                             if($this->isPrincipalLogin() ||$this->isSchoolLogin() || $this->isTeacherLogin() && $this->isSchoolStudent($studentId) || $this->isAdmin()){
                                 // Get correct answer detail
-                                $AttemptExamData = AttemptExams::where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentId)->where(cn::ATTEMPT_EXAMS_EXAM_ID,$ExamData->id)->first();
+                                $AttemptExamData =  AttemptExams::where([
+                                                        cn::ATTEMPT_EXAMS_EXAM_ID => $ExamData->{cn::EXAM_TABLE_ID_COLS},
+                                                        cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $studentId
+                                                    ])->first();
                                 if(isset($AttemptExamData) && !empty($AttemptExamData)){
-                                    // $StudentDetail = User::find($studentId);
                                     if($this->isAdmin()){
-                                        $StudentDetail = User::where(['id'=> $studentId,'school_id' =>$request->exam_school_id])->first();
+                                        $StudentDetail = User::where([cn::USERS_ID_COL => $studentId,cn::USERS_SCHOOL_ID_COL => $request->exam_school_id])->first();
                                     }else{
-                                        $StudentDetail = User::where(['id'=> $studentId,'school_id' => Auth::user()->school_id])->first();
+                                        $StudentDetail = User::where([cn::USERS_ID_COL => $studentId,cn::USERS_SCHOOL_ID_COL => Auth::user()->school_id])->first();
                                     }
                                     if(isset($StudentDetail) && !empty($StudentDetail)){
                                         $ResultList[$studentKey]['exam_id'] = $ExamData->id;
-                                        $ResultList[$studentKey]['student_grade'] = $StudentDetail->grade_id ?? 0;
-                                        $ResultList[$studentKey]['class_student_number'] = $StudentDetail->class_student_number ?? 'N/A';
+                                        $ResultList[$studentKey]['student_grade'] = $StudentDetail->CurriculumYearGradeId ?? 0;
+                                        $ResultList[$studentKey]['class_student_number'] = $StudentDetail->CurriculumYearData['class_student_number'] ?? 'N/A';
                                         $ResultList[$studentKey]['student_number'] = $StudentDetail->id;
                                         $ResultList[$studentKey]['student_name'] = ($StudentDetail->name_en) ? $this->decrypt($StudentDetail->name_en) : $StudentDetail->name;
                                         $ResultList[$studentKey]['student_status'] = 'Active';
@@ -844,7 +1274,7 @@ class ClassTestReportController extends Controller
             if(!empty($ResultList)){
                 $NaturalOrder = [];
                 // Set Natural ordering
-                for($i=1;$i<=count($ResultList);$i++){
+                for($i=1; $i <= count($ResultList); $i++){
                     $NaturalOrder[] = $i;
                 }
                 $StudentAccuracyRank = array_column($ResultList,'student_normalize_accuracy');
@@ -904,10 +1334,9 @@ class ClassTestReportController extends Controller
         }else{
             usort($ResultList, $this->make_comparer(['student_name', SORT_ASC]));
         }
-        
         return view('backend/reports/class_test_result_correct_incorrect',compact('examType','peerGroupData','getClasses','SchoolList','GradeList','ExamList',
         'ResultList','QuestionSkills','ExamData','studentsRanks','grade_id','class_type_id','group_id','GradeClassListData','QuestionAnswerData',
-        'PeerGroupList','schoolList'));
+        'PeerGroupList','schoolList','isRemainderEnable'));
     }
 
     /**
@@ -1200,5 +1629,316 @@ class ClassTestReportController extends Controller
             usort($ResultList, $this->make_comparer(['student_name', SORT_ASC]));
         }
         return view('backend/reports/student_correct_incorrect_report',compact('SchoolList','GradeList','ExamList','ResultList','QuestionSkills','ExamData','studentsRanks','grade_id','class_type_id','GradeClassListData'));
+    }
+
+    /**
+     * USE : Get the student progress reports
+     */
+    public function ProgressReport(Request $request){
+        try{
+            if(isset($request->ExamId) && !empty($request->ExamId)){
+                $SchoolId = $request->SchoolId ?? Auth::user()->{cn::USERS_SCHOOL_ID_COL};
+                // Check exam is assigning via peer-group
+                $ExamGradeClassQuery =  ExamGradeClassMappingModel::select(DB::raw('group_concat(student_ids) as student_ids'))
+                                        ->where([
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL  => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL             => $request->ExamId,
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL           => $SchoolId
+                                        ]);
+                if(isset($request->PeerGroupId) && !empty($request->PeerGroupId)){
+                    $ExamGradeClassQuery->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$request->PeerGroupId);
+                }
+
+                // Check exam is assign via grade or class
+                if(isset($request->GradeId) && !empty($request->ClassIds)){
+                    $ExamGradeClassQuery->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,$request->GradeId)
+                    ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,$request->ClassIds);
+                }
+                // Run query
+                $ExamGradeClassData = $ExamGradeClassQuery->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STUDENT_IDS_COL);
+                if(isset($ExamGradeClassData) && !empty($ExamGradeClassData)){
+                    $StudentIds = explode(',',$ExamGradeClassData[0]);
+                }
+
+                $dataTable = '';
+                // After getting all the assigned students
+                if(isset($StudentIds) && !empty($StudentIds)){
+                    foreach($StudentIds as $studentId){
+                        // Get correct answer detail
+                        $User = User::find($studentId);
+                        $AttemptExamData =  AttemptExams::where([
+                                                cn::ATTEMPT_EXAMS_EXAM_ID => $request->ExamId,
+                                                cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $studentId,
+                                            ])->first();
+                        if(isset($User) && !empty($User)){
+                            $student_name = $this->decrypt($User->{cn::USERS_NAME_EN_COL});
+                            $classStudentNumber = ($User->CurriculumYearData[cn::USERS_CLASS_STUDENT_NUMBER]) ?? 'N/A';
+                            if(app()->getLocale() == 'ch'){
+                                $student_name = mb_convert_encoding($this->decrypt($User->{cn::USERS_NAME_CH_COL}), 'UTF-8', 'UTF-8');
+                            }
+                            if(isset($AttemptExamData) && !empty($AttemptExamData)){
+                                $dataTable.='<tr><td>'.$student_name.'</td><td>'.$classStudentNumber.'</td><td>'.$User->email.'</td><td><span class="badge badge-success">Complete</span></td></tr>';
+                            }else{
+                                $dataTable.='<tr><td>'.$student_name.'</td><td>'.$classStudentNumber.'</td><td>'.$User->email.'</td><td><span class="badge badge-warning">Pending</span></td></tr>';
+                            }
+                        }
+                    }
+                }
+                return $this->sendResponse($dataTable);
+            }else{
+                return $this->sendError('Please select exams', 422);
+            }
+        }catch(Exception $exception){
+            return $this->sendError($exception->getMessage(), 404);
+        }
+    }
+
+    /**
+     * USE : Get the class ability analysis reports
+     */
+    public function ClassAbilityAnalysisReport(Request $request){
+        $response = [];
+        $studentAbility = [];
+        $studentidlist = array();
+        if(isset($request->ExamId) && !empty($request->ExamId)){
+
+            $isGroup = (isset($isGroup) && !empty($isGroup)) ? true : false;
+
+            $schoolId = $request->SchoolId ?? Auth::user()->{cn::USERS_SCHOOL_ID_COL};
+
+            // Check exam is assigning via peer-group
+            $ExamGradeClassQuery =  ExamGradeClassMappingModel::select(DB::raw('group_concat(student_ids) as student_ids'))
+                                    ->where([
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL  => $this->GetCurriculumYear(),
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL             => $request->ExamId,
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL           => $schoolId
+                                    ]);
+            if(isset($request->PeerGroupId) && !empty($request->PeerGroupId)){
+                $ExamGradeClassQuery->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$request->PeerGroupId);
+            }
+
+            // Check exam is assign via grade or class
+            if(isset($request->GradeId) && !empty($request->ClassIds)){
+                $ExamGradeClassQuery->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,$request->GradeId)
+                ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,$request->ClassIds);
+            }
+            // Run query
+            $ExamGradeClassData = $ExamGradeClassQuery->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STUDENT_IDS_COL);
+            if(isset($ExamGradeClassData) && !empty($ExamGradeClassData)){
+                $StudentIds = explode(',',$ExamGradeClassData[0]);
+            }
+
+            // Get Other students
+            if($this->isAdmin() || $this->isSchoolLogin() || $this->isPrincipalLogin()){
+                $studentidlist = User::where(cn::USERS_SCHOOL_ID_COL,$schoolId)
+                                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                    ->pluck(cn::USERS_ID_COL)
+                                    ->toArray();
+            }
+
+            if($this->isTeacherLogin()){
+                $gradesListId = TeachersClassSubjectAssign::where([
+                                    cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                    cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}
+                                ])
+                                ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL)
+                                ->toArray();
+                $gradeClass = TeachersClassSubjectAssign::where([
+                                cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => Auth()->user()->{cn::USERS_ID_COL}
+                            ])
+                            ->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray();
+                if(isset($gradeClass) && !empty($gradeClass)){
+                    $gradeClass = implode(',', $gradeClass);
+                    $gradeClassId = explode(',',$gradeClass);
+                }
+                $studentidlist = User::where([
+                                    cn::USERS_SCHOOL_ID_COL => $schoolId,
+                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
+                                ])
+                                ->get()
+                                ->whereIn('CurriculumYearGradeId',$gradesListId)
+                                ->whereIn('CurriculumYearClassId',$gradeClassId)
+                                ->pluck(cn::USERS_ID_COL)
+                                ->toArray();
+            }
+
+            // Merge Students
+            $TeachersStudentIdList = array_intersect($StudentIds,$studentidlist);
+            
+            // Get Data based on types of graph option select
+            switch ($request->graph_type) {
+                case 'my-school':
+                    // Calculation for my-class graph functionality
+                    $examData = Exam::find($request->ExamId);
+                    $totalQuestion = explode(',',$examData->question_ids);
+                    if(isset($TeachersStudentIdList) && !empty($TeachersStudentIdList)){
+                        foreach($TeachersStudentIdList as $studentid){
+                            $ExamAttemptData =  AttemptExams::where([
+                                                    cn::ATTEMPT_EXAMS_EXAM_ID => $request->ExamId,
+                                                    cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $studentid
+                                                ])
+                                                ->first();
+                            if(isset($ExamAttemptData) && !empty($ExamAttemptData)){
+                                $studentAbility[] = $ExamAttemptData->student_ability;
+                            }
+                        }
+                    }
+                    $dataList2 = array();
+                    
+                    if(isset($studentidlist) && !empty($studentidlist)){
+                        foreach ($studentidlist as $studentid_id) {
+                            $ExamAttemptData =  AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$request->ExamId)
+                                                ->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentid_id)
+                                                ->first();
+                            if(isset($ExamAttemptData) && !empty($ExamAttemptData)){
+                                $dataList2[] = $ExamAttemptData->student_ability;
+                            }
+                        }
+                    }
+
+                    // Call to ALP AI My School Ability Analysis Graph API
+                    if(isset($studentAbility) && !empty($studentAbility)){
+                        $requestPayload = new Request();
+                        $requestPayload = $requestPayload->replace([
+                            'data_list1' => array_values(array_map('floatval', $studentAbility)),
+                            'data_list2' => array_values(array_map('floatval', $dataList2)),
+                            "format" => "base64",
+                            'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_My_School_Ability.uri'),$isGroup)
+                        ]);
+                        $response = $this->AIApiService->Plot_Analyze_My_School_Ability($requestPayload);
+                    }
+                break;
+                case 'all-school':
+                    // Calculation for my-class graph functionality
+                    $examData = Exam::find($request->ExamId);
+                    $totalQuestion = explode(',',$examData->question_ids);
+                    if(isset($TeachersStudentIdList) && !empty($TeachersStudentIdList)){
+                        foreach($TeachersStudentIdList as $studentid){
+                            $ExamAttemptData =  AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$request->ExamId)
+                                                ->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentid)
+                                                ->first();
+                            if(isset($ExamAttemptData) && !empty($ExamAttemptData)){
+                                $studentAbility[] = $ExamAttemptData->student_ability;
+                            }
+                        }
+                    }
+                    $dataList2 = array();
+                    $studentidlist = User::where([
+                                        cn::USERS_SCHOOL_ID_COL => $schoolId,
+                                        cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID
+                                    ])
+                                    ->pluck(cn::USERS_ID_COL)->toArray();
+                    if(isset($studentidlist) && !empty($studentidlist)){
+                        foreach($studentidlist as $studentid_id){
+                            $ExamAttemptData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$request->ExamId)->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$studentid_id)->first();
+                            if(isset($ExamAttemptData) && !empty($ExamAttemptData)){
+                                $dataList2[] = $ExamAttemptData->student_ability;
+                            }
+                        }
+                    }
+
+                    $dataList3 = array();
+                    $student_id_all = explode(',',$examData->student_ids);
+                    if(isset($student_id_all) && !empty($student_id_all)){
+                        foreach ($student_id_all as $studentid_id) {
+                            $ExamAttemptData =  AttemptExams::where([
+                                                    cn::ATTEMPT_EXAMS_EXAM_ID => $request->ExamId,
+                                                    cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $studentid_id
+                                                ])->first();
+                            if(isset($ExamAttemptData) && !empty($ExamAttemptData)){
+                                $dataList3[] = $ExamAttemptData->student_ability;
+                            }
+                        }
+                    }
+
+                    // Call to ALP AI My School Ability Analysis Graph API
+                    if(isset($studentAbility) && !empty($studentAbility)){
+                        $requestPayload = new Request();
+                        $requestPayload = $requestPayload->replace([
+                            'data_list1' => array_values(array_map('floatval', $studentAbility)),
+                            'data_list2' => array_values(array_map('floatval', $dataList2)),
+                            'data_list3' => array_values(array_map('floatval', $dataList3)),
+                            'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_All_Schools_Ability.uri'), $isGroup),
+                            "format" => "base64"
+                        ]);
+                        $response = $this->AIApiService->Plot_Analyze_All_Schools_Ability($requestPayload);
+                    }
+                    break;
+                default:  // My-class
+                    // Calculation for my-class graph functionality
+                    $examData = Exam::find($request->ExamId);
+                    $totalQuestion = explode(',',$examData->question_ids);
+                    if(isset($TeachersStudentIdList) && !empty($TeachersStudentIdList)){
+                        foreach($TeachersStudentIdList as $studentid){
+                            $ExamAttemptData =  AttemptExams::where([
+                                                    cn::ATTEMPT_EXAMS_EXAM_ID => $request->ExamId,
+                                                    cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $studentid
+                                                ])->first();
+                            if(isset($ExamAttemptData) && !empty($ExamAttemptData)){
+                                $studentAbility[] = $ExamAttemptData->student_ability;
+                            }
+                        }
+                    }
+                    
+                    // Call to ALP AI Performance Analysis Graph API
+                    if(isset($studentAbility) && !empty($studentAbility)){
+                        $requestPayload = new Request();
+                        $requestPayload = $requestPayload->replace([
+                            'data_list' => array_values(array_map('floatval', $studentAbility)),
+                            "format" => "base64",
+                            'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_My_Class_Ability.uri'),$isGroup)
+                        ]);
+                        $response = $this->AIApiService->Plot_Analyze_My_Class_Ability($requestPayload);
+                    }
+            }
+        }
+        return $this->sendResponse($response);
+    }
+
+    /**
+     * USE : Get the test summary reports
+     */
+    public function TestSummaryReport(Request $request){
+        if(isset($request->examId) && !empty($request->examId)){
+            $SchoolId = $request->SchoolId ?? Auth::user()->{cn::USERS_SCHOOL_ID_COL};
+            // Check exam is assigning via peer-group
+            $ExamGradeClassQuery =  ExamGradeClassMappingModel::select(DB::raw('group_concat(student_ids) as student_ids'))
+                                    ->where([
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL  => $this->GetCurriculumYear(),
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL             => $request->examId,
+                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL           => $SchoolId
+                                    ]);
+            if(isset($request->PeerGroupId) && !empty($request->PeerGroupId)){
+                $ExamGradeClassQuery->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$request->PeerGroupId);
+            }
+
+            // Check exam is assign via grade or class
+            if(isset($request->GradeId) && !empty($request->ClassIds)){
+                $ExamGradeClassQuery->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL,$request->GradeId)
+                ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,$request->ClassIds);
+            }
+            // Run query
+            $ExamGradeClassData = $ExamGradeClassQuery->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STUDENT_IDS_COL);
+            if(isset($ExamGradeClassData) && !empty($ExamGradeClassData)){
+                $StudentIds = $ExamGradeClassData[0];
+            }
+        }
+
+        $requestPayload = new Request();
+        $requestPayload = $requestPayload->replace([
+            'examId'                => $request->examId,
+            'studentIds'            => $StudentIds,
+            'classIds'              => $request->ClassIds,
+            'groupIds'              => $request->PeerGroupId
+        ]);
+        $records = $this->getStudentResultSummary($requestPayload);
+        $result = array();
+        if(!empty( $records)){
+            $result['html'] = (string)View::make('backend/teacher/student_result_summary',compact('records'));
+            return $this->sendResponse($result);
+        }else{
+            return $this->SendError(__('languages.no_any_students_are_attempt_exams_please_wait_until_students_can_attempt_this_exams'),422);
+        }
     }
 }

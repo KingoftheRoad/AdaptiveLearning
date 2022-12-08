@@ -19,9 +19,8 @@ class StrandUnitsObjectivesMappings extends Model
         cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,
         cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,
         cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,
-        cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL
+        cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL,
     ];
 
     public $timestamps = false;
-
 }

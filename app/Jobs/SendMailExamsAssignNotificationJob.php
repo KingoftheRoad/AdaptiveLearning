@@ -33,17 +33,17 @@ class SendMailExamsAssignNotificationJob implements ShouldQueue
     */
     public function handle(){
         ini_set('memory_limit', '1024M');
-        if(isset($this->details['emails']) && !empty($this->details['emails'])){
-            foreach($this->details['emails'] as $ReceiverEmail){
-                $userData = User::where('email',$ReceiverEmail)->first();
-                $MailData = array(
-                    'login_url' => env('APP_URL'),
-                    'userdata' => $userData
-                );
-                Log::info('Job start - Send-Email-Notification-Assigned-Exams-Students');
-                //$this->sendMails("email.send_email_notification_assigned_exams_student", $MailData, $ReceiverEmail, 'ALP-School-Management: Assigned new exams.');
-                Log::info('Job End - Send-Email-Notification-Assigned-Exams-Students');
-            }
-        }
+        // if(isset($this->details['emails']) && !empty($this->details['emails'])){
+        //     foreach($this->details['emails'] as $ReceiverEmail){
+        //         $userData = User::where('email',$ReceiverEmail)->first();
+        //         $MailData = array(
+        //             'login_url' => env('APP_URL'),
+        //             'userdata' => $userData
+        //         );
+        //         Log::info('Job start - Send-Email-Notification-Assigned-Exams-Students');
+        //         $this->sendMails("email.send_email_notification_assigned_exams_student", $MailData, $ReceiverEmail, 'ALP-School-Management: Assigned new exams.');
+        //         Log::info('Job End - Send-Email-Notification-Assigned-Exams-Students');
+        //     }
+        // }
     }
 }

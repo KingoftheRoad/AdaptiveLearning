@@ -17,54 +17,29 @@
 					@if (session('error'))
 					<div class="alert alert-danger">{{ session('error') }}</div>
 					@endif
-					<form class="class-test-report" id="class-test-report" action="{{route('report.class-test-reports.correct-incorrect-answer')}}" method="get">
+					{{-- <form class="class-test-report" id="class-test-report" action="{{route('report.class-test-reports.correct-incorrect-answer')}}" method="get">
 						<div class="row">
 							<div class="select-lng pt-2 pb-2 col-lg-4 col-md-4">
-								<label for="users-list-role">{{ __('Test') }}</label>
+								<label>{{ __('languages.select_test') }}</label>
 								<select name="exam_id"  id="exam_id" class="form-control select-option performance_exam_id">
 									<option value="">{{ __('languages.report.tests') }}</option>
 									@if(!empty($ExamList))
-									@foreach($ExamList as $exams)
-									<option value="{{$exams->id}}" {{ request()->get('exam_id') == $exams->id ? 'selected' : '' }}>{{ $exams->title}}</option>
-									@endforeach
+										@foreach($ExamList as $exams)
+											<option value="{{$exams->id}}" data-examtype="{{$exams->exam_type}}"  {{ request()->get('exam_id') == $exams->id ? 'selected' : '' }}>{{$exams->title}} @if(isset($exams->reference_no)) ({{$exams->reference_no}}) @endif</option>
+										@endforeach
 									@endif
 								</select>
 								@if($errors->has('exam_id'))
 									<span class="validation_error">{{ $errors->first('exam_id') }}</span>
 								@endif
 							</div>
-							<div class="pt-2 pb-2 col-lg-3 col-md-3 class-performance-grade-section" @if(null ==request()->get('grade_id')) style="display:none;" @endif>
-								<div class="select-lng pb-2">
-									<label for="users-list-role">{{ __('languages.user_management.grade') }}</label>
-									<select class="form-control" data-show-subtext="true" data-live-search="true" name="grade_id" id="student_performance_grade_id" >
-										<option value="">{{ __('languages.select_grade') }}</option>
-										@if(!empty($GradeList))
-										@foreach($GradeList as $grade)
-										<option value="{{$grade->id}}" {{ ( $grade->id==$grade_id ? 'selected' : '') }}>{{ $grade->name}}</option>
-										@endforeach
-										@endif
-									</select>
-								</div>
-							</div>
-							<div class="pt-2 pb-2 col-lg-2 col-md-2 class-performance-class-section" @if(null ==request()->get('grade_id')) style="display:none;" @endif>
-	                            <div class="select-lng pb-2">
-	                            	<label for="users-list-role">{{ __('languages.class') }}</label>
-	                                <select name="class_type_id[]" class="form-control" id="classType-select-option" multiple >
-	                                	@if(!empty($GradeClassListData))
-											@foreach($GradeClassListData as $GradeClassId => $GradeClassValue)
-											<option value="{{$GradeClassId}}" {{ in_array($GradeClassId,$class_type_id) ? 'selected' : '' }}>{{$grade_id}}{{ $GradeClassValue }}</option>
-											@endforeach
-										@endif
-	                                </select>
-	                            </div>
-	                        </div>
 							<div class="col-lg-2 col-md-3">
 								<div class="select-lng pt-2 pb-2">
 									<button type="submit" name="filter" value="filter" class="btn-search button-margin-manage" id="filterReportClassTestResult">{{ __('languages.search') }}</button>
 								</div>
 							</div>
 						</div>
-					</form>
+					</form> --}}
 					<div class="row main-date-sec">
 						@if(!empty($ExamData->publish_date))
 						<div class="col-lg-3 col-md-3 ">
@@ -86,7 +61,8 @@
 						<div class="col-md-12 correct-incorrect-col">
 						<form id="exam-details-reports" action="{{ route('report.class-test-reports.correct-incorrect-answer')}}" method="get">
                             <input type="hidden" name="exam_id" id="exam_id" value="{{ request()->get('exam_id')}}">
-							<input type="hidden" name="grade_id" value="{{ $grade_id }}">
+							<input type="hidden" name="exam_school_id" value="{{request()->get('exam_school_id')}}">
+							<input type="hidden" name="grade_id" value="{{request()->get('grade_id')}}">
 							@if(isset($class_type_id) && !empty($class_type_id))
 								@foreach($class_type_id as $class_type)
 									<input type="hidden" name="class_type_id[]" value="{{ $class_type }}">
@@ -155,18 +131,6 @@
                                         @endforeach
 							  		</tbody>
 								</table>
-								<div id="table_box_bootstrap">
-									<div class="table-export-table">
-										<div class="export-table setting-table">
-											<i class="fa fa-download"></i>
-											<p>Exported Selected</p>
-										</div>
-										<div class="configure-table setting-table">
-											<i class="fa fa-cog"></i>
-											<p>Exported Selected</p>
-										</div>
-									</div>
-								</div>
 								@else
 								<p style="text-align: center;">{{__('languages.report.no_data_found')}}</p>
 							@endif

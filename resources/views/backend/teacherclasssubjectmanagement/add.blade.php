@@ -14,6 +14,9 @@
 							<div class="sec-title">
 								<h2 class="mb-4 main-title">{{__('languages.sidebar.teacher_class_assignment')}}</h2>
 							</div>
+                            <div class="sec-title">
+                                <a href="javascript:void(0);" class="btn-back" id="backButton">{{__('languages.back')}}</a>
+                            </div>
 							<hr class="blue-line">
 						</div>
 					</div>
@@ -29,12 +32,9 @@
                             {{ session()->get('error_msg') }}
                         </div>
                         @endif
-                        @foreach($errors->all() as $error)
-                        <li>{{$error}}</li>
-                        @endforeach
-							<form class="assign-form" method="post" id="addAssignForm"  action="{{ route('teache-class-subject-assign.store') }}">
+                        
+							<form class="assign-form" method="post" id="addAssignForm"  action="{{ route('teacher-class-subject-assign.store') }}">
 							@csrf()
-
                                 <div class="form-row select-data">
                                     <div class="form-group col-md-6">
                                         <label for="teacher_id">{{ __('languages.teacher') }}</label>
@@ -69,13 +69,12 @@
                                             @if($errors->has('class_id'))<span class="validation_error">{{ $errors->first('class_id') }}</span>@endif
                                         </fieldset>
                                     </div>
-                                    
                                 </div>
+
                                 <div class="form-row select-data">
                                     <div class="form-group col-md-6 mb-50">
                                         <label for="id_end_time">{{ __('languages.class') }}</label>
-                                        <select name="class_type[]" class="form-control select-option" id="classType-select-option" multiple >
-                                        </select>
+                                        <select name="class_type[]" class="form-control select-option" id="classType-select-option" multiple></select>
                                         @if($errors->has('class_type'))<span class="validation_error">{{ $errors->first('class_type') }}</span>@endif
                                     </div>
                                     <input type="hidden" name="subject_id[]" value="1">
@@ -98,7 +97,6 @@
                                             @if($errors->has('subject_id'))<span class="validation_error">{{ $errors->first('subject_id') }}</span>@endif
                                         </fieldset>
                                     </div>
-                                   
                                 </div>
 
                                 <div class="form-row select-data"> --}}
@@ -110,10 +108,7 @@
                                         </select>
                                     </div>
                                 </div>
-
-                                <div class="subjectaddarea">
-                                </div>   
-                                
+                                <div class="subjectaddarea"></div>
                                 <div class="form-row select-data">
                                     <div class="sm-btn-sec form-row">
                                         <div class="form-group col-md-6 mb-50 btn-sec">
@@ -128,7 +123,5 @@
 			</div>
 	      </div>
 		</div>
-        
-        @include('backend.layouts.footer')  
-        
+        @include('backend.layouts.footer')
 @endsection

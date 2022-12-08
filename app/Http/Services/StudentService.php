@@ -32,6 +32,7 @@ class StudentService {
             $Student = $this->User->find($StudentId);
             if(!empty($Student)){
                 $StudentAssignedPeerGroupIds =    $this->PeerGroupMember->where([
+                                                    cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                                                     'member_id' => $Student->id,
                                                     'status' => 1
                                                 ])->pluck('peer_group_id');
@@ -39,12 +40,13 @@ class StudentService {
                     $StudentAssignedPeerGroupIds = $StudentAssignedPeerGroupIds->toArray();
                 }
                 $StudentAssignedExamIds =  $this->ExamGradeClassMappingModel->where([
+                                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                                                 'school_id' => $Student->school_id,
                                                 'status' => 'publish'
                                             ])
                                             ->where(function($query) use($Student, $StudentAssignedPeerGroupIds){
-                                                $query->orwhere('grade_id',$Student->grade_id)
-                                                ->orwhere('class_id',$Student->class_id)
+                                                $query->orWhere('grade_id',$Student->CurriculumYearData['grade_id'])
+                                                ->orWhere('class_id',$Student->CurriculumYearData['class_id'])
                                                 ->orWhereIn('peer_group_id',$StudentAssignedPeerGroupIds);
                                             })
                                             ->pluck('exam_id');

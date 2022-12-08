@@ -54,7 +54,12 @@ Validation = {
                         var data = JSON.parse(JSON.stringify(response));
                         if (data.status === 'success') {
                             toastr.success(data.message);
-                            window.location = data.data.redirectUrl;
+                            if(data.data.user_role==5){
+                                window.location = data.data.redirectUrl+'?isLoggedIn=true';
+                            }else{
+                                window.location = data.data.redirectUrl;
+                            }
+                            
                         }else{
                             toastr.error(data.message);
                         }
@@ -67,7 +72,7 @@ Validation = {
         });
 
         /**
-         * USE : Form Validations for forget passsword send email link in email
+         * USE : Form Validations for forget password send email link in email
          */
         $("#forget-password").validate({
             rules: {

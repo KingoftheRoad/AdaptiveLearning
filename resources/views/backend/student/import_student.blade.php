@@ -36,7 +36,7 @@
                             {{ session()->get('error_msg') }}
                         </div>
                         @endif
-						<form class="user-form" method="post" id="importStudents"  action="{{ route('ImportStudentsData') }}" enctype="multipart/form-data">
+						<form class="user-form" method="post" id="importStudents"  action="{{route('ImportStudentsData')}}" enctype="multipart/form-data">
                         @csrf()
                         <div class="form-row select-data">
                             <input type="hidden" name="old_file" id="old_file">
@@ -50,24 +50,16 @@
                                 </fieldset>
                             </div>
                             <div class="form-group col-md-3">
-                                <label for="users-list-role">{{ __('languages.select_curriculum') }}</label>
-                                @php
-                                    $startYear=2000;
-                                    $endYear=date('Y');
-                                @endphp
+                                <label for="users-list-role">{{ __('languages.select_curriculum') }}</label>                                
+                                <?php
+                                    $CurriculumYearList = \App\Traits\Common::GetCurriculumCurrentYear();
+                                ?>
                                 <fieldset class="form-group">
                                     <select class="form-control" name="curriculum_year_id" id="curriculum">
-                                        <!-- @for($i=$startYear;$i<=$endYear;$i++)
-                                            <option value="{{$i}}-{{ date('y',strtotime('01/01/'.($i+1)))}}">{{$i}}-{{ date('y',strtotime('01/01/'.($i+1)))}}</option>
-                                        @endfor -->
-                                        @if(isset($CurriculumYears))
-                                        @foreach($CurriculumYears as $year)
-                                        <option value="{{$year['id']}}"
-                                        @if($i.'-'.date('y',strtotime('01/01/'.($i+1))) == $year['year'])
-                                        selected
-                                        @endif
-                                        >{{$year['year']}}</option>
-                                        @endforeach
+                                        @if(isset($CurriculumYearList) && !empty($CurriculumYearList))
+                                            @foreach($CurriculumYearList as $CurriculumYearListKey => $curriculumYear)
+                                                <option value="{{$curriculumYear->id}}" @if(Auth::user()->curriculum_year_id == $curriculumYear->id) selected @endif>{{$curriculumYear->year}}</option>
+                                            @endforeach
                                         @endif
                                     </select>
                                 </fieldset>

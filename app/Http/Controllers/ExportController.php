@@ -129,9 +129,11 @@ class ExportController extends Controller
         
     }
 
+    /**
+     * USE : Export Performance Report
+     */
     public function exportPerformanceReport(Request $request){
         //define Variables
-       
         $questionIds = '';
         $AttemptExamData = [];
         $studentIds = '';
@@ -172,8 +174,9 @@ class ExportController extends Controller
                 $questionIds= explode(',',$ExamData->question_ids);
                 $QuestionList = Question::with('answers')->whereIn(cn::QUESTION_TABLE_ID_COL,$questionIds)->get();
             }
+            
             //Get Student data in Exam Assigns
-            if(!empty(!empty($ExamData->student_ids))){
+            if(!empty($ExamData->student_ids)){
                 $studentIds = explode(',',$ExamData->student_ids);
             }
 
@@ -199,33 +202,21 @@ class ExportController extends Controller
                         })->get();
                 }else{
                     if(!empty($classIds)){
-                        $getStudentsFromClassIds = User::whereIn(cn::USERS_CLASS_ID_COL,$classIds)->pluck(cn::USERS_ID_COL)->toArray();
+                        //$getStudentsFromClassIds = User::whereIn(cn::USERS_CLASS_ID_COL,$classIds)->pluck(cn::USERS_ID_COL)->toArray();
+                        $getStudentsFromClassIds = User::get()->whereIn('CurriculumYearClassId',$classIds)->pluck(cn::USERS_ID_COL)->toArray();
                     }
                     if(!empty($groupIds)){
-                        $getStudentFromGroupIds =  PeerGroupMember::whereIn(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$groupIds)->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->unique()->toArray();
+                        $getStudentFromGroupIds =   PeerGroupMember::where(cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                                                    ->whereIn(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$groupIds)
+                                                    ->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->unique()->toArray();
     
                     }
                     $getAllStudentIds = array_unique(array_merge($getStudentsFromClassIds,$getStudentFromGroupIds));
     
-                    $AttemptExamData = $Query->whereHas('user',function($q) use($getAllStudentIds){
-                        $q->whereIn(cn::USERS_ID_COL,$getAllStudentIds);
-                    })->get();
+                    $AttemptExamData =  $Query->whereHas('user',function($q) use($getAllStudentIds){
+                                            $q->whereIn(cn::USERS_ID_COL,$getAllStudentIds);
+                                        })->get();
                 }
-                // if(!empty($classIds)){
-                //     $getStudentsFromClassIds = User::whereIn(cn::USERS_CLASS_ID_COL,$classIds)->pluck('id')->toArray();
-                // }
-                // if(!empty($groupIds)){
-                //     $getStudentFromGroupIds =  PeerGroupMember::whereIn('peer_group_id',$groupIds)->pluck('member_id')->unique()->toArray();
-
-                // }
-                // $getAllStudentIds = array_unique(array_merge($getStudentsFromClassIds,$getStudentFromGroupIds));
-
-                // $AttemptExamData = $Query->whereHas('user',function($q) use($getAllStudentIds){
-                //     $q->whereIn('id',$getAllStudentIds);
-                // })->get();
-                // $AttemptExamData = $Query->whereHas('user',function($q) use($classIds){
-                //     $q->whereIn(cn::USERS_CLASS_ID_COL,$classIds);
-                // })->get();
             }
             if($this->isTeacherLogin()){
                 if(empty($groupIds) && empty($classIds)){
@@ -236,27 +227,42 @@ class ExportController extends Controller
                             ->where(cn::USERS_ID_COL,$userData->id);
                         })->get();
                 }elseif(empty($groupIds)){
-                    $TeachersGradeClass = TeachersClassSubjectAssign::where(cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL,Auth::user()->{cn::USERS_ID_COL});
+                    $TeachersGradeClass =   TeachersClassSubjectAssign::where([
+                                                cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}
+                                            ])
+                                        ->where(cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL,Auth::user()->{cn::USERS_ID_COL});
                     if(!empty($TeachersGradeClass)){
                         $assignTeacherGrades = $TeachersGradeClass->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL);
                         if(!empty($TeachersGradeClass->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray())){
                             $assignTeacherClass = explode(',',implode(',',$TeachersGradeClass->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_NAME_ID_COL)->toArray()));
                             $AttemptExamData = $Query->whereHas('user',function($q) use($assignTeacherGrades,$assignTeacherClass, $classIds){
-                                $q->where(cn::USERS_SCHOOL_ID_COL, Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                                // $q->where(cn::USERS_SCHOOL_ID_COL, Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                                //     ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                //     ->whereIn(cn::USERS_CLASS_ID_COL,$classIds)
+                                //     ->whereIn(cn::USERS_GRADE_ID_COL,$assignTeacherGrades);
+                                    $q->where(cn::USERS_SCHOOL_ID_COL, Auth::user()->{cn::USERS_SCHOOL_ID_COL})
                                     ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                                    ->whereIn(cn::USERS_CLASS_ID_COL,$classIds)
-                                    ->whereIn(cn::USERS_GRADE_ID_COL,$assignTeacherGrades);
+                                    ->whereIn('id',$this->curriculum_year_mapping_student_ids($assignTeacherGrades,$classIds));
                                 })->get();
                         }
-                    }      
+                    }
                 }else{
-                    $peerGroupIds = PeerGroup::whereIn('id',$groupIds)->where(cn::PEER_GROUP_CREATED_BY_USER_ID_COL,Auth::user()->{cn::USERS_ID_COL})->pluck(cn::PEER_GROUP_ID_COL)->toArray();
+                    $peerGroupIds = PeerGroup::whereIn('id',$groupIds)
+                                    ->where([
+                                        cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                        cn::PEER_GROUP_CREATED_BY_USER_ID_COL => Auth::user()->{cn::USERS_ID_COL}
+                                    ])
+                                    ->pluck(cn::PEER_GROUP_ID_COL)->toArray();
                     if(!empty($peerGroupIds)){
-                        $peerGroupMemberIds = PeerGroupMember::whereIn(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$peerGroupIds)->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->unique()->toArray();
-                        $AttemptExamData = $Query->whereHas('user',function($q) use($peerGroupMemberIds){
-                            $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                            ->whereIn(cn::USERS_ID_COL,$peerGroupMemberIds);
-                        })->get();
+                        $peerGroupMemberIds =   PeerGroupMember::whereIn(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$peerGroupIds)
+                                                ->where(cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                                                ->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->unique()->toArray();
+                        $AttemptExamData =  $Query->whereHas('user',function($q) use($peerGroupMemberIds){
+                                                $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                                                ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                                ->whereIn(cn::USERS_ID_COL,$peerGroupMemberIds);
+                                            })->get();
                     }
                 }
                                 
@@ -264,24 +270,33 @@ class ExportController extends Controller
             if($this->isPrincipalLogin() || $this->isSchoolLogin()){
                 if(empty($groupIds) && empty($classIds)){
                     $userData = User::find($ExamData->student_ids);
-                    $AttemptExamData = $Query->whereHas('user',function($q) use($userData){
-                        $q->where(cn::USERS_SCHOOL_ID_COL, Auth::user()->{cn::USERS_SCHOOL_ID_COL})
-                            ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                            ->where(cn::USERS_ID_COL,$userData->id);
-                        })->get();
+                    $AttemptExamData =  $Query->whereHas('user',function($q) use($userData){
+                                            $q->where(cn::USERS_SCHOOL_ID_COL, Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                                            ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                            ->where(cn::USERS_ID_COL,$userData->id);
+                                        })->get();
                 }elseif(empty($groupIds)){
+                    
                     $AttemptExamData = $Query->whereHas('user',function($q) use($classIds){
-                        $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                            ->whereIn(cn::USERS_CLASS_ID_COL, $classIds);
+                        // $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                        //     ->whereIn(cn::USERS_CLASS_ID_COL, $classIds);
+                        $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                        ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                        ->whereIn('id',$this->curriculum_year_mapping_student_ids('',$classIds));
                     })->get();
                 }else{
-                    $peerGroupIds = PeerGroup::whereIn(cn::PEER_GROUP_MEMBERS_ID_COL,$groupIds)->pluck(cn::PEER_GROUP_MEMBERS_ID_COL)->toArray();
+                    $peerGroupIds = PeerGroup::where(cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                                    ->whereIn(cn::PEER_GROUP_MEMBERS_ID_COL,$groupIds)
+                                    ->pluck(cn::PEER_GROUP_MEMBERS_ID_COL)->toArray();
                     if(!empty($peerGroupIds)){
-                        $peerGroupMemberIds = PeerGroupMember::whereIn(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$peerGroupIds)->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->unique()->toArray();
-                        $AttemptExamData = $Query->whereHas('user',function($q) use($peerGroupMemberIds){
-                            $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
-                            ->whereIn(cn::USERS_ID_COL,$peerGroupMemberIds);
-                        })->get();
+                        $peerGroupMemberIds =   PeerGroupMember::whereIn(cn::PEER_GROUP_MEMBERS_PEER_GROUP_ID_COL,$peerGroupIds)
+                                                ->where(cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                                                ->pluck(cn::PEER_GROUP_MEMBERS_MEMBER_ID_COL)->unique()->toArray();
+                        $AttemptExamData =  $Query->whereHas('user',function($q) use($peerGroupMemberIds){
+                                                $q->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                                                ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                                                ->whereIn(cn::USERS_ID_COL,$peerGroupMemberIds);
+                                            })->get();
                     }
                 }
             }
@@ -290,7 +305,7 @@ class ExportController extends Controller
                 foreach($AttemptExamData as $attemptedExamKey => $attemptedExam){
                     $rowArray = [];
                     $rowArray[] = $attemptedExam->user->class;
-                    $rowArray[] = ($attemptedExam->user->class_student_number!='') ? $attemptedExam->user->class_student_number : $this->decrypt($attemptedExam->user->name_en);
+                    $rowArray[] = ($attemptedExam->user->CurriculumYearData['class_student_number']!='') ? $attemptedExam->user->CurriculumYearData['class_student_number'] : $this->decrypt($attemptedExam->user->name_en);
                     
                     foreach($QuestionList as $questionKey => $questions){
                     // get Selected Answer
@@ -424,21 +439,20 @@ class ExportController extends Controller
      */
     public function exportStudents(Request $request){
         $userList = User::with('schools')
-        ->where('school_id',Auth::user()->school_id)
-        ->where('role_id',cn::STUDENT_ROLE_ID)
-        ->where('status','active')->get();
+                    ->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->school_id)
+                    ->where(cn::USERS_ROLE_ID_COL,cn::STUDENT_ROLE_ID)
+                    ->where(cn::USERS_STATUS_COL,'active')->get();
         $csvExporter = new \Laracsv\Export();
         $csvExporter->beforeEach(function ($student){
             $student->email                         = $student->email;
-            $student->password                      = '';//$student->password;
+            $student->password                      = '';
             $student->name_en                       = $student->DecryptNameEn;
             $student->name_ch                       = $student->DecryptNameCh;
             $student->permanent_reference_number    = $student->permanent_reference_number;
-            $student->grade_id                      = $student->grade_id;
-            $student->class                         = !empty($student->class) ? ucfirst(substr($student->class,-1)) : '';
-            $student->student_number_within_class   = $student->student_number_within_class;
-        });
-
+            $student->grade_id                      = $student->CurriculumYearGradeId;
+            $student->class_id                      = !empty($student->CurriculumYearClassId) ? $this->getSingleClassName($student->CurriculumYearClassId) : '';
+            $student->student_number_within_class   = $student->CurriculumYearData['student_number_within_class'];
+        });        
         $csvExporter->build($userList, [
             'email'                                 => 'Email',
             'password'                              => 'Password',
@@ -446,8 +460,8 @@ class ExportController extends Controller
             'name_ch'                               => 'Chinese Name',
             'permanent_reference_number'            => 'Student Permanent Reference Number',
             'grade_id'                              => 'Grade',
-            'class'                                 => 'Class With Grade',
-            'student_number'                        => 'Student Number within Class',
+            'class_id'                              => 'Class With Grade',
+            'student_number_within_class'           => 'Student Number within Class',
         ])->download('Students.CSV');
     }
 }

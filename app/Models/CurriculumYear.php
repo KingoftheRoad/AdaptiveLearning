@@ -25,8 +25,4 @@ class CurriculumYear extends Model
     public function scopeIsActiveYear($query){
         return $query->where(cn::CURRICULUM_YEAR_STATUS_COL,'active');
     }
-
-    // public function scopeUntilCurrentYear($query){
-    //     return $query->where(cn::CURRICULUM_YEAR_YEAR_COL, '<=',(date('Y').'-'.(date('y')+1)));
-    // }
 }

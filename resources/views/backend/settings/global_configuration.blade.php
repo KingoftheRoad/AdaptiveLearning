@@ -73,6 +73,7 @@
                                         </select>
                                     </div>
                                 </div>
+
                                 <fieldset>
                                     <legend class="global-config-title">{{__('languages.questions_per_learning_objective')}} {{__('languages.for_question_generator_use_only')}}</legend> 
                                     <div class="form-row main-config-section">
@@ -689,7 +690,7 @@
 
                                 <div class="form-row select-data">
                                     <div class="sm-btn-sec form-row">
-                                        <div class="form-group col-md-6 mb-50 btn-sec">                                        
+                                        <div class="form-group col-md-6 mb-50 btn-sec">
                                             <button class="blue-btn btn btn-primary mt-4">{{ __('languages.submit') }}</button>
                                         </div>
                                     </div>

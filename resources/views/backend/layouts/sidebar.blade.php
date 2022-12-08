@@ -83,7 +83,8 @@ if(Auth::user()->role_id == 1){
         </li>
         @endif
         @if (in_array('user_management_read', $permissions))
-        <li class="{{ (request()->is('users') || request()->is('users/create') ||request()->is('users/*/edit')) ? 'active': ''  }}">
+        <li class="{{ (request()->is('users') || request()->is('users/create') ||request()->is('users/*/edit') || request()->is('student-profile/*')
+        || request()->is('credit-point-history/*') || request()->is('student/progress-report/learning-units/*') ||  request()->is('student/progress-report/learning-objective/*')) ? 'active': ''  }}">
             <a href="{{ route('users.index') }}">
                 <span class="fa fa-user"></span>
                 <span class="text"> {{__('languages.sidebar.user_management')}}</span>
@@ -368,7 +369,7 @@ if(Auth::user()->role_id == 1){
         @endif
 
         @if(in_array('my_classes_read', $permissions))
-        <li class="{{ (request()->is('my-class') ||  request()->is('credit-point-history/*') || request()->is('teacher/students-profile/*')) ? 'active': '' }}">
+        <li class="{{ (request()->is('my-class') ||  request()->is('credit-point-history/*') || request()->is('student-profile/*')) ? 'active': '' }}">
             <a href="{{ route('my-class') }}">
                 <span class="fa fa-list"></span>
                 <span class="text">{{__('languages.sidebar.my_classes')}}</span>
@@ -603,19 +604,23 @@ if(Auth::user()->role_id == 1){
 
         <li class="nav-item">
             @if (in_array('my_account_read', $permissions))
-            <a class="nav-link text-truncate {{ (request()->is('profile') ||  request()->is('credit-point-history/*') || request()->is('student/students-profile/*') || request()->is('change-password') || request()->is('student/leaderboard')) ? 'collapsed': '' }}" href="#myaccount" data-toggle="collapse" data-target="#myaccount">
+            <a class="nav-link text-truncate {{ (request()->is('profile') ||  request()->is('credit-point-history/*') || request()->is('student-profile/*') || request()->is('change-password') || request()->is('student/leaderboard')) ? 'collapsed': '' }}" href="#myaccount" data-toggle="collapse" data-target="#myaccount">
                 <span class="fa"><i class="fa fa-cogs"></i></span>
                 <span class="text">{{__('languages.my_account')}}</span>
             </a>
-            <div class="collapse {{ (request()->is('profile') || request()->is('change-password')) || request()->is('student/leaderboard') ||  request()->is('credit-point-history/*') || request()->is('student/students-profile/*') || request()->is('student/progress-report/learning-objective') || request()->is('student/progress-report/learning-units') ? 'show': '' }}" id="myaccount" aria-expanded="false">
+            <div class="collapse {{ (request()->is('profile') || request()->is('change-password')) || request()->is('student/leaderboard') ||  request()->is('credit-point-history/*') || request()->is('student-profile/*') || request()->is('student/progress-report/learning-objective') || request()->is('student/progress-report/learning-units') ? 'show': '' }}" id="myaccount" aria-expanded="false">
                 <ul class="flex-column pl-2 nav">
                     @if(in_array('profile_management_read', $permissions))
-                    <li class="nav-item {{ (request()->is('profile')) ||  request()->is('credit-point-history/*') || request()->is('student/students-profile/*') || request()->is('student/progress-report/learning-objective') || request()->is('student/progress-report/learning-units')? 'active': '' }}">
+                    <li class="nav-item {{ (request()->is('profile')) ||  request()->is('credit-point-history/*') || request()->is('student-profile/*') || request()->is('student/progress-report/learning-objective') || request()->is('student/progress-report/learning-units')? 'active': '' }}">
                         {{-- <a class="nav-link" href="{{route('profile.index')}}">
                             <span class="fa fa-user"></span>
                             <span class="text">{{__('languages.sidebar.profile')}}</span>
                         </a> --}}
-                        <a class="nav-link" href="{{route('student.student-profiles',auth::user()->id)}}">
+                        {{-- <a class="nav-link" href="{{route('student.student-profiles',auth::user()->id)}}">
+                            <span class="fa fa-user"></span>
+                            <span class="text">{{__('languages.sidebar.profile')}}</span>
+                        </a> --}}
+                        <a class="nav-link" href="{{route('student-profiles',auth::user()->id)}}">
                             <span class="fa fa-user"></span>
                             <span class="text">{{__('languages.sidebar.profile')}}</span>
                         </a>
@@ -1010,7 +1015,7 @@ if(Auth::user()->role_id == 1){
 
         <!-- Student Management -->
         @if (in_array('student_management_read', $permissions))
-        <li class="{{ (request()->is('Student') || request()->is('Student/create') || request()->is('Student/*/edit') || request()->is('school/class/assign-students/*') || request()->is('school/class/importStudent') ||  request()->is('credit-point-history/*') || request()->is('student/students-profile/*')) ? 'active': '' }}">
+        <li class="{{ (request()->is('Student') || request()->is('Student/create') || request()->is('Student/*/edit') || request()->is('school/class/assign-students/*') || request()->is('school/class/importStudent') ||  request()->is('credit-point-history/*') || request()->is('student-profile/*')) ? 'active': '' }}">
             <a href="{{route('Student.index')}}">
                 <span class="fa fa-users"></span>
                 <span class="text">{{__('languages.sidebar.student_management')}}</span>
@@ -1036,14 +1041,14 @@ if(Auth::user()->role_id == 1){
         </li>
         @endif
 
-        @if (in_array('principal_management_read', $permissions)) 
+        {{-- @if (in_array('principal_management_read', $permissions)) 
         <li class="{{ (request()->is('principal') || request()->is('principal/create') || request()->is('principal/*/edit')) ? 'active': '' }}">
             <a href="{{ route('principal.index') }}">
                 <span class="fa fa-users"></span>
                 <span class="text">{{__('languages.sidebar.principal_management')}}</span>
             </a>
         </li>
-        @endif
+        @endif --}}
 
         {{-- @if (in_array('subject_management_read', $permissions))
         <li class="{{ (request()->is('subject') || request()->is('subject/create') || request()->is('subject/*/edit')) ? 'active': '' }}">
@@ -1092,8 +1097,8 @@ if(Auth::user()->role_id == 1){
         @endif
 
         @if (in_array('teacher_class_and_subject_assign_read', $permissions))
-        <li class="{{ (request()->is('teache-class-subject-assign') || request()->is('teache-class-subject-assign/create') || request()->is('teache-class-subject-assign/*/edit')) ? 'active': '' }}">
-            <a href="{{ route('teache-class-subject-assign.index') }}">
+        <li class="{{ (request()->is('teacher-class-subject-assign') || request()->is('teacher-class-subject-assign/create') || request()->is('teacher-class-subject-assign/*/edit')) ? 'active': '' }}">
+            <a href="{{ route('teacher-class-subject-assign.index') }}">
                 <span class="fa fa-users"></span>
                 <span class="text">{{__('languages.sidebar.teacher_class_assignment')}}</span>
             </a>
@@ -1253,7 +1258,7 @@ if(Auth::user()->role_id == 1){
 
         <!-- Student Management -->
         @if (in_array('student_management_read', $permissions))
-        <li class="{{ (request()->is('Student') || request()->is('Student/create') || request()->is('Student/*/edit') || request()->is('school/class/assign-students/*') || request()->is('school/class/importStudent') ||  request()->is('credit-point-history/*') || request()->is('student/students-profile/*')) ? 'active': '' }}">
+        <li class="{{ (request()->is('Student') || request()->is('Student/create') || request()->is('Student/*/edit') || request()->is('school/class/assign-students/*') || request()->is('school/class/importStudent') ||  request()->is('credit-point-history/*') || request()->is('student-profile/*')) ? 'active': '' }}">
             <a href="{{route('Student.index')}}">
                 <span class="fa fa-users"></span>
                 <span class="text">{{__('languages.sidebar.student_management')}}</span>

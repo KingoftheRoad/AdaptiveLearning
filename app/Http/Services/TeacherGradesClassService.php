@@ -12,6 +12,8 @@ use App\Models\ExamGradeClassMappingModel;
 use App\Models\PeerGroup;
 use App\Models\Exam;
 use App\Models\PeerGroupMember;
+use App\Models\CurriculumYearStudentMappings;
+
 class TeacherGradesClassService
 {
     use Common;
@@ -31,7 +33,11 @@ class TeacherGradesClassService
     public function getTeacherAssignedGradesClass($SchoolId,$TeacherId){
         if(!empty($SchoolId) && !empty($TeacherId)){
             $Response = ['grades' => [], 'class' => []];
-            $TeachersClassSubjectAssignCollection = $this->TeachersClassSubjectAssign->where([cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $SchoolId, cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => $TeacherId])->get();
+            $TeachersClassSubjectAssignCollection = $this->TeachersClassSubjectAssign->where([
+                                                        cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                                        cn::TEACHER_CLASS_SUBJECT_SCHOOL_ID_COL => $SchoolId,
+                                                        cn::TEACHER_CLASS_SUBJECT_TEACHER_ID_COL => $TeacherId
+                                                    ])->get();
             // Find Teachers assigned grades
             $TeachersAssignGrades = $TeachersClassSubjectAssignCollection->pluck(cn::TEACHER_CLASS_SUBJECT_CLASS_ID_COL);
             if(!empty($TeachersAssignGrades)){
@@ -64,6 +70,7 @@ class TeacherGradesClassService
         $PeerGroupIds = $this->GetTeachersPeerGroupIds(Auth::user()->{cn::USERS_ID_COL}, Auth::user()->{cn::USERS_SCHOOL_ID_COL});
 
         $ExamGradeClassData = $this->ExamGradeClassMappingModel->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$SchoolId)
+                                ->where(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                 ->where(function($Query) use($ClassIds, $PeerGroupIds){
                                     $Query->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL,$ClassIds)
                                     ->orWhereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_PEER_GROUP_ID_COL,$PeerGroupIds);
@@ -80,15 +87,27 @@ class TeacherGradesClassService
      */
     public function GetStudentSelfLearningTestIds($SchoolId, $ClassIds = []){
         $StudentSelfLearningExamIds = [];
-        $StudentSelfLearningExamIds = $this->Exam->whereHas('user', function($query) use($SchoolId, $ClassIds){
-                        $query->whereIn('class_id',$ClassIds)
-                        ->where([
-                            'role_id' => cn::STUDENT_ROLE_ID,
-                            'school_id' => $SchoolId
-                        ]);
-                    })
-                    ->where('created_by_user','student')
-                    ->pluck('id');
+
+        $studentIdsArray = CurriculumYearStudentMappings::where([
+            cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $this->GetCurriculumYear(),
+            cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => $SchoolId,
+        ])
+        ->whereIn(cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL,$ClassIds)
+        ->pluck(cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL)
+        ->toArray();
+
+
+        $StudentSelfLearningExamIds = $this->Exam->whereHas('user', function($query) use($SchoolId, $ClassIds, $studentIdsArray){
+                                        //$query->whereIn('class_id',$ClassIds)
+                                        $query->whereIn('id',$studentIdsArray)
+                                        ->where([
+                                            'role_id' => cn::STUDENT_ROLE_ID,
+                                            'school_id' => $SchoolId
+                                        ]);
+                                    })
+                                    ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                                    ->where('created_by_user','student')
+                                    ->pluck('id');
         if($StudentSelfLearningExamIds->isNotEmpty()){
             return $StudentSelfLearningExamIds = $StudentSelfLearningExamIds->toArray();
         }else{
@@ -102,9 +121,10 @@ class TeacherGradesClassService
     public function GetTeachersPeerGroupIds($TeacherId, $SchoolId){
         $PeerGroupIds = [];
         $PeerGroupIds = PeerGroup::where([
-            cn::PEER_GROUP_CREATED_BY_USER_ID_COL => $TeacherId,
-            cn::PEER_GROUP_SCHOOL_ID_COL => $SchoolId
-        ])->pluck(cn::PEER_GROUP_ID_COL);
+                            cn::PEER_GROUP_CREATED_BY_USER_ID_COL => $TeacherId,
+                            cn::PEER_GROUP_SCHOOL_ID_COL => $SchoolId,
+                            cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear()
+                        ])->pluck(cn::PEER_GROUP_ID_COL);
         if(!empty($PeerGroupIds)){
             $PeerGroupIds = $PeerGroupIds->toArray();
         }
@@ -114,8 +134,10 @@ class TeacherGradesClassService
     public function GetSchoolBasedPeerGroupIds($SchoolId){
         $PeerGroupIds = [];
         $PeerGroupIds = PeerGroup::where([
-            cn::PEER_GROUP_SCHOOL_ID_COL => $SchoolId
-        ])->pluck(cn::PEER_GROUP_ID_COL);
+            cn::PEER_GROUP_SCHOOL_ID_COL => $SchoolId,
+            cn::PEER_GROUP_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear()
+        ])
+        ->pluck(cn::PEER_GROUP_ID_COL);
         if(!empty($PeerGroupIds)){
             $PeerGroupIds = $PeerGroupIds->toArray();
         }

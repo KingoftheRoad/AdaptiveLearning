@@ -16,7 +16,9 @@ class UserCreditPoints extends Model{
     public $fillable = [
         cn::USER_CREDIT_POINTS_ID_COL,
         cn::USER_CREDIT_USER_ID_COL,
-        cn::USER_NO_OF_CREDIT_POINTS_COL
+        cn::USER_NO_OF_CREDIT_POINTS_COL,
+        cn::USER_CREDIT_POINTS_CURRICULUM_YEAR_ID_COL
+
     ];
 
     public $timestamps = true;

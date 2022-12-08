@@ -1314,7 +1314,8 @@ return [
             'plot_title' => '問題分析',
             'x_axis' => '學生能力',
             'left_y_axis' => '學生數目',
-            'right_y_axis' => '數據密度'
+            'right_y_axis' => '%'
+            //'right_y_axis' => '數據密度'
         ],
         'Plot_Analyze_Student' => [
             'label_1' => '學生能力',
@@ -1323,7 +1324,8 @@ return [
             'plot_title' => '學生表現',
             'x_axis' => '問題難度',
             'left_y_axis' => '問題數目',
-            'right_y_axis' => '數據密度'
+            'right_y_axis' => '%'
+            //'right_y_axis' => '數據密度'
         ],
         'Plot_Analyze_My_Class_Ability' => [
             'label_1' => '我班的能力',
@@ -1331,7 +1333,8 @@ return [
             'label_3' => '',
             'plot_title' => "我班的能力",
             'left_y_axis' => '學生的數目',
-            'right_y_axis' => '數據密度',
+            //'right_y_axis' => '數據密度',
+            'right_y_axis' => '%',
             'x_axis' => "學生的能力",
         ],
         'Plot_Analyze_My_School_Ability' => [
@@ -1340,7 +1343,8 @@ return [
             'label_3' => '',
             'plot_title' => "我班與我校",
             'left_y_axis' => '學生數目',
-            'right_y_axis' => '數據密度',
+            'right_y_axis' => '%',
+            //'right_y_axis' => '數據密度',
             'x_axis' => "學生能力",
         ],
         'Plot_Analyze_All_Schools_Ability' => [
@@ -1349,7 +1353,8 @@ return [
             'label_3' => '所有學校的能力',
             'plot_title' => "我班與我校與所有學校",
             'left_y_axis' => '學生數目',
-            'right_y_axis' => '數據密度',
+            //'right_y_axis' => '數據密度',
+            'right_y_axis' => '%',
             'x_axis' => "學生能力",
         ],
         'abilities_of_my_class' => '我班的能力',
@@ -1402,4 +1407,14 @@ return [
     'upgrade_student_school_year' => '升級學生學年',
     'student_upgraded_successfully' => '學生學年升級成功',
     'current'   => '當前的',
+    'select_curriculum_year' => '選擇課程年',
+    'search_by_principal_name' => '按校長姓名搜索',
+    'please_select_class'   =>  '請選擇班級',
+    'please_enter_grade_name'   =>  '請輸入等級名稱',
+    'please_select_teacher'     =>'請選擇老師',
+    'please_select_grade'       =>'請選擇年級',
+    'please_select_subject'     => '請選擇主題',
+    'please_select_class_type' =>'請選擇班級類型',
+    'std_number'            => '標準號',
+    'remainder'             => '餘',
 ];

@@ -1,16 +1,16 @@
 @extends('backend.layouts.app')
     @section('content')
 	@php
-			$permissions = [];
-			$user_id = auth()->user()->id;
-			if($user_id){
-				$module_permission = App\Helpers\Helper::getPermissions($user_id);
-				if($module_permission && !empty($module_permission)){
-					$permissions = $module_permission;
-				}
-			}else{
-				$permissions = [];
+		$permissions = [];
+		$user_id = auth()->user()->id;
+		if($user_id){
+			$module_permission = App\Helpers\Helper::getPermissions($user_id);
+			if($module_permission && !empty($module_permission)){
+				$permissions = $module_permission;
 			}
+		}else{
+			$permissions = [];
+		}
 	@endphp
     <div class="wrapper d-flex align-items-stretch sm-deskbord-main-sec">
         @include('backend.layouts.sidebar')
@@ -145,8 +145,8 @@
 							        	<tr>
 											<td><input type="checkbox" name="" class="checkbox"></td>
 											<td>{{($User->roles->role_name) ? ($User->roles->role_name) : 'N/A'}}</td>
-											<td>{{ ($User->name_en) ? App\Helpers\Helper::decrypt($User->name_en) : $User->name}}</td>
-											<td>{{ ($User->name_ch) ? App\Helpers\Helper::decrypt($User->name_ch) : 'N/A' }}</td>
+											<td>{{($User->name_en) ? App\Helpers\Helper::decrypt($User->name_en) : $User->name}}</td>
+											<td>{{($User->name_ch) ? App\Helpers\Helper::decrypt($User->name_ch) : 'N/A' }}</td>
 											<td>{{$User->email }}</td>
 											<td>{{$User->grades->name ?? 'N/A'}}</td>
 											<td>
@@ -169,7 +169,12 @@
 													@if (in_array('change_password_update', $permissions))
 													<a href="javascript:void(0);" class="pl-2 changeUserPassword" data-id="{{$User->id}}" title="{{__('languages.change_password')}}"><i class="fa fa-unlock" aria-hidden="true"></i></a>
 													@endif
+													@if($User->role_id == 3)
+													{{-- <a href="{{route('student.student-profiles',$User->id)}}" class="pl-2" title="{{__('languages.sidebar.profile')}}"><i class="fa fa-user" aria-hidden="true"></i></a> --}}
+													<a href="{{route('student-profiles',$User->id)}}" class="pl-2" title="{{__('languages.sidebar.profile')}}"><i class="fa fa-user" aria-hidden="true"></i></a>
+													@endif
 												@endif
+												
 											</td>
 										</tr>
 										@endforeach
@@ -213,41 +218,5 @@
 			}; 
 		</script>
 
-		 <!-- Start Change password Popup -->
-		 <div class="modal" id="changeUserPwd" tabindex="-1" aria-labelledby="changeUserPwd" aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog modal-lg" style="max-width: 50%;">
-                <div class="modal-content">
-                    <form id="changepasswordUserFrom">	
-						@csrf()
-						<input type="hidden" value="" name="userId" id="changePasswordUserId">
-                        <div class="modal-header">
-                            <h4 class="modal-title w-100">{{__('languages.change_password')}}</h4>
-                            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                        </div>
-                        <div class="modal-body">
-							<div class="form-row">
-								<div class="col-lg-12 col-md-12">
-									<label class="text-bold-600" for="newPassword">{{__('languages.new_password')}}</label>
-									<input type="password" class="form-control" name="newPassword" id="newPassword" placeholder="{{__('languages.new_password')}}" value="">
-									@if($errors->has('newPassword'))<span class="validation_error">{{ $errors->first('newPassword') }}</span>@endif
-								</div>
-							</div>
-							<div class="form-row">
-								<div class="col-lg-12 col-md-12">
-									<label class="text-bold-600" for="confirmPassword">{{__('languages.confirm_password')}}</label>
-									<input type="password" class="form-control" name="confirmPassword" id="confirmPassword" placeholder="{{__('languages.confirm_password')}}" value="">
-									@if($errors->has('confirmPassword'))<span class="validation_error">{{ $errors->first('confirmPassword') }}</span>@endif
-								</div>
-							</div>
-                        </div>
-                        <div class="modal-footer btn-sec">
-                            <button type="button" class="btn btn-default close-userChangePassword-popup" data-dismiss="modal">{{__('languages.close')}}</button>
-                            <button type="submit" class="blue-btn btn btn-primary submit-change-password-form">{{__('languages.submit')}}</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-        <!-- End Change password Popup -->
 		@include('backend.layouts.footer')
 @endsection

@@ -92,11 +92,9 @@
                                     </label>
                                 </div>
                                 <div class="col-lg-3 col-md-4 col-sm-12">
-                                    {{-- <label>{{__('languages.report.ability')}} : {{round($AttemptExamData->student_ability,2)}} ({{(!empty($AttemptExamData->student_ability)) ? App\Helpers\Helper::getNormalizedAbility($AttemptExamData->student_ability) : 0}}%)</label> --}}
                                     <label>{{__('languages.report.ability')}} : {{(!empty($AttemptExamData->student_ability)) ? App\Helpers\Helper::GetShortPercentage(App\Helpers\Helper::getNormalizedAbility($AttemptExamData->student_ability)) : 0}}</label>
                                 </div>
                                 <div class="col-lg-3 col-md-4 col-sm-12">
-                                    {{-- <label>{{__('languages.credit_points')}} : {{$AttemptExamData->credit_point_history_sum_no_of_credit_point ?? 0}}</label> --}}
                                     <label>{{__('languages.credit_points')}} : 
                                         {{App\Helpers\Helper::GetCountCrediPointsStudent($AttemptExamData->exam_id,$studentId)}}
                                     </label>
@@ -114,53 +112,6 @@
                                     $bg_incorrect_color='background-color:'.App\Helpers\Helper::getGlobalConfiguration('question_incorrect_color');
                                     @endphp
                                     <h5>{{__('languages.questions_by_difficulties')}}</h5>
-                                    {{-- @if(!empty($questionDifficultyGraph['easy']))
-                                    <h5>{{__('languages.easy')}}</h5>
-                                    <div class="progress question-difficulty-progressbar">
-                                        @if(!empty($questionDifficultyGraph['easy_correct_percentage']))
-                                        <div class="progress-bar" style="width:{{$questionDifficultyGraph['easy_correct_percentage']}}%;{{$bg_correct_color}};">
-                                            {{$questionDifficultyGraph['correct_easy']}}
-                                        </div>
-                                        @endif
-                                        @if(!empty($questionDifficultyGraph['easy_wrong_percentage']))
-                                        <div class="progress-bar" style="width:{{$questionDifficultyGraph['easy_wrong_percentage']}}%;{{$bg_incorrect_color}};">
-                                            {{ $questionDifficultyGraph['wrong_easy'] }}
-                                        </div>
-                                        @endif
-                                    </div>
-                                    @endif
-
-                                    @if(!empty($questionDifficultyGraph['medium']))
-                                    <h5>{{__('languages.medium')}}</h5>
-                                    <div class="progress question-difficulty-progressbar">
-                                        @if(!empty($questionDifficultyGraph['medium_correct_percentage']))
-                                        <div class="progress-bar" style="width:{{$questionDifficultyGraph['medium_correct_percentage']}}%;{{$bg_correct_color}};">
-                                            {{$questionDifficultyGraph['correct_medium']}}
-                                        </div>
-                                        @endif
-                                        @if(!empty($questionDifficultyGraph['medium_wrong_percentage']))
-                                        <div class="progress-bar" style="width:{{$questionDifficultyGraph['medium_wrong_percentage']}}%;{{$bg_incorrect_color}};">
-                                            {{ $questionDifficultyGraph['wrong_medium'] }}
-                                        </div>
-                                        @endif
-                                    </div>
-                                    @endif
-
-                                    @if(!empty($questionDifficultyGraph['hard']))
-                                    <h5>{{__('languages.hard')}}</h5>
-                                    <div class="progress question-difficulty-progressbar">
-                                        @if(!empty($questionDifficultyGraph['hard_correct_percentage']))
-                                        <div class="progress-bar" style="width:{{$questionDifficultyGraph['hard_correct_percentage']}}%;{{$bg_correct_color}};">
-                                            {{$questionDifficultyGraph['correct_hard']}}
-                                        </div>
-                                        @endif
-                                        @if(!empty($questionDifficultyGraph['hard_wrong_percentage']))
-                                        <div class="progress-bar" style="width:{{$questionDifficultyGraph['hard_wrong_percentage']}}%;{{$bg_incorrect_color}};">
-                                            {{ $questionDifficultyGraph['wrong_hard'] }}
-                                        </div>
-                                        @endif
-                                    </div>
-                                    @endif --}}
                                     @if(!empty($difficultyLevels))
                                         @php $i=1; $difficultyColor= []; @endphp
                                         @foreach($difficultyLevels as $difficultyLevel)
@@ -215,31 +166,6 @@
                                     <div class="row">
                                         <div class="sm-que-option pl-3">
                                             <p class="sm-title bold">{{__('languages.result.q_no')}} {{$loop->iteration}}: {{__('languages.question_code')}} : {{ $question->naming_structure_code }}
-                                                {{-- @if($question->dificulaty_level == 1)
-                                                    @php
-                                                    $question_difficulty_easy=App\Helpers\Helper::getGlobalConfiguration('question_difficulty_easy');
-                                                    $question_difficulty_easy=json_decode($question_difficulty_easy,true);
-                                                    @endphp
-                                                    @if(isset($question_difficulty_easy['color']) && !empty($question_difficulty_easy['color']))
-                                                    <span class="ml-5">{{__('languages.easy')}}</span> <span class="dot-color" style="background-color:{{$question_difficulty_easy['color']}};border-radius: 50%;display: inline-block;top: 5px;position: relative;"></span>
-                                                    @endif
-                                                @elseif($question->dificulaty_level == 2)
-                                                    @php
-                                                    $question_difficulty_medium=App\Helpers\Helper::getGlobalConfiguration('question_difficulty_medium');
-                                                    $question_difficulty_medium=json_decode($question_difficulty_medium,true);
-                                                    @endphp
-                                                    @if(isset($question_difficulty_medium['color']) && !empty($question_difficulty_medium['color']))
-                                                    <span class="ml-5">{{__('languages.medium')}}</span> <span class="dot-color" style="background-color:{{$question_difficulty_medium['color']}};border-radius: 50%;display: inline-block;top: 5px;position: relative;"></span>
-                                                    @endif
-                                                @elseif($question->dificulaty_level == 3)
-                                                    @php
-                                                    $question_difficulty_hard=App\Helpers\Helper::getGlobalConfiguration('question_difficulty_hard');
-                                                    $question_difficulty_hard=json_decode($question_difficulty_hard,true);
-                                                    @endphp
-                                                    @if(isset($question_difficulty_hard['color']) && !empty($question_difficulty_hard['color']))
-                                                    <span class="ml-5">{{__('languages.hard')}}</span> <span class="dot-color" style="background-color:{{$question_difficulty_hard['color']}};border-radius: 50%;display: inline-block;top: 5px;position: relative;"></span>
-                                                    @endif
-                                                @endif --}}
                                                 {{-- Display Question types and with color code --}}
                                                     @if($question->dificulaty_level == 1)
                                                         @if(isset($difficultyColor['Level1']) && !empty($difficultyColor['Level1']))
@@ -263,10 +189,7 @@
                                                         @endif
                                                     @endif
                                                 <span class="ml-5">{{__('languages.difficulty')}}:
-                                                    {{-- @if(isset($question->difficultyValue['natural_difficulty']) && !empty($question->difficultyValue['natural_difficulty'])) --}}
                                                     @if(isset($question->difficultyValue['natural_difficulty']))
-                                                    {{-- {{round($question->difficultyValue['natural_difficulty'],2)}} ({{$question->difficultyValue['normalized_difficulty']}}%) --}}
-                                                    {{-- {{round($question->difficultyValue['natural_difficulty'],2)}} ({{App\Helpers\Helper::GetShortPercentage($question->difficultyValue['normalized_difficulty'])}}%) /--}}
                                                     {{App\Helpers\Helper::GetShortPercentage($question->difficultyValue['normalized_difficulty'])}}
                                                     @endif
                                                 </span>
