@@ -273,18 +273,21 @@ class Helper{
     }
 
     //Get Single class Name on Grade selected for particular student 
-    public static function getSingleClassName($id){
+    public static function getSingleClassName($id,$classPromotionHistoryMode = ''){
         $className = '';
-        $ClassData = GradeClassMapping::where([
-                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => Self::GetCurriculumYear(),
-                        cn::GRADE_CLASS_MAPPING_ID_COL => $id
-                    ])
-                    ->first();
+        $ClassDataQuery =   GradeClassMapping::where([
+                                cn::GRADE_CLASS_MAPPING_ID_COL => $id
+                            ]);
+        if(empty($classPromotionHistoryMode) && !isset($classPromotionMode)){
+            $ClassDataQuery->where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,Self::GetCurriculumYear());
+        }
+        $ClassData = $ClassDataQuery->first();
         if(!empty($ClassData)){
             $className = strtoupper($ClassData->{cn::GRADE_CLASS_MAPPING_NAME_COL});
         }
         return $className;
     } 
+
     
     //on User to Select Class Name 
     public static function getClassNames($class_ids){

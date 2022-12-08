@@ -345,7 +345,8 @@ class ClassTestReportController extends Controller
                         $AvailableGradesIds =   $this->ExamGradeClassMappingModel->where([
                                                     cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                                                     cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $examId,
-                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish'
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish',
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => (!empty($request->exam_school_id)) ? $request->exam_school_id : $schoolList[0]['id']
                                                 ])
                                                 ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL);
                         if(!empty($AvailableGradesIds)){
@@ -357,7 +358,7 @@ class ClassTestReportController extends Controller
                                                     cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL => $examId,
                                                     cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish',
                                                     // 'school_id' => $schoolList[0]['id']
-                                                    'school_id' => (!empty($request->exam_school_id)) ? $request->exam_school_id : $schoolList[0]['id']
+                                                    cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => (!empty($request->exam_school_id)) ? $request->exam_school_id : $schoolList[0]['id']
                                                 ])
                                                 ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL);
                         if(!empty($AvailableClassIds)){
@@ -365,9 +366,10 @@ class ClassTestReportController extends Controller
                                         ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$AvailableClassIds)
                                         ->where([
                                             cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                            cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_SCHOOL_ID_COL => (!empty($request->exam_school_id)) ? $request->exam_school_id : $schoolList[0]['id'],
                                             cn::GRADE_CLASS_MAPPING_STATUS_COL => 'active'
                                         ])
-                                        ->get()->toArray();
+                                        ->get()->toArray();                                        
                             $Response['class_list'] = $ClassData ?? [];
                         }
                     //}
@@ -732,6 +734,7 @@ class ClassTestReportController extends Controller
         if(isset($request->grade_id) && !empty($request->grade_id) && isset($request->class_type_id) && !empty($request->class_type_id)){
             $filter=1;
             $class_type_id = is_array($request->class_type_id) ? $request->class_type_id : [$request->class_type_id];
+            
             $GradeID = is_array($request->grade_id) ? $request->grade_id : [$request->grade_id];
             if($this->isSchoolLogin() || $this->isPrincipalLogin()){
                 $AvailableClassIds =    $this->ExamGradeClassMappingModel->where([
@@ -822,7 +825,7 @@ class ClassTestReportController extends Controller
                                         ])
                                         ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
                                         ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();
-                
+                                
                 $AvailableStudentIds =  $this->ExamGradeClassMappingModel->where([
                                             cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                                             cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->grade_id,
@@ -853,14 +856,16 @@ class ClassTestReportController extends Controller
                 //                         ->pluck(cn::GRADE_CLASS_MAPPING_NAME_COL,cn::GRADE_CLASS_MAPPING_ID_COL)
                 //                         ->toArray();
 
-                $ClassIds = $this->ExamGradeClassMappingModel->with('grade_class_mapping')->where([
-                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->grade_id,
-                                                        cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish',
-                                                        'school_id' => $request->exam_school_id
-                                                    ])
-                                                    ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
-                                                    ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();
+                $ClassIds = $this->ExamGradeClassMappingModel->with('grade_class_mapping')
+                            ->where([
+                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_GRADE_ID_COL => $request->grade_id,
+                                cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_STATUS_COL => 'publish',
+                                'school_id' => $request->exam_school_id
+                            ])
+                            ->whereIn(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_EXAM_ID_COL,$childExamsIds)
+                            ->pluck(cn::EXAM_SCHOOL_GRADE_CLASS_MAPPING_CLASS_ID_COL)->toArray();
+                                                    //echo '<pre>';print_r($ClassIds);die;
 
                 $GradeClassListData =   GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
                                                         ->whereIn(cn::GRADE_CLASS_MAPPING_ID_COL,$ClassIds)
@@ -1757,8 +1762,10 @@ class ClassTestReportController extends Controller
                                 ->pluck(cn::USERS_ID_COL)
                                 ->toArray();
             }
+
             // Merge Students
             $TeachersStudentIdList = array_intersect($StudentIds,$studentidlist);
+            
             // Get Data based on types of graph option select
             switch ($request->graph_type) {
                 case 'my-school':
@@ -1794,8 +1801,8 @@ class ClassTestReportController extends Controller
                     if(isset($studentAbility) && !empty($studentAbility)){
                         $requestPayload = new Request();
                         $requestPayload = $requestPayload->replace([
-                            'data_list1' => array_values(array_unique(array_map('floatval', $studentAbility))),
-                            'data_list2' => array_values(array_unique(array_map('floatval', $dataList2))),
+                            'data_list1' => array_values(array_map('floatval', $studentAbility)),
+                            'data_list2' => array_values(array_map('floatval', $dataList2)),
                             "format" => "base64",
                             'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_My_School_Ability.uri'),$isGroup)
                         ]);
@@ -1849,9 +1856,9 @@ class ClassTestReportController extends Controller
                     if(isset($studentAbility) && !empty($studentAbility)){
                         $requestPayload = new Request();
                         $requestPayload = $requestPayload->replace([
-                            'data_list1' => array_values(array_unique(array_map('floatval', $studentAbility))),
-                            'data_list2' => array_values(array_unique(array_map('floatval', $dataList2))),
-                            'data_list3' => array_values(array_unique(array_map('floatval', $dataList3))),
+                            'data_list1' => array_values(array_map('floatval', $studentAbility)),
+                            'data_list2' => array_values(array_map('floatval', $dataList2)),
+                            'data_list3' => array_values(array_map('floatval', $dataList3)),
                             'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_All_Schools_Ability.uri'), $isGroup),
                             "format" => "base64"
                         ]);
@@ -1878,7 +1885,7 @@ class ClassTestReportController extends Controller
                     if(isset($studentAbility) && !empty($studentAbility)){
                         $requestPayload = new Request();
                         $requestPayload = $requestPayload->replace([
-                            'data_list' => array_values(array_unique(array_map('floatval', $studentAbility))),
+                            'data_list' => array_values(array_map('floatval', $studentAbility)),
                             "format" => "base64",
                             'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_My_Class_Ability.uri'),$isGroup)
                         ]);

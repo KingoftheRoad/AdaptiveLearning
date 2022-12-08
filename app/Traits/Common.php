@@ -2605,9 +2605,10 @@ trait Common {
      * USE: Get Curriculum Current Year
      */
     public static function GetCurriculumCurrentYear(){
-        $PresentYearCurriculumId = CurriculumYear::where(cn::CURRICULUM_YEAR_YEAR_COL,((int)Carbon::now()->format('Y').'-'.((int)(Carbon::now()->format('y'))+1)))->first();
+        //$PresentYearCurriculumId = CurriculumYear::where(cn::CURRICULUM_YEAR_YEAR_COL,((int)Carbon::now()->format('Y').'-'.((int)(Carbon::now()->format('y'))+1)))->first();
+        $PresentYearCurriculumId = Helper::getGlobalConfiguration('current_curriculum_year') ?? cn::DEFAULT_CURRICULUM_YEAR_ID;
         if(!empty($PresentYearCurriculumId)){
-            return CurriculumYear::whereBetween(cn::CURRICULUM_YEAR_ID_COL, [1, $PresentYearCurriculumId->id])->orderBy(cn::CURRICULUM_YEAR_ID_COL,'DESC')->get();
+            return CurriculumYear::whereBetween(cn::CURRICULUM_YEAR_ID_COL, [1, $PresentYearCurriculumId])->orderBy(cn::CURRICULUM_YEAR_ID_COL,'DESC')->get();
         }
         return [];
     }
@@ -2698,5 +2699,13 @@ trait Common {
         // Store Next Curriculum Year Id
         $nextCurriculumYearId = $CurriculumYear->{cn::CURRICULUM_YEAR_ID_COL};
         return $nextCurriculumYearId;
+    }
+
+    /***
+     * USE : GradeList in get From 1 to 6 for common function define
+     */
+    public function getGradeLists(){
+        $GradeList = Grades::where(cn::GRADES_STATUS_COL,1)->whereIn(cn::GRADES_ID_COL,[1,2,3,4,5,6])->get();
+        return $GradeList ?? [];
     }
 }

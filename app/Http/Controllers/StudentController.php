@@ -73,7 +73,9 @@ class StudentController extends Controller
             $UsersList = User::where([
                             cn::USERS_SCHOOL_ID_COL => auth()->user()->school_id,
                             cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
-                        ])->sortable()
+                        ])
+                        ->whereIn('id',$this->curriculum_year_mapping_student_ids('','',auth()->user()->school_id))
+                        ->sortable()
                         ->orderBy(cn::USERS_ID_COL,'DESC')
                         ->paginate($items);
 
@@ -92,10 +94,13 @@ class StudentController extends Controller
                     });
                 }
                 if(isset($request->student_grade_id) && !empty($request->student_grade_id) && isset($request->class_type_id) && !empty($request->class_type_id)){
-                    $Query->where(cn::USERS_GRADE_ID_COL,$request->student_grade_id)->whereIn(cn::USERS_CLASS_ID_COL,$request->class_type_id);
+                    $Query->where(cn::USERS_GRADE_ID_COL,$request->student_grade_id)
+                    ->whereIn(cn::USERS_CLASS_ID_COL,$request->class_type_id)
+                    ->whereIn('id',$this->curriculum_year_mapping_student_ids($request->student_grade_id,$request->class_type_id,auth()->user()->school_id));
                 }
                 if(isset($request->student_grade_id) && !empty($request->student_grade_id)){
-                    $Query->where(cn::USERS_GRADE_ID_COL,$request->student_grade_id);
+                    $Query->where(cn::USERS_GRADE_ID_COL,$request->student_grade_id)
+                    ->whereIn('id',$this->curriculum_year_mapping_student_ids($request->student_grade_id,'',auth()->user()->school_id));
                 }
                 if(isset($request->classStudentNumber) && !empty($request->classStudentNumber)){
                     $Query->where(cn::USERS_CLASS_CLASS_STUDENT_NUMBER,$request->classStudentNumber);
@@ -113,9 +118,12 @@ class StudentController extends Controller
                     }
                 }
                 $TotalFilterData = $Query->where([cn::USERS_SCHOOL_ID_COL => auth()->user()->school_id,cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID])->count();
-                $UsersList = $Query->where([cn::USERS_SCHOOL_ID_COL => auth()->user()->school_id,cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID])->sortable()->paginate($items);
+                $UsersList = $Query->where([cn::USERS_SCHOOL_ID_COL => auth()->user()->school_id,cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID])
+                            ->whereIn('id',$this->curriculum_year_mapping_student_ids('','',auth()->user()->school_id))
+                            ->sortable()->paginate($items);
                 $this->StoreAuditLogFunction($request->all(),'User',cn::USERS_ID_COL,'','Student Details Filter',cn::USERS_TABLE_NAME,'');
             }
+            //echo '<pre>';print_r($UsersList->toArray());die;
             return view('backend.studentmanagement.list',compact('UsersList','items','countUserData','gradeList','TotalFilterData','classTypeOptions'));
         }catch(Exception $exception){
             return redirect('Student')->withError($exception->getMessage())->withInput();

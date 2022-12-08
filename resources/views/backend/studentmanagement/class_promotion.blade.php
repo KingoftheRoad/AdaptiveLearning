@@ -34,8 +34,8 @@
 								<table class="display" style="width:100%">
 							    	<thead>
 							        	<tr>
-											<th class="first-head"><span>{{__('languages.to_class')}}</span></th>
 											<th class="first-head"><span>{{__('languages.from_class')}}</span></th>
+											<th class="first-head"><span>{{__('languages.to_class')}}</span></th>
 											<th class="first-head"><span>{{__('languages.promoted_date')}}</span></th>
 							        	</tr>
 							    	</thead>
@@ -43,8 +43,8 @@
                                         @if(!empty($arrayPromotionHistory))
                                             @foreach($arrayPromotionHistory as $history)
                                                 <tr>
-                                                    <td> {{ (!empty($history->current_grade_id)) ? App\Helpers\Helper::getGradeName($history->current_grade_id).'-'.App\Helpers\Helper::getSingleClassName($history->current_class_id) : '----' }}</td>
-                                                    <td> {{ (!empty($history->promoted_grade_id)) ? App\Helpers\Helper::getGradeName($history->promoted_grade_id).'-'.App\Helpers\Helper::getSingleClassName($history->promoted_class_id) : '----' }}</td>
+                                                    <td> {{ (!empty($history->current_grade_id)) ? App\Helpers\Helper::getGradeName($history->current_grade_id).'-'.App\Helpers\Helper::getSingleClassName($history->current_class_id,true) : 'N/A' }}</td>
+													<td> {{ (!empty($history->promoted_grade_id)) ? App\Helpers\Helper::getGradeName($history->promoted_grade_id).'-'.App\Helpers\Helper::getSingleClassName($history->promoted_class_id,true) : 'N/A' }}</td>
 													<td> {{ \Carbon\Carbon::parse($history->created_at)->format('d/m/Y h:m:s') }}</td>
                                                 </tr>
                                             @endforeach

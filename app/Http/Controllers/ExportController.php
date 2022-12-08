@@ -445,15 +445,14 @@ class ExportController extends Controller
         $csvExporter = new \Laracsv\Export();
         $csvExporter->beforeEach(function ($student){
             $student->email                         = $student->email;
-            $student->password                      = '';//$student->password;
+            $student->password                      = '';
             $student->name_en                       = $student->DecryptNameEn;
             $student->name_ch                       = $student->DecryptNameCh;
             $student->permanent_reference_number    = $student->permanent_reference_number;
-            $student->grade_id                      = $student->grade_id;
-            $student->class                         = !empty($student->class) ? ucfirst(substr($student->class,-1)) : '';
-            $student->student_number_within_class   = $student->student_number_within_class;
-        });
-
+            $student->grade_id                      = $student->CurriculumYearGradeId;
+            $student->class_id                      = !empty($student->CurriculumYearClassId) ? $this->getSingleClassName($student->CurriculumYearClassId) : '';
+            $student->student_number_within_class   = $student->CurriculumYearData['student_number_within_class'];
+        });        
         $csvExporter->build($userList, [
             'email'                                 => 'Email',
             'password'                              => 'Password',
@@ -461,8 +460,8 @@ class ExportController extends Controller
             'name_ch'                               => 'Chinese Name',
             'permanent_reference_number'            => 'Student Permanent Reference Number',
             'grade_id'                              => 'Grade',
-            'class'                                 => 'Class With Grade',
-            'student_number'                        => 'Student Number within Class',
+            'class_id'                              => 'Class With Grade',
+            'student_number_within_class'           => 'Student Number within Class',
         ])->download('Students.CSV');
     }
 }

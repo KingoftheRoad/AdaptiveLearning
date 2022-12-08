@@ -200,8 +200,8 @@ class AlpAiGraphController extends Controller
                         if(isset($studentAbility) && !empty($studentAbility)){
                             $requestPayload = new Request();
                             $requestPayload = $requestPayload->replace([
-                                'data_list1' => array_values(array_unique(array_map('floatval', $studentAbility))),
-                                'data_list2' => array_values(array_unique(array_map('floatval', $dataList2))),
+                                'data_list1' => array_values(array_map('floatval', $studentAbility)),
+                                'data_list2' => array_values(array_map('floatval', $dataList2)),
                                 "format" => "base64",
                                 'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_My_School_Ability.uri'),$isGroup)
                             ]);
@@ -253,9 +253,9 @@ class AlpAiGraphController extends Controller
                         if(isset($studentAbility) && !empty($studentAbility)){
                             $requestPayload = new Request();
                             $requestPayload = $requestPayload->replace([
-                                'data_list1' => array_values(array_unique(array_map('floatval', $studentAbility))),
-                                'data_list2' => array_values(array_unique(array_map('floatval', $dataList2))),
-                                'data_list3' => array_values(array_unique(array_map('floatval', $dataList3))),
+                                'data_list1' => array_values(array_map('floatval', $studentAbility)),
+                                'data_list2' => array_values(array_map('floatval', $dataList2)),
+                                'data_list3' => array_values(array_map('floatval', $dataList3)),
                                 'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_All_Schools_Ability.uri'), $isGroup),
                                 "format" => "base64"
                             ]);
@@ -279,7 +279,7 @@ class AlpAiGraphController extends Controller
                         if(isset($studentAbility) && !empty($studentAbility)){
                             $requestPayload = new Request();
                             $requestPayload = $requestPayload->replace([
-                                'data_list' => array_values(array_unique(array_map('floatval', $studentAbility))),
+                                'data_list' => array_values(array_map('floatval', $studentAbility)),
                                 "format" => "base64",
                                 'labels' => $this->GetAiApiLabels(config()->get('aiapi.api.Plot_Analyze_My_Class_Ability.uri'),$isGroup)
                             ]);

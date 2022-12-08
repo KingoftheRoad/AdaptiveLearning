@@ -51,15 +51,15 @@
 										</div>
 										<div class="detail-sec">
 											<p class="detail-s"><strong>{{ __('languages.grade') }} :</strong>  </p>
-											<p class="detail-p"> {{$profile->grade_id}}  </p>
+											<p class="detail-p"> {{(!empty($profile->CurriculumYearData)) ? App\Helpers\Helper::getGradeName($profile->CurriculumYearData->grade_id) : 'N/A'}}  </p>
 										</div>
 										<div class="detail-sec">
 											<p class="detail-s"><strong>{{ __('languages.class') }} :</strong>  </p>
-											<p class="detail-p"> {{(App\Helpers\Helper::getSingleClassName($profile->class_id)) ? App\Helpers\Helper::getSingleClassName($profile->class_id) : 'N/A'}}  </p>
+											<p class="detail-p"> {{(!empty($profile->CurriculumYearData)) ? App\Helpers\Helper::getSingleClassName($profile->CurriculumYearData->class_id) : 'N/A'}}  </p>
 										</div>
 										<div class="detail-sec">
 											<p class="detail-s"><strong>{{ __('languages.profile.class_student_number') }} :</strong>  </p>
-											<p class="detail-p"> {{ ($profile->class_student_number) ? $profile->class_student_number : ''}}  </p>
+											<p class="detail-p"> {{ ($profile->CurriculumYearData->class_student_number) ? $profile->CurriculumYearData->class_student_number : ''}}  </p>
 										</div>
 										<div class="detail-sec">
 											<p class="detail-s"><strong>{{ __('languages.user_management.city') }} :</strong>  </p>

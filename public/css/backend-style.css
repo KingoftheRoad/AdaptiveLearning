@@ -4724,6 +4724,10 @@ form .classPerformanceReportInline {
 .div1 {
     height: 20px;
 }
+#current_curriculum_year.curriculum-select-option {
+    position: static !important;
+    width: auto !important;
+}
 
 /* Responsive - css */
 @media only screen and (max-width: 1280px) {

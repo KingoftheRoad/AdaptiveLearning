@@ -14,7 +14,7 @@ trait AIApi
         $requestData = $request->all();
         $requestBody = json_encode($requestData, true);
         //echo '<pre>';print_r($requestBody);die;
-        //Log::info('AI-API | Request Payload | ' . $requestBody);
+        Log::info('AI-API | Request Payload | ' . $requestBody);
         $client = new \GuzzleHttp\Client(['headers' => $headers,'verify' => false]);
         try {
             if(empty($method)){

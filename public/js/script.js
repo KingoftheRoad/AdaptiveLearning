@@ -4450,6 +4450,12 @@ OnClickEvent = {
         $(document).on("change", ".performance_exam_id", function () {
             $("#cover-spin").show();
             var exam_id = $(this).val();
+            var ExamType = $(this).find(":selected").data("examtype");
+            if (ExamType == 1) {
+                $(".class-performance-class-ability-report").hide();
+            } else {
+                $(".class-performance-class-ability-report").show();
+            }
             $.ajax({
                 url: BASE_URL + "/getExamGroupGradeClassList",
                 type: "GET",

@@ -49,7 +49,7 @@
 										@endphp
 											@if(!empty($ExamList))
 											@foreach($ExamList as $exams)
-												<option value="{{$exams->id}}" data-school-id="{{ $school_id }}" {{ request()->get('exam_id') == $exams->id ? 'selected' : '' }}>{{$exams->title}} @if(isset($exams->reference_no)) ({{$exams->reference_no}}) @endif</option>
+												<option value="{{$exams->id}}" data-examtype="{{$exams->exam_type}}" data-school-id="{{ $school_id }}" {{ request()->get('exam_id') == $exams->id ? 'selected' : '' }}>{{$exams->title}} @if(isset($exams->reference_no)) ({{$exams->reference_no}}) @endif</option>
 											@endforeach
 											@endif
 									</select>
@@ -136,9 +136,7 @@
 						<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
 							<button class="btn-search class-performance-progress-report w-100">{{__('languages.progress_report')}}</button>
 						</div>
-						<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-							<button class="btn-search class-performance-class-ability-report w-100">{{__('languages.class_ability_analysis')}}</button>
-						</div>
+						
 						<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
 							<button class="btn-search getTestDifficultyAnalysisReport w-100" data-examid="{{$ExamData->id}}">{{__('languages.question_difficulty_analysis')}}</button>
 						</div>
@@ -150,6 +148,11 @@
 						<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
 							<button class="btn-search class-performance-student-summary-report w-100" data-examid="{{$ExamData->id}}">{{__('languages.student_summary_report')}}</button>
 						</div>
+						@if($ExamData->exam_type != 1)
+							<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+								<button class="btn-search class-performance-class-ability-report w-100">{{__('languages.class_ability_analysis')}}</button>
+							</div>
+						@endif
 					</div>
 					<!-- End All Reports Menu -->
 					
@@ -168,6 +171,7 @@
 							<form class="exam-details-reports"id="exam-details-reports" action="{{ route('report.school-comparisons')}}" method="get">
 							<input type="hidden" name="exam_id" id="exam_id" value="{{ request()->get('exam_id')}}">
 							<input type="hidden" name="grade_id" value="{{ $grade_id }}">
+							<input type="hidden" name="exam_school_id" value="{{ request()->get('exam_school_id')}}">
 							@if(isset($class_type_id) && !empty($class_type_id))
 								@foreach($class_type_id as $class_type)
 									<input type="hidden" name="class_type_id[]" value="{{ $class_type }}">

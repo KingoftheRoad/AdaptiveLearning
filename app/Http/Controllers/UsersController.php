@@ -465,8 +465,8 @@ class UsersController extends Controller
                 // return view('backend.student.import_student',compact('Grades','CurriculumYears'));
                 return view('backend.student.import_student',compact('Grades'));
             }
+            
             if($request->isMethod('post')){
-                echo "<pre>";print_r($request->all());die;
                 $file = $request->file('user_file');
                 // File Details 
                 $filename = $file->getClientOriginalName();

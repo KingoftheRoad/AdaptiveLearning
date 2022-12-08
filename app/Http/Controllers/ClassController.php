@@ -55,7 +55,8 @@ class ClassController extends Controller
         if(!in_array('grade_management_create', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
             return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
         }
-        $GradeList = Grades::where(cn::GRADES_STATUS_COL,1)->whereIn(cn::GRADES_ID_COL,[1,2,3,4,5,6])->get();
+        // $GradeList = Grades::where(cn::GRADES_STATUS_COL,1)->whereIn(cn::GRADES_ID_COL,[1,2,3,4,5,6])->get();
+        $GradeList = $this->getGradeLists();
         return view('backend.class.add',compact('GradeList'));
     }
 
@@ -283,7 +284,8 @@ class ClassController extends Controller
             }
             $schoolId = Auth::user()->{cn::USERS_SCHOOL_ID_COL};
             $GradeMapping = GradeSchoolMappings::find($id);
-            $GradeList = Grades::where(cn::GRADES_STATUS_COL,1)->whereIn(cn::GRADES_ID_COL,[1,2,3,4,5,6])->get();
+            // $GradeList = Grades::where(cn::GRADES_STATUS_COL,1)->whereIn(cn::GRADES_ID_COL,[1,2,3,4,5,6])->get();
+            $GradeList = $this->getGradeLists();
             $data = Grades::with(['classes' => fn($query) => $query->where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL, $schoolId)->where(cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())])
                     ->where(cn::GRADES_ID_COL,$GradeMapping->{cn::GRADES_MAPPING_GRADE_ID_COL})
                     ->first();

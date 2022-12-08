@@ -106,7 +106,8 @@ class User extends Authenticatable
 
     public function getCurriculumYearDataAttribute(){
         $CurriculumYearData = [];
-        if(!empty($this->id) && $this->role_id == cn::STUDENT_ROLE_ID){
+        $UserData = Self::find($this->id);
+        if(!empty($this->id) && $UserData->role_id == cn::STUDENT_ROLE_ID){
             $CurriculumYearData = $this->GetStudentDataByCurriculumYear($this->GetCurriculumYear(),$this->id);
         }
         return $CurriculumYearData;
@@ -114,7 +115,8 @@ class User extends Authenticatable
 
     public function getCurriculumYearGradeIdAttribute(){
         $CurriculumYearGradeId = 0;
-        if(!empty($this->id) && $this->role_id == cn::STUDENT_ROLE_ID){
+        $UserData = Self::find($this->id);
+        if(!empty($this->id) && $UserData->role_id == cn::STUDENT_ROLE_ID){
             $Data = $this->GetStudentDataByCurriculumYear($this->GetCurriculumYear(),$this->id);
             if(isset($Data) && !empty($Data)){
                 $CurriculumYearGradeId = $Data['grade_id'];
@@ -125,7 +127,8 @@ class User extends Authenticatable
 
     public function getCurriculumYearClassIdAttribute(){
         $CurriculumYearClassId = 0;
-        if(!empty($this->id) && $this->role_id == cn::STUDENT_ROLE_ID){
+        $UserData = Self::find($this->id);
+        if(!empty($this->id) && $UserData->role_id == cn::STUDENT_ROLE_ID){
             $Data = $this->GetStudentDataByCurriculumYear($this->GetCurriculumYear(),$this->id);
             if(isset($Data) && !empty($Data)){
                 $CurriculumYearClassId = $Data['class_id'];

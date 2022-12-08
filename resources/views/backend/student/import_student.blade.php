@@ -36,7 +36,7 @@
                             {{ session()->get('error_msg') }}
                         </div>
                         @endif
-						<form class="user-form" method="post" id="importStudents"  action="{{ route('ImportStudentsData') }}" enctype="multipart/form-data">
+						<form class="user-form" method="post" id="importStudents"  action="{{route('ImportStudentsData')}}" enctype="multipart/form-data">
                         @csrf()
                         <div class="form-row select-data">
                             <input type="hidden" name="old_file" id="old_file">

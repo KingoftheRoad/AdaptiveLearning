@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\AttemptExams;
 use App\Models\GradeClassMapping;
 use App\Models\TeachersClassSubjectAssign;
+use App\Models\ExamGradeClassMappingModel;
 
 class SchoolComparisonsReportController extends Controller
 {
@@ -165,40 +166,40 @@ class SchoolComparisonsReportController extends Controller
                                                     cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
                                                     cn::USERS_SCHOOL_ID_COL => $SchoolId
                                                 ])->count();
-                            if(isset($request->grade_id) && !empty($request->grade_id)){
-                                // $totalNoOfStudents = User::select(cn::USERS_ID_COL)
-                                //                     ->where([
-                                //                         cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
-                                //                         cn::USERS_SCHOOL_ID_COL => $SchoolId,
-                                //                         cn::USERS_GRADE_ID_COL => $request->grade_id
-                                //                     ])
-                                //                     ->count();
-                                $totalNoOfStudents = User::select(cn::USERS_ID_COL)
-                                                    ->where([
-                                                        cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
-                                                        cn::USERS_SCHOOL_ID_COL => $SchoolId
-                                                    ])
-                                                    ->get()
-                                                    ->where('CurriculumYearGradeId',$request->grade_id)
-                                                    ->count();
-                            }
-                            if(isset($request->grade_id) && !empty($request->grade_id) && isset($request->class_type_id) && !empty($request->class_type_id)){
-                                // $totalNoOfStudents = User::select('id')
-                                //                     ->where('role_id',3)
-                                //                     ->where('school_id',$SchoolId)
-                                //                     ->where(cn::USERS_GRADE_ID_COL,$request->grade_id)
-                                //                     ->whereIn(cn::USERS_CLASS_ID_COL,$request->class_type_id)
-                                //                     ->count();
-                                $totalNoOfStudents = User::select(cn::USERS_ID_COL)
-                                                    ->where([
-                                                        cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
-                                                        cn::USERS_SCHOOL_ID_COL => $SchoolId
-                                                    ])
-                                                    ->get()
-                                                    ->where('CurriculumYearGradeId',$request->grade_id)
-                                                    ->whereIn('CurriculumYearClassId',$request->class_type_id)
-                                                    ->count();
-                            }
+                            // if(isset($request->grade_id) && !empty($request->grade_id)){
+                            //     // $totalNoOfStudents = User::select(cn::USERS_ID_COL)
+                            //     //                     ->where([
+                            //     //                         cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                            //     //                         cn::USERS_SCHOOL_ID_COL => $SchoolId,
+                            //     //                         cn::USERS_GRADE_ID_COL => $request->grade_id
+                            //     //                     ])
+                            //     //                     ->count();
+                            //     $totalNoOfStudents = User::select(cn::USERS_ID_COL)
+                            //                         ->where([
+                            //                             cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                            //                             cn::USERS_SCHOOL_ID_COL => $SchoolId
+                            //                         ])
+                            //                         ->get()
+                            //                         ->where('CurriculumYearGradeId',$request->grade_id)
+                            //                         ->count();
+                            // }
+                            // if(isset($request->grade_id) && !empty($request->grade_id) && isset($request->class_type_id) && !empty($request->class_type_id)){
+                            //     // $totalNoOfStudents = User::select('id')
+                            //     //                     ->where('role_id',3)
+                            //     //                     ->where('school_id',$SchoolId)
+                            //     //                     ->where(cn::USERS_GRADE_ID_COL,$request->grade_id)
+                            //     //                     ->whereIn(cn::USERS_CLASS_ID_COL,$request->class_type_id)
+                            //     //                     ->count();
+                            //     $totalNoOfStudents = User::select(cn::USERS_ID_COL)
+                            //                         ->where([
+                            //                             cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                            //                             cn::USERS_SCHOOL_ID_COL => $SchoolId
+                            //                         ])
+                            //                         ->get()
+                            //                         ->where('CurriculumYearGradeId',$request->grade_id)
+                            //                         ->whereIn('CurriculumYearClassId',$request->class_type_id)
+                            //                         ->count();
+                            // }
                             $SchoolReportsData[$key]['total_students'] = $totalNoOfStudents;
                             $averageOfCorrectAnswers = 0;
                             $total_attempted_exams_students = 0;
@@ -210,38 +211,38 @@ class SchoolComparisonsReportController extends Controller
                                                     cn::USERS_SCHOOL_ID_COL => $SchoolId
                                                 ])
                                                 ->get();
-                            if(isset($request->grade_id) && !empty($request->grade_id)){
-                                // $SchoolsStudents =  User::select('id')
-                                //                     ->where('role_id',cn::STUDENT_ROLE_ID)
-                                //                     ->where('school_id',$SchoolId)
-                                //                     ->where(cn::USERS_GRADE_ID_COL,$request->grade_id)
-                                //                     ->get();
-                                $SchoolsStudents =  User::select(cn::USERS_ID_COL)
-                                                    ->where([
-                                                        cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
-                                                        cn::USERS_SCHOOL_ID_COL => $SchoolId
-                                                    ])
-                                                    ->get()
-                                                    ->where('CurriculumYearGradeId',$request->grade_id);
-                            }
-                            if(isset($request->grade_id) && !empty($request->grade_id) && isset($request->class_type_id) && !empty($request->class_type_id)){
-                                // $SchoolsStudents =  User::select('id')
-                                //                     ->where('role_id',cn::STUDENT_ROLE_ID)
-                                //                     ->where('school_id',$SchoolId)
-                                //                     ->where(cn::USERS_GRADE_ID_COL,$request->grade_id)
-                                //                     ->whereIn(cn::USERS_CLASS_ID_COL,$request->class_type_id)
-                                //                     ->get();
+                            // if(isset($request->grade_id) && !empty($request->grade_id)){
+                            //     // $SchoolsStudents =  User::select('id')
+                            //     //                     ->where('role_id',cn::STUDENT_ROLE_ID)
+                            //     //                     ->where('school_id',$SchoolId)
+                            //     //                     ->where(cn::USERS_GRADE_ID_COL,$request->grade_id)
+                            //     //                     ->get();
+                            //     $SchoolsStudents =  User::select(cn::USERS_ID_COL)
+                            //                         ->where([
+                            //                             cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                            //                             cn::USERS_SCHOOL_ID_COL => $SchoolId
+                            //                         ])
+                            //                         ->get()
+                            //                         ->where('CurriculumYearGradeId',$request->grade_id);
+                            // }
+                            // if(isset($request->grade_id) && !empty($request->grade_id) && isset($request->class_type_id) && !empty($request->class_type_id)){
+                            //     // $SchoolsStudents =  User::select('id')
+                            //     //                     ->where('role_id',cn::STUDENT_ROLE_ID)
+                            //     //                     ->where('school_id',$SchoolId)
+                            //     //                     ->where(cn::USERS_GRADE_ID_COL,$request->grade_id)
+                            //     //                     ->whereIn(cn::USERS_CLASS_ID_COL,$request->class_type_id)
+                            //     //                     ->get();
 
-                                $SchoolsStudents =  User::select(cn::USERS_ID_COL)
-                                                    ->where([
-                                                        cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
-                                                        cn::USERS_SCHOOL_ID_COL => $SchoolId
-                                                    ])
-                                                    ->get()
-                                                    ->where('CurriculumYearGradeId',$request->grade_id)
-                                                    ->whereIn('CurriculumYearClassId',$request->class_type_id);
+                            //     $SchoolsStudents =  User::select(cn::USERS_ID_COL)
+                            //                         ->where([
+                            //                             cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                            //                             cn::USERS_SCHOOL_ID_COL => $SchoolId
+                            //                         ])
+                            //                         ->get()
+                            //                         ->where('CurriculumYearGradeId',$request->grade_id)
+                            //                         ->whereIn('CurriculumYearClassId',$request->class_type_id);
                                 
-                            }
+                            // }
                             $AttemptedStudents = [];
                             if(isset($SchoolsStudents) && !empty($SchoolsStudents)){
                                 foreach($SchoolsStudents as $studentKey => $student){

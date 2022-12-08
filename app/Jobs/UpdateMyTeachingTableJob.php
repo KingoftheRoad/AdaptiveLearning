@@ -137,7 +137,9 @@ class UpdateMyTeachingTableJob implements ShouldQueue
                                                     if($NoOfStudentAssignedExam){
                                                         $MyTeaching = array();
 
-                                                        $AttemptedStudentExam = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$ExamData->{cn::EXAM_TABLE_ID_COLS})->whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$StudentIds)->get();
+                                                        $AttemptedStudentExam = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$ExamData->{cn::EXAM_TABLE_ID_COLS})
+                                                                                ->whereIn(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID,$StudentIds)
+                                                                                ->get();
                                                         $ClassStudentProgress = [
                                                             'progress_percentage' => 0,
                                                             'progress_tooltip' => '0%'.' '.'(0/'.sizeof($CurrentClassStudent).')'

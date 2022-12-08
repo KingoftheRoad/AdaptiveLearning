@@ -1314,7 +1314,8 @@ return [
             'plot_title' => '問題分析',
             'x_axis' => '學生能力',
             'left_y_axis' => '學生數目',
-            'right_y_axis' => '數據密度'
+            'right_y_axis' => '%'
+            //'right_y_axis' => '數據密度'
         ],
         'Plot_Analyze_Student' => [
             'label_1' => '學生能力',
@@ -1323,7 +1324,8 @@ return [
             'plot_title' => '學生表現',
             'x_axis' => '問題難度',
             'left_y_axis' => '問題數目',
-            'right_y_axis' => '數據密度'
+            'right_y_axis' => '%'
+            //'right_y_axis' => '數據密度'
         ],
         'Plot_Analyze_My_Class_Ability' => [
             'label_1' => '我班的能力',
@@ -1331,7 +1333,8 @@ return [
             'label_3' => '',
             'plot_title' => "我班的能力",
             'left_y_axis' => '學生的數目',
-            'right_y_axis' => '數據密度',
+            //'right_y_axis' => '數據密度',
+            'right_y_axis' => '%',
             'x_axis' => "學生的能力",
         ],
         'Plot_Analyze_My_School_Ability' => [
@@ -1340,7 +1343,8 @@ return [
             'label_3' => '',
             'plot_title' => "我班與我校",
             'left_y_axis' => '學生數目',
-            'right_y_axis' => '數據密度',
+            'right_y_axis' => '%',
+            //'right_y_axis' => '數據密度',
             'x_axis' => "學生能力",
         ],
         'Plot_Analyze_All_Schools_Ability' => [
@@ -1349,7 +1353,8 @@ return [
             'label_3' => '所有學校的能力',
             'plot_title' => "我班與我校與所有學校",
             'left_y_axis' => '學生數目',
-            'right_y_axis' => '數據密度',
+            //'right_y_axis' => '數據密度',
+            'right_y_axis' => '%',
             'x_axis' => "學生能力",
         ],
         'abilities_of_my_class' => '我班的能力',

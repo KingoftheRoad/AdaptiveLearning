@@ -55,7 +55,7 @@
 					<form class="addAdminExamFilterForm" id="addAdminExamFilterForm" method="get">	
 						<div class="row">
 							<div class="select-lng pt-2 pb-2 col-lg-2 col-md-4">                            
-								<select name="current_curriculum_year"  id="current_curriculum_year" class="form-control select-option exam-search ">
+								<select name="current_curriculum_year"  id="current_curriculum_year" class="form-control select-option curriculum-select-option exam-search">
 									<option value="">{{ __('languages.current') }} {{ __('languages.curriculum_year') }}</option>
 									@if(!empty($CurriculumYears))
 										@foreach($CurriculumYears as $CurriculumYear)

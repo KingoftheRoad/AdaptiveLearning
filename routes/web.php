@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('update-students-overall-ability', 'CommonController@UpdateStudentAbility')->name('update-students-overall-ability');
 Route::get('generate-math-formula-image', 'CommonController@GenerateMathFormulaImage')->name('generate-math-formula-image');
 Route::get('updateMyTeachingReports', 'CronJobController@updateMyTeachingReports')->name('updateMyTeachingReports');
+Route::get('UpdateMyTeachingTableSingleExam', 'CronJobController@UpdateMyTeachingTable')->name('UpdateMyTeachingTable');
 Route::get('updateMyTeachingTable', 'CronJobController@updateMyTeachingTable')->name('updateMyTeachingTable');
 Route::get('remove-duplicate-student', 'CronJobController@RemoveDuplicateStudent')->name('remove-duplicate-student');
 Route::get('updateStudyReports', 'MyStudyController@updateStudyReports')->name('updateStudyReports');
