@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 /******************************************************************************************************************************
  *  Start Cron Job Urls **
  * ****************************************************************************************************************************/
+Route::get('UpdateAttemptExamTable', 'CronJobController@UpdateAttemptExamTable')->name('UpdateAttemptExamTable');
 Route::get('update-students-overall-ability', 'CommonController@UpdateStudentAbility')->name('update-students-overall-ability');
 Route::get('generate-math-formula-image', 'CommonController@GenerateMathFormulaImage')->name('generate-math-formula-image');
 Route::get('updateMyTeachingReports', 'CronJobController@updateMyTeachingReports')->name('updateMyTeachingReports');

@@ -214,7 +214,7 @@
 											<thead>
 												<tr>
 													<!-- <th class="first-head"><span>{{__('Class-Student No')}}</span></th> -->
-													  <th class="first-head sorting_column" data-sort-type="student_name" data-sort="<?php if(isset($_GET['sort_by_type']) && $_GET['sort_by_type'] == 'student_name'){ echo $_GET['sort_by_value'];}?>">
+													<th class="first-head sorting_column" data-sort-type="student_name" data-sort="<?php if(isset($_GET['sort_by_type']) && $_GET['sort_by_type'] == 'student_name'){ echo $_GET['sort_by_value'];}?>">
 														<span>{{__('languages.report.student_name')}}</span>
 														<span class="student-name-sorting-icon">
 														@if(isset($_GET['sort_by_type']) && $_GET['sort_by_type'] == 'student_name')

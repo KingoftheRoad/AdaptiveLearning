@@ -357,7 +357,12 @@ class RealTimeAIQuestionGeneratorController extends Controller
         $exams = Exam::create($examData);
         if($exams){
             // Create exam school mapping
-            ExamSchoolMapping::create(['school_id' => Auth::user()->{cn::USERS_SCHOOL_ID_COL},'exam_id' => $exams->id, 'status' => 'publish']);
+            ExamSchoolMapping::create([
+                cn::EXAM_SCHOOL_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                cn::EXAM_SCHOOL_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                cn::EXAM_SCHOOL_MAPPING_EXAM_ID_COL => $exams->id,
+                cn::EXAM_SCHOOL_MAPPING_STATUS_COL => 'publish'
+            ]);
 
             // find student overall ability from AI-API
             if(isset($AttemptedQuestionAnswers) && !empty($AttemptedQuestionAnswers)){
@@ -743,7 +748,7 @@ class RealTimeAIQuestionGeneratorController extends Controller
         }
 
         $examData = [
-            cn::EXAM_CURRICULUM_YEAR_ID_COL                 => $this->CurrentCurriculumYearId, // "CurrentCurriculumYearId" Get value from Global Configuration
+            cn::EXAM_CURRICULUM_YEAR_ID_COL                 => $this->GetCurriculumYear(), // "CurrentCurriculumYearId" Get value from Global Configuration
             cn::EXAM_TYPE_COLS                              => 1,
             cn::EXAM_TABLE_TITLE_COLS                       => $this->createTestTitle(),
             cn::EXAM_TABLE_FROM_DATE_COLS                   => Carbon::now(),
@@ -763,7 +768,12 @@ class RealTimeAIQuestionGeneratorController extends Controller
         $exams = Exam::create($examData);
         if($exams){
             // Create exam school mapping
-            ExamSchoolMapping::create(['school_id' => Auth::user()->{cn::USERS_SCHOOL_ID_COL},'exam_id' => $exams->id, 'status' => 'publish']);
+            ExamSchoolMapping::create([
+                cn::EXAM_SCHOOL_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                cn::EXAM_SCHOOL_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                cn::EXAM_SCHOOL_MAPPING_EXAM_ID_COL => $exams->id,
+                cn::EXAM_SCHOOL_MAPPING_STATUS_COL => 'publish'
+            ]);
 
             // find student overall ability from AI-API
             if(isset($AttemptedQuestionAnswers) && !empty($AttemptedQuestionAnswers)){
@@ -796,6 +806,7 @@ class RealTimeAIQuestionGeneratorController extends Controller
             }
 
             $PostData = [
+                cn::ATTEMPT_EXAMS_CURRICULUM_YEAR_ID_COL        => $this->GetCurriculumYear(),
                 cn::ATTEMPT_EXAMS_EXAM_ID                       => $exams->id,
                 cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID            => $this->LoggedUserId(),
                 cn::ATTEMPT_EXAMS_STUDENT_GRADE_ID              => Auth::user()->grade_id,

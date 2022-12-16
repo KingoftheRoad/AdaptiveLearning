@@ -4521,7 +4521,7 @@ OnClickEvent = {
                             }
 
                             // Set Grade Dropdown in Class performance report
-                            if (data.data.grades_list !== undefined) {
+                            if (data.data.grades_list !== undefined && data.data.grades_list.length != 0) {
                                 $(
                                     ".class-performance-grade-section,.class-performance-class-section"
                                 ).show();
@@ -4550,7 +4550,7 @@ OnClickEvent = {
                             }
 
                             // Set Grade Dropdown in Class performance report
-                            if (data.data.grades_list !== undefined) {
+                            if (data.data.grades_list !== undefined && data.data.class_list.length != 0) {
                                 $(".class-performance-class-section").show();
                                 var ClassList = "";
                                 $.each(
@@ -4640,7 +4640,7 @@ OnClickEvent = {
                         }
 
                         // Set Grade Dropdown in Class performance report
-                        if (data.data.grades_list !== undefined) {
+                        if (data.data.grades_list !== undefined && data.data.grades_list.length != 0) {
                             if (
                                 isAdmin == 1 ||
                                 isSchoolLogin == 1 ||
@@ -4671,32 +4671,7 @@ OnClickEvent = {
                         } else {
                             $(".class-performance-grade-section").hide();
                         }
-                        //Comment on Date 30-11-2022 because of class id not selected shown on teacher and school panel to fix this issue.
-                        // Set Grade Dropdown in Class performance report
-                        // if (data.data.grades_list !== undefined) {
-                        //     $(".class-performance-class-section").show();
-                        //     var ClassList = "";
-                        //     $.each(
-                        //         data.data.class_list,
-                        //         function (index, value) {
-                        //             ClassList +=
-                        //                 "<option value=" +
-                        //                 data.data.class_list[index].id +
-                        //                 ">" +
-                        //                 value.grade.name +
-                        //                 "-" +
-                        //                 data.data.class_list[index].name +
-                        //                 "</option>";
-                        //         }
-                        //     );
-                        //     $("#classType-select-option").html(ClassList);
-                        //     $("#classType-select-option").multiselect(
-                        //         "rebuild"
-                        //     );
-                        // } else {
-                        //     $(".class-performance-class-section").hide();
-                        // }
-                        if (data.data.grades_list !== undefined) {
+                        if (data.data.grades_list !== undefined && data.data.class_list.length != 0) {
                             $(".class-performance-class-section").show();
                             var ClassList = "";
                             $.each(

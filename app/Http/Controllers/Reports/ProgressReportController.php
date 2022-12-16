@@ -1383,7 +1383,7 @@ class ProgressReportController extends Controller
             }
             if($isFilter){
                 if(!empty($learningUnitsIds)){
-                    $learningUnitsId=$learningUnitsIds[0];
+                    $learningUnitsId = $learningUnitsIds[0];
                     // $learningObjectivesIds = LearningsObjectives::where(cn::LEARNING_OBJECTIVES_LEARNING_UNITID_COL, $learningUnitsId)->pluck(cn::LEARNING_OBJECTIVES_ID_COL)->toArray();
                     // $LearningsObjectivesLbl = LearningsObjectives::where(cn::LEARNING_OBJECTIVES_LEARNING_UNITID_COL, $learningUnitsId)->pluck('title_'.app()->getLocale(),cn::LEARNING_OBJECTIVES_ID_COL)->toArray();
                     $learningObjectivesIds = LearningsObjectives::IsAvailableQuestion()->where(cn::LEARNING_OBJECTIVES_LEARNING_UNITID_COL, $learningUnitsId)->pluck(cn::LEARNING_OBJECTIVES_ID_COL)->toArray();
@@ -1411,28 +1411,29 @@ class ProgressReportController extends Controller
                                     $stud_id = $studentData->{cn::USERS_ID_COL};
                                     $StudentAttemptedExamIds = $this->GetStudentAttemptedExamIds($stud_id) ?? [];
                                     $ExamList = Exam::with(['attempt_exams' => fn($query) => $query->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id)])
-                                                    ->whereHas('attempt_exams', function($q) use($stud_id){
-                                                        $q->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id);
-                                                    })
-                                                    ->where(function ($query) use ($reportLearningType){
-                                                        if(isset($reportLearningType) && $reportLearningType == 1){ // $reportLearningType == 1 = 'Self-Learning Test
-                                                            $query->where(cn::EXAM_TYPE_COLS,1)  // 1 = test_type = 'self-Learning'
-                                                            ->where(cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL,2);  // 2 = self_learning_test_type = 'test'
-                                                        }
-                                                        if(isset($reportLearningType) && $reportLearningType == 3){ // $reportLearningType == 3 = 'Test Only'
-                                                            $query->where(cn::EXAM_TYPE_COLS,3);  // 3 = test type = 'Test Only'
-                                                        }
-                                                        if(empty($reportLearningType)){
-                                                            $query->where(cn::EXAM_TYPE_COLS,3)
-                                                            ->orWhere(function ($q1) {
-                                                                $q1->where(cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL,2)->where(cn::EXAM_TYPE_COLS,1);
-                                                            });
-                                                        }
-                                                    })
-                                                    ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
-                                                    ->whereIn(cn::EXAM_TABLE_ID_COLS,$StudentAttemptedExamIds)
-                                                    ->orderBy(cn::EXAM_TABLE_ID_COLS,'DESC')
-                                                    ->get()->toArray();
+                                                ->whereHas('attempt_exams', function($q) use($stud_id){
+                                                    $q->where(cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID, $stud_id);
+                                                })
+                                                ->where(function ($query) use ($reportLearningType){
+                                                    if(isset($reportLearningType) && $reportLearningType == 1){ // $reportLearningType == 1 = 'Self-Learning Test
+                                                        $query->where(cn::EXAM_TYPE_COLS,1)  // 1 = test_type = 'self-Learning'
+                                                        ->where(cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL,2);  // 2 = self_learning_test_type = 'test'
+                                                    }
+                                                    if(isset($reportLearningType) && $reportLearningType == 3){ // $reportLearningType == 3 = 'Test Only'
+                                                        $query->where(cn::EXAM_TYPE_COLS,3);  // 3 = test type = 'Test Only'
+                                                    }
+                                                    if(empty($reportLearningType)){
+                                                        $query->where(cn::EXAM_TYPE_COLS,3)
+                                                        ->orWhere(function ($q1) {
+                                                            $q1->where(cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL,2)->where(cn::EXAM_TYPE_COLS,1);
+                                                        });
+                                                    }
+                                                })
+                                                ->where(cn::EXAM_CURRICULUM_YEAR_ID_COL,$this->GetCurriculumYear())
+                                                ->whereIn(cn::EXAM_TABLE_ID_COLS,$StudentAttemptedExamIds)
+                                                ->orderBy(cn::EXAM_TABLE_ID_COLS,'DESC')
+                                                ->get()
+                                                ->toArray();
                                     if(isset($ExamList) && !empty($ExamList)){
                                         $StudentLearningObjectiveAbility = 0;
                                         $ApiRequestData = array();
@@ -1499,46 +1500,46 @@ class ProgressReportController extends Controller
                                             // Store array into student ability
                                             $reportDataAbilityArray[$strandId][$learningUnitsId][] = array(
                                                 'learning_objective_number' => $learningObjectivesData->foci_number,
-                                                'LearningsObjectives' => $learningObjectivesData->foci_number.' '.$this->setLearningObjectivesTitle($LearningsObjectivesLbl[$learningObjectivesId]),
-                                                'ability' => $StudentLearningObjectiveAbility,
-                                                'normalizedAbility' => Helper::getNormalizedAbility($StudentLearningObjectiveAbility),
-                                                'ShortNormalizedAbility' => Helper::getShortNormalizedAbility($StudentLearningObjectiveAbility),
-                                                'studystatus' => Helper::getAbilityType($StudentLearningObjectiveAbility),
-                                                'studyStatusColor' => Helper::getGlobalConfiguration(Helper::getAbilityType($StudentLearningObjectiveAbility))
+                                                'LearningsObjectives'       => $learningObjectivesData->foci_number.' '.$this->setLearningObjectivesTitle($LearningsObjectivesLbl[$learningObjectivesId]),
+                                                'ability'                   => $StudentLearningObjectiveAbility,
+                                                'normalizedAbility'         => Helper::getNormalizedAbility($StudentLearningObjectiveAbility),
+                                                'ShortNormalizedAbility'    => Helper::getShortNormalizedAbility($StudentLearningObjectiveAbility),
+                                                'studystatus'               => Helper::getAbilityType($StudentLearningObjectiveAbility),
+                                                'studyStatusColor'          => Helper::getGlobalConfiguration(Helper::getAbilityType($StudentLearningObjectiveAbility))
                                             );
                                         }else{
                                             // Store array into student ability
                                             $reportDataAbilityArray[$strandId][$learningUnitsId][] = array(
                                                 'learning_objective_number' => $learningObjectivesData->foci_number,
-                                                'LearningsObjectives' => $learningObjectivesData->foci_number.' '.$this->setLearningObjectivesTitle($LearningsObjectivesLbl[$learningObjectivesId]),
-                                                'ability' => $StudentLearningObjectiveAbility,
-                                                'normalizedAbility' => $StudentLearningObjectiveAbility,
-                                                'ShortNormalizedAbility' => $StudentLearningObjectiveAbility,
-                                                'studystatus' => Helper::getAbilityType($StudentLearningObjectiveAbility),
-                                                'studyStatusColor' => Helper::getGlobalConfiguration('incomplete_color')
+                                                'LearningsObjectives'       => $learningObjectivesData->foci_number.' '.$this->setLearningObjectivesTitle($LearningsObjectivesLbl[$learningObjectivesId]),
+                                                'ability'                   => $StudentLearningObjectiveAbility,
+                                                'normalizedAbility'         => $StudentLearningObjectiveAbility,
+                                                'ShortNormalizedAbility'    => $StudentLearningObjectiveAbility,
+                                                'studystatus'               => Helper::getAbilityType($StudentLearningObjectiveAbility),
+                                                'studyStatusColor'          => Helper::getGlobalConfiguration('incomplete_color')
                                             );
                                         }
                                     }else{
                                         // Store array into student ability
                                         $reportDataAbilityArray[$strandId][$learningUnitsId][] = array(
                                             'learning_objective_number' => $learningObjectivesData->foci_number,
-                                            'LearningsObjectives' => $learningObjectivesData->foci_number.' '.$this->setLearningObjectivesTitle($LearningsObjectivesLbl[$learningObjectivesId]),
-                                            'ability' => $StudentLearningObjectiveAbility,
-                                            'normalizedAbility' => $StudentLearningObjectiveAbility,
-                                            'ShortNormalizedAbility' => $StudentLearningObjectiveAbility,
-                                            'studystatus' => Helper::getAbilityType($StudentLearningObjectiveAbility),
-                                            'studyStatusColor' => Helper::getGlobalConfiguration('incomplete_color')
+                                            'LearningsObjectives'       => $learningObjectivesData->foci_number.' '.$this->setLearningObjectivesTitle($LearningsObjectivesLbl[$learningObjectivesId]),
+                                            'ability'                   => $StudentLearningObjectiveAbility,
+                                            'normalizedAbility'         => $StudentLearningObjectiveAbility,
+                                            'ShortNormalizedAbility'    => $StudentLearningObjectiveAbility,
+                                            'studystatus'               => Helper::getAbilityType($StudentLearningObjectiveAbility),
+                                            'studyStatusColor'          => Helper::getGlobalConfiguration('incomplete_color')
                                         );
                                     }
                                 }else{
                                     $reportDataAbilityArray[$strandId][$learningUnitsId][] = array(
                                         'learning_objective_number' => $learningObjectivesData->foci_number,
-                                        'LearningsObjectives' => $learningObjectivesData->foci_number.' '.$this->setLearningObjectivesTitle($LearningsObjectivesLbl[$learningObjectivesId]),
-                                        'ability' => $StudentLearningObjectiveAbility,
-                                        'normalizedAbility' => $StudentLearningObjectiveAbility,
-                                        'ShortNormalizedAbility' => $StudentLearningObjectiveAbility,
-                                        'studystatus' => Helper::getAbilityType($StudentLearningObjectiveAbility),
-                                        'studyStatusColor' => Helper::getGlobalConfiguration('incomplete_color')
+                                        'LearningsObjectives'       => $learningObjectivesData->foci_number.' '.$this->setLearningObjectivesTitle($LearningsObjectivesLbl[$learningObjectivesId]),
+                                        'ability'                   => $StudentLearningObjectiveAbility,
+                                        'normalizedAbility'         => $StudentLearningObjectiveAbility,
+                                        'ShortNormalizedAbility'    => $StudentLearningObjectiveAbility,
+                                        'studystatus'               => Helper::getAbilityType($StudentLearningObjectiveAbility),
+                                        'studyStatusColor'          => Helper::getGlobalConfiguration('incomplete_color')
                                     );
                                 }
                             }
@@ -1549,16 +1550,16 @@ class ProgressReportController extends Controller
                         }
                         //  Set Master objectives details for the students
                         $reportDataArray[$strandId][$learningUnitsId]['master_objectives'] = array(
-                            'no_of_learning_objectives' => $no_of_learning_objectives,
-                            'count_accomplished_learning_objectives' => $countNoOfMasteredLearningObjectives,
-                            'count_not_accomplished_learning_objectives' => ($no_of_learning_objectives - $countNoOfMasteredLearningObjectives),
-                            'accomplished_percentage' => round((($countNoOfMasteredLearningObjectives / $no_of_learning_objectives) * 100),1),
-                            'not_accomplished_percentage' => (100 - round((($countNoOfMasteredLearningObjectives / $no_of_learning_objectives) * 100),1))
+                            'no_of_learning_objectives'                     => $no_of_learning_objectives,
+                            'count_accomplished_learning_objectives'        => $countNoOfMasteredLearningObjectives,
+                            'count_not_accomplished_learning_objectives'    => ($no_of_learning_objectives - $countNoOfMasteredLearningObjectives),
+                            'accomplished_percentage'                       => round((($countNoOfMasteredLearningObjectives / $no_of_learning_objectives) * 100),1),
+                            'not_accomplished_percentage'                   => (100 - round((($countNoOfMasteredLearningObjectives / $no_of_learning_objectives) * 100),1))
                         );
                     }
                 }
-            }
-            return view('backend.reports.progress_report.student.learning_objective_report',compact('strandData','strandDataLbl','reportDataArray','LearningsUnitsLbl','LearningsObjectivesLbl','reportDataAbilityArray','learningObjectivesList','LearningUnits','showMenu','ColorCodes','studentId'));
+            }            
+            return view('backend.reports.progress_report.student.learning_objective_report',compact('studentData','strandData','strandDataLbl','reportDataArray','LearningsUnitsLbl','LearningsObjectivesLbl','reportDataAbilityArray','learningObjectivesList','LearningUnits','showMenu','ColorCodes','studentId'));
         } catch (\Exception $exception) {
             return back()->withError($exception->getMessage())->withInput();
         }

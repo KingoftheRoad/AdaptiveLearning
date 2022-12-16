@@ -20,6 +20,7 @@ use App\Jobs\UpdateExamReferenceNumberJob;
 use App\Jobs\SendRemainderUploadStudentNewSchoolCurriculumYearJob;
 use App\Jobs\CloneSchoolDataNextCurriculumYear;
 use App\Jobs\SetDefaultCurriculumYearStudentJob;
+use App\Jobs\UpdateAttemptExamsTableJob;
 use App\Http\Controllers\Reports\AlpAiGraphController;
 use App\Models\GradeClassMapping;
 use App\Models\GradeSchoolMappings;
@@ -86,6 +87,10 @@ class CronJobController extends Controller
         dispatch(new UpdateStudentOverAllAbility(Auth::user()))->delay(now()->addSeconds(1));
     }
 
+    function UpdateStudentOverAllAbilityNew($student){
+        dispatch(new UpdateStudentOverAllAbility($student))->delay(now()->addSeconds(1));
+    }
+
     /**
      * USE : Remove duplicate assigned student
      */
@@ -137,6 +142,11 @@ class CronJobController extends Controller
         echo "Job Completed Successfully";
     }
 
+    public function UpdateAttemptExamTable(){
+        dispatch(new UpdateAttemptExamsTableJob())->delay(now()->addSeconds(1));
+        echo "Job Completed Successfully";
+    }
+
     /**
      * USE : Set Default existing student curriculum year
      */
@@ -183,14 +193,14 @@ class CronJobController extends Controller
         ini_set('max_execution_time', -1);
         $questionId= 747;
         $ExamIds = Exam::whereRaw("find_in_set($questionId,question_ids)")->withTrashed()->get()->pluck('id')->toArray();
-        $apiData = [];
+        //$apiData = [];
         if(isset($ExamIds) && !empty($ExamIds)){
             foreach($ExamIds as $ExamId){
                 $examDetail = Exam::find($ExamId);
                 $AttemptedAnswerData = AttemptExams::where(cn::ATTEMPT_EXAMS_EXAM_ID,$ExamId)->get();
                 if(isset($AttemptedAnswerData) && !empty($AttemptedAnswerData)){
-                    foreach($AttemptedAnswerData as $AttemptedAnswer){                                        
-                        $questionAnswersData = json_decode($AttemptedAnswer->question_answers,true);                    
+                    foreach($AttemptedAnswerData as $AttemptedAnswer){
+                        $questionAnswersData = json_decode($AttemptedAnswer->question_answers,true);
                         $AttemptFirstTrialData = json_decode($AttemptedAnswer->attempt_first_trial,true);
                         $AttemptSecondTrialData = json_decode($AttemptedAnswer->attempt_second_trial,true);
 
@@ -222,6 +232,7 @@ class CronJobController extends Controller
                         if(!empty($questionAnswersData)){
                             $NoOfCorrectAnswers = 0;
                             $NoOfWrongAnswers = 0;
+                            $apiData = [];
                             foreach($questionAnswersData as $key => $questionAnswer){
                                 if($questionAnswer['answer']==1){
                                     $questionAnswersData[$key]['answer'] = 2;

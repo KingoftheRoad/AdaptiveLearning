@@ -49,9 +49,9 @@
 					<div class="row">
  						<div class="col-lg-2 col-md-4">
                             <div class="select-lng pt-2 pb-2">
-                                <input type="text" class="input-search-box mr-2" name="SchoolName" value="{{request()->get('SchoolName')}}" placeholder="{{__('languages.search_by_school_name')}}">
-								@if($errors->has('SchoolName'))
-                                	<span class="validation_error">{{ $errors->first('SchoolName') }}</span>
+                                <input type="text" class="input-search-box mr-2" name="searchtext" value="{{request()->get('searchtext')}}" placeholder="{{__('languages.search_by_school_name')}}">
+								@if($errors->has('searchtext'))
+                                	<span class="validation_error">{{ $errors->first('searchtext') }}</span>
                             	@endif
                             </div>
                         </div>
@@ -108,6 +108,7 @@
 											</th>
 											<th class="first-head"><span>@sortablelink('school_name',__('languages.school_management.school_name'))</span></th>
 							          		<th class="first-head"><span>@sortablelink('school_code',__('languages.school_management.school_code'))</span></th>
+											<th class="first-head"><span>@sortablelink('school_email',__('languages.school_management.email'))</span></th>
 											<th class="sec-head selec-opt"><span>{{__('languages.school_management.address_en')}}</span></th>
 											<th class="sec-head selec-opt"><span>{{__('languages.school_management.address_ch')}}</span></th>
                                             <th class="selec-opt"><span>{{__('languages.school_management.city')}}</span></th>
@@ -122,6 +123,7 @@
 											<td><input type="checkbox" name="" class="checkbox"></td>
 											<td>{{ ($school->school_name_en) ? App\Helpers\Helper::decrypt($school->school_name_en) : $school->school_name}}</td>
 											<td>{{ ($school->school_code) ? $school->school_code : '' }}</td>
+											<td>{{ ($school->school_email) ? $school->school_email : '' }}</td>
                                             <td>{{ ($school->school_address_en) ? App\Helpers\Helper::decrypt($school->school_address_en) : 'N/A' }}</td>
 											<td>{{ ($school->school_address_ch) ? App\Helpers\Helper::decrypt($school->school_address_ch) : 'N/A' }}</td>
                                             <td>{{ ($school->city) ? App\Helpers\Helper::decrypt($school->city) : 'N/A' }}</td>

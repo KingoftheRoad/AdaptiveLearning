@@ -565,9 +565,21 @@ class ExamController extends Controller
             $StudentAbility = '';
             if(!empty($apiData)){
                 // Get the student ability from calling AIApi
-                $StudentAbility = $this->GetAIStudentAbility($apiData);
+                //$StudentAbility = $this->GetAIStudentAbility($apiData);
+                $requestPayload = new \Illuminate\Http\Request();
+                $requestPayload = $requestPayload->replace([
+                    'questions_results'=> array($apiData['questions_results']),
+                    'num_of_ans_list' => $apiData['num_of_ans_list'],
+                    'difficulty_list' => array_map('floatval', $apiData['difficulty_list']),
+                    'max_student_num' => 1
+                ]);
+                $AIApiResponse = $this->AIApiService->getStudentAbility($requestPayload);
+                if(isset($AIApiResponse) && !empty($AIApiResponse)){
+                    $StudentAbility = $AIApiResponse[0];
+                }
             }
             $PostData = [
+                cn::ATTEMPT_EXAMS_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
                 cn::ATTEMPT_EXAMS_EXAM_ID => $examId,
                 cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID => $this->LoggedUserId(),
                 cn::ATTEMPT_EXAMS_STUDENT_GRADE_ID => Auth::user()->CurriculumYearGradeId,
