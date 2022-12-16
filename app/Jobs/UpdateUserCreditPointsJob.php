@@ -331,11 +331,9 @@ class UpdateUserCreditPointsJob implements ShouldQueue
             if(!empty($GetStudentTotalCreditPoints)){
                 // Update Student Credit Point table
                 UserCreditPoints::updateOrCreate([
-                        cn::USER_CREDIT_USER_ID_COL => $this->StudentId,
-                        cn::USER_CREDIT_POINTS_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
+                        cn::USER_CREDIT_USER_ID_COL => $this->StudentId
                     ],
                     [
-                        cn::USER_CREDIT_POINTS_CURRICULUM_YEAR_ID_COL => $ExamData->{cn::EXAM_CURRICULUM_YEAR_ID_COL},
                         cn::USER_CREDIT_USER_ID_COL => $this->StudentId,
                         cn::USER_NO_OF_CREDIT_POINTS_COL => $GetStudentTotalCreditPoints
                     ]

@@ -259,3 +259,4 @@ var SELECT_ALL = "Select all";
 var SEARCH = "Search";
 var SELECTED = "selected";
 var SELECT_LANGUAGE = "Select Language";
+var STUDENT_IMPORT_CSV_FILE_MESSAGE = 'Upload Data Validated. Please click "Commit" to Proceed.';

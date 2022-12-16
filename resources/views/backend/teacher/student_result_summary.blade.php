@@ -1,4 +1,4 @@
-<table id="student-report-summary-table" class="display" style="width:100%" border="2">
+<table id="student-report-summary-table" class="display styled-table" style="width:100%" border="2">
     <thead>
         @if(!empty($records['heading']) && isset($records['heading']))
         <tr>

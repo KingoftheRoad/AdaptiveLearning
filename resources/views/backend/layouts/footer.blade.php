@@ -153,6 +153,26 @@ if(Auth::user()->role_id == 1){
     </div>
 <!-- End: Change End Date of Exam Model -->
 
+<!-- Student Result Summary Report -->
+<div class="modal" id="StudentSummaryReportModal" tabindex="-1" aria-labelledby="StudentSummaryReportModal" aria-hidden="true" data-backdrop="static">
+	<div class="modal-dialog modal-lg">
+		<div class="modal-content">
+			<form method="post">
+				<div class="modal-header embed-responsive">
+					<h4 class="modal-title w-100 ml-3">{{__('languages.student_summary_report')}}</h4>
+				</div>
+				<div class="modal-body student-report-summary-data">
+					
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default close-student-report-summary-popup" data-dismiss="modal">{{__('languages.close')}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+<!-- End Result Summary Popup -->
+
 <!-- USE: Remainder upgrade school year data popup -->
 <div class="modal" id="remainder-upgrade-school-data-popup" tabindex="-1" aria-hidden="true" data-backdrop="static">
 	<div class="modal-dialog">

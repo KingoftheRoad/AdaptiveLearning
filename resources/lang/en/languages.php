@@ -1305,6 +1305,16 @@ return [
     'show_more'                             => 'Show More',
     'having_question'                       =>  'Having Questions?',
     'video_player'                          => 'Video Player',
+    'cancel'                                => 'Cancel',
+    'duplicate_csv_file_records'            => 'Duplicate Csv File Records',
+    'error_msg_for_duplication_csv_import_student'=>'Errors Detected Please Correct The Highlighted Records And Upload Again',
+    'new_students_import'                   => 'New Students Import',
+    'promote_students_import'               => 'Promote Students Import',
+    'exam_configurations'                   => 'Exam Configurations',
+    'commit'                                => 'Commit',
+    'please_correct_the_below_highlighted_data_conflict_with_the_current_system_data' => 'Please correct the below highlighted data conflict with the current system data',
+    'data_imported_successfully'            =>  'Data Imported Successfully',
+    
 
     'aiapi_label' => [
         'Plot_Analyze_Question' => [
@@ -1415,4 +1425,5 @@ return [
     'please_select_class_type' =>'Please Select Class Type',
     'std_number'            => 'Std Number',
     'remainder'  =>          'Remainder',
+    'exam_configurations' => 'Exam Configurations',
 ];

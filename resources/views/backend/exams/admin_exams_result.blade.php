@@ -101,9 +101,25 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-lg-3 col-md-4 col-sm-12 pb-2">
+                                <!-- <div class="col-lg-3 col-md-4 col-sm-12 pb-2">
                                     <button type="button" class="btn btn-success performance_graph" data-studentid="{{$studentId}}" data-examid="{{$ExamData->id}}">{{__('languages.performance_graph')}}</button>
-                                </div>
+                                </div> -->
+                               
+                                @if($ExamData->exam_type == 1)
+                                    <div class="col-md-4 pb-2">
+                                        <button type="button" class="btn btn-success performance_graph" data-studentid="{{$studentId}}" data-examid="{{$ExamData->id}}">{{__('languages.performance_graph')}}</button>
+                                        <a href="{{route('self_learning.preview',$ExamData->id)}}">
+                                            <button type="button" class="btn btn-success">{{__('languages.exam_configurations')}}</button>
+                                        <a>
+                                    </div>
+                                @else
+                                    <div class="col-md-4 pb-2">
+                                        <button type="button" class="btn btn-success performance_graph" data-studentid="{{$studentId}}" data-examid="{{$ExamData->id}}">{{__('languages.performance_graph')}}</button>
+                                        <a href="{{route('exam-configuration-preview',$ExamData->id)}}">
+                                            <button type="button" class="btn btn-success">{{__('languages.exam_configurations')}}</button>
+                                        <a>
+                                    </div>
+                                @endif
                             </div>
                             <div class="row all-information-sec">
                                 <div class="col-sm-3 col-md-3 col-lg-3">

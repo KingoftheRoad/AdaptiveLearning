@@ -79,5 +79,6 @@ class Kernel extends HttpKernel
         'principal' => PrincipalMiddleware::class,
         'external_resource' => ExternalResourceMiddleware::class,
         'preventBackHistory' => \App\Http\Middleware\PreventBackHistory::class,
+        'json.response' => \App\Http\Middleware\ForceJsonResponse::class,
     ];
 }

@@ -192,7 +192,9 @@ if($user_id){
 																	<i class="fa fa-bar-chart" aria-hidden="true"></i>
 																</a>
 															@endif
-															<!-- <a href="javascript:void(0);" class="exam_info ml-2" data-examid="{{$selfLearningTest->id}}" title="{{__('languages.config')}}"><i class="fa fa-gear" aria-hidden="true"></i></a> -->
+															@if(isset($selfLearningTest->learning_objectives_configuration) && !empty($selfLearningTest->learning_objectives_configuration))
+															<a href="{{route('self_learning.preview',$selfLearningTest->id)}}" class="exam_info ml-2" title="{{__('languages.config')}}"><i class="fa fa-gear" aria-hidden="true"></i></a>
+															@endif
 														</td>
 													</tr>
 												@endforeach

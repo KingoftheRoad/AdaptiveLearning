@@ -45,20 +45,23 @@
                                 <label for="users-list-role">{{ __('languages.select_mode') }}</label>
                                 <fieldset class="form-group">
                                     <select class="form-control" name="mode" id="mode">
-                                        <option value="1">{{__('languages.insert_update')}}</option>
+                                        <!-- <option value="1">{{__('languages.insert_update')}}</option> -->
+                                        <option value="1" @if ($request->mode == 1) ? selected @endif>{{__('languages.new_students_import')}}</option>
+                                        <option value="2" @if ($request->mode == 2) ? selected  @endif>{{__('languages.promote_students_import')}}</option>
                                     </select>
                                 </fieldset>
-                            </div>
+                            </div> 
                             <div class="form-group col-md-3">
                                 <label for="users-list-role">{{ __('languages.select_curriculum') }}</label>                                
                                 <?php
-                                    $CurriculumYearList = \App\Traits\Common::GetCurriculumCurrentYear();
+                                    // $CurriculumYearList = \App\Traits\Common::GetCurriculumCurrentYear();
+                                    $CurriculumYearList = \App\Traits\Common::GetCurriculumCurrentFutureYear(\App\Traits\Common::getGlobalConfiguration('current_curriculum_year'));
                                 ?>
                                 <fieldset class="form-group">
                                     <select class="form-control" name="curriculum_year_id" id="curriculum">
                                         @if(isset($CurriculumYearList) && !empty($CurriculumYearList))
                                             @foreach($CurriculumYearList as $CurriculumYearListKey => $curriculumYear)
-                                                <option value="{{$curriculumYear->id}}" @if(Auth::user()->curriculum_year_id == $curriculumYear->id) selected @endif>{{$curriculumYear->year}}</option>
+                                                <option value="{{$curriculumYear->id}}" @if($request->curriculum_year_id == $curriculumYear->id) selected @endif>{{$curriculumYear->year}}</option>
                                             @endforeach
                                         @endif
                                     </select>
@@ -72,7 +75,7 @@
                             </div>
                             <div class="form-group col-md-3">
                                 <div class="form-group col-md-6 mb-50 btn-sec">
-                                    <button class="blue-btn btn btn-primary mt-4">{{ __('languages.submit') }}</button>
+                                    <button class="blue-btn btn btn-primary mt-4">{{ __('languages.commit') }}</button>
                                 </div>
                             </div>
                         </div>
@@ -103,7 +106,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">{{__('languages.import_student')}}</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick=" document.getElementById('importStudents').reset();location.reload();">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -115,12 +118,35 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary data_action"  data-dismiss="modal" type="button" value="1">Skip</button>
-                    <button class="btn btn-secondary data_action"  data-dismiss="modal" type="button" value="2">{{__('languages.insert_update')}}</button>
-                    <button class="btn btn-danger"  data-dismiss="modal" type="button" onclick=" document.getElementById('importStudents').reset();location.reload();">Cancel</button>
+                    {{-- <button class="btn btn-secondary data_action button-hide"  data-dismiss="modal" type="button" value="1">Skip</button> --}}
+                    <!-- <button class="btn btn-secondary data_action button-hide"  data-dismiss="modal" type="button" value="2">{{__('languages.insert_update')}}</button> -->
+                    <button class="btn btn-danger"  data-dismiss="modal" type="button" onclick=" document.getElementById('importStudents').reset();location.reload();">{{__('languages.cancel')}}</button>
                 </div>
             </div>
         </div>
     </div>
+     <!-- Modal -->
+ <div class="modal fade template-modal" id="importCsvStudentModal" tabindex="-1" role="dialog" aria-labelledby="importCsvStudentModal" aria-hidden="true" data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{__('languages.duplicate_csv_file_records')}}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger error_msg" style="display: none;">
+                </div>
+                <div class="form-group data_tbl">
+                   
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger"  data-dismiss="modal" type="button" onclick=" document.getElementById('importStudents').reset();location.reload();">{{__('languages.cancel')}}</button>
+            </div>
+        </div>
+    </div>
+</div>
 @include('backend.layouts.footer')
 @endsection

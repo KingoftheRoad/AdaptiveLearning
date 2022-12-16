@@ -19,10 +19,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Validation\Rule;
 use App\Traits\Common;
 use App\Helpers\Helper;
+use App\Http\Services\CreditPointService;
 
 class User extends Authenticatable
 {
     use Common, HasFactory, Notifiable, Sortable,SoftDeletes;
+
+    public $CreditPointService;
+    
+    public function __construct(){
+        $this->CreditPointService = new CreditPointService;
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -93,7 +100,12 @@ class User extends Authenticatable
         cn::USERS_REMEMBER_TOKEN_COL,
     ];
 
-    protected $appends = ['DecryptNameEn','DecryptNameCh','NormalizedOverAllAbility','CurriculumYearData','CurriculumYearGradeId','CurriculumYearClassId'];
+    protected $appends = [
+        'DecryptNameEn','DecryptNameCh',
+        'NormalizedOverAllAbility',
+        'CurriculumYearData','CurriculumYearGradeId','CurriculumYearClassId',
+        'CreditPoints'
+    ];
 
     /**
      * The attributes that should be cast to native types.
@@ -104,6 +116,21 @@ class User extends Authenticatable
         cn::USERS_EMAIL_VERIFID_AT_COL => 'datetime',
     ];
 
+    /**
+     * USE : Get the student available credit points
+     */
+    public function getCreditPointsAttribute(){
+        $CreditPoints = [];
+        $UserData = Self::find($this->id);
+        if(!empty($this->id) && $UserData->role_id == cn::STUDENT_ROLE_ID){
+            $CreditPoints = $this->CreditPointService->GetStudentCreditPoints($this->id);
+        }
+        return $CreditPoints;
+    }
+
+    /**
+     * USE : Get the curriculum year data from selected year
+     */
     public function getCurriculumYearDataAttribute(){
         $CurriculumYearData = [];
         $UserData = Self::find($this->id);
@@ -113,6 +140,9 @@ class User extends Authenticatable
         return $CurriculumYearData;
     }
 
+    /**
+     * USE : Get the curriculum year grade_id from selected year
+     */
     public function getCurriculumYearGradeIdAttribute(){
         $CurriculumYearGradeId = 0;
         $UserData = Self::find($this->id);
@@ -125,6 +155,9 @@ class User extends Authenticatable
         return $CurriculumYearGradeId;
     }
 
+    /**
+     * USE : Get the curriculum year class_id from selected year
+     */
     public function getCurriculumYearClassIdAttribute(){
         $CurriculumYearClassId = 0;
         $UserData = Self::find($this->id);
@@ -145,6 +178,9 @@ class User extends Authenticatable
         return $overall_ability;
     }
 
+    /**
+     * USE : Get the decrypted user english name
+     */
     public function getDecryptNameEnAttribute(){
         $name_en = null;
         if(!empty($this->name_en)){
@@ -153,6 +189,9 @@ class User extends Authenticatable
         return $name_en;
     }
 
+    /**
+     * USE : Get the decrypted user chinese name
+     */
     public function getDecryptNameChAttribute(){
         $name_ch = null;
         if(!empty($this->name_ch)){

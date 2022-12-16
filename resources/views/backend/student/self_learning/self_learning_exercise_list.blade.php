@@ -192,7 +192,9 @@ if($user_id){
 																	<i class="fa fa-bar-chart" aria-hidden="true"></i>
 																</a>
 															@endif
-															<!-- <a href="javascript:void(0);" class="exam_info ml-2" data-examid="{{$selfLearningExcercise->id}}" title="{{__('languages.config')}}"><i class="fa fa-gear" aria-hidden="true"></i></a> -->
+															@if(isset($selfLearningExcercise->learning_objectives_configuration) && !empty($selfLearningExcercise->learning_objectives_configuration))
+															<a href="{{route('self_learning.preview',$selfLearningExcercise->id)}}" class="exam_info ml-2" title="{{__('languages.config')}}"><i class="fa fa-gear" aria-hidden="true"></i></a>
+															@endif
 														</td>
 													</tr>
 												@endforeach
@@ -229,58 +231,6 @@ if($user_id){
 			<div class="modal-body">{{__('languages.my_studies.in_this_section_will_be_displayed_test_result')}}</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-default" data-dismiss="modal">{{__('languages.close')}}</button>
-			</div>
-		</div>
-	</div>
-</div>
-
-<!-- My study Configuration Popup -->
-<!-- <div class="modal fade" id="my-study-config" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<form method="post">
-				<div class="modal-header">
-					<h4 class="modal-title w-100">{{__('languages.my_study_configuration')}}</h4>
-					<button type="submit" class="btn btn-primary float-right">{{__('languages.submit')}}</button>
-					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-				</div>
-				<div class="modal-body">
-					@csrf
-					<div class="row m-0">
-						<div class="col-md-12 pl-4">
-							<input type="checkbox" id="AllTabs"> <label class="ml-1">{{__('languages.all')}}</label>
-						</div>
-						<div class="col-md-12 categories-main-list">
-							@if(!empty($studyFocusTreeOption))
-							{!! $studyFocusTreeOption !!}
-							@endif
-						</div>
-						<div class="col-md-4 categories-progess-list" style="display: none;">
-							@if(!empty($studyFocusTreeOption))
-							{!! $studyFocusTreeOption !!}
-							@endif
-						</div>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-default" data-dismiss="modal">{{__('languages.close')}}</button>
-					<button type="submit" class="btn btn-primary">{{__('languages.submit')}}</button>
-				</div>
-			</div>
-		</form>
-	</div>
-</div> -->
-<!-- My study Configuration Popup -->
-
-<!-- Play Video Popup -->
-<div class="modal fade" id="videoModal" tabindex="-1"  data-keyboard="false" aria-labelledby="videoModalLabel"  aria-hidden="true" data-backdrop="static">
-	<div class="modal-dialog modal-dialog-centered">
-		<div class="modal-content">
-			<div class="modal-body embed-responsive embed-responsive-16by9">
-				<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="position: absolute;top: 0;right: 0;background-color: white;height: 30px;width: 30px;z-index: 9;opacity: 1;border-radius: 50%;padding-bottom: 4px;">
-					<span aria-hidden="true">&times;</span>
-				</button>
-				<iframe class="embed-responsive-item" src="" id="videoDis" frameborder="0" allowtransparency="true" allowfullscreen ></iframe>
 			</div>
 		</div>
 	</div>

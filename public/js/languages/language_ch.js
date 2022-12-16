@@ -234,3 +234,4 @@ var SELECT_ALL = "全選";
 var SEARCH = "搜索";
 var SELECTED = "選中";
 var SELECT_LANGUAGE = "選擇語言";
+var STUDENT_IMPORT_CSV_FILE_MESSAGE = '上傳數據驗證成功， 請點擊“提交”繼續。';

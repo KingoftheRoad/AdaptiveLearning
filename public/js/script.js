@@ -1830,21 +1830,63 @@ OnChangeEvent = {
                             "_token",
                             $('meta[name="csrf-token"]').attr("content")
                         );
+                        fd.append("mode", $("#mode").val());
                         fd.append("user_file", files[0]);
                         fd.append("curriculum_year_id", $("#curriculum").val());
+                        // $.ajax({
+                        //     url:
+                        //         BASE_URL +
+                        //         "/school/class/ImportStudentsDataCheck",
+                        //     type: "POST",
+                        //     data: fd,
+                        //     contentType: false,
+                        //     processData: false,
+                        //     success: function (response) {
+                        //         $("#importStudentModal .data_tbl").html(
+                        //             response.data.data
+                        //         );
+                        //         $("#importStudentModal").modal("show");
+                        //     },
+                        // });
+                        $("#cover-spin").show();
                         $.ajax({
-                            url:
-                                BASE_URL +
-                                "/school/class/ImportStudentsDataCheck",
+                            url: BASE_URL + "/school/class/DuplicateCsvRecords",
                             type: "POST",
                             data: fd,
                             contentType: false,
                             processData: false,
                             success: function (response) {
-                                $("#importStudentModal .data_tbl").html(
-                                    response.data.data
-                                );
-                                $("#importStudentModal").modal("show");
+                                $("#cover-spin").hide();
+                                if (!response.data.data) {
+                                    $("#cover-spin").show();
+                                    $.ajax({
+                                        url:
+                                            BASE_URL +
+                                            "/school/class/ImportStudentsDataCheck",
+                                        type: "POST",
+                                        data: fd,
+                                        contentType: false,
+                                        processData: false,
+                                        success: function (response) {
+                                            $("#cover-spin").hide();
+                                            if (response.data.data != "") {
+                                                $(
+                                                    "#importStudentModal .data_tbl"
+                                                ).html(response.data.data);
+                                                $("#importStudentModal").modal(
+                                                    "show"
+                                                );
+                                            }else{
+                                                toastr.success(STUDENT_IMPORT_CSV_FILE_MESSAGE);
+                                            }
+                                        },
+                                    });
+                                } else {
+                                    $("#importCsvStudentModal .data_tbl").html(
+                                        response.data.data
+                                    );
+                                    $("#importCsvStudentModal").modal("show");
+                                }
                             },
                         });
                     }
@@ -4521,7 +4563,10 @@ OnClickEvent = {
                             }
 
                             // Set Grade Dropdown in Class performance report
-                            if (data.data.grades_list !== undefined) {
+                            if (
+                                data.data.grades_list !== undefined &&
+                                data.data.grades_list.length != 0
+                            ) {
                                 $(
                                     ".class-performance-grade-section,.class-performance-class-section"
                                 ).show();
@@ -4550,12 +4595,16 @@ OnClickEvent = {
                             }
 
                             // Set Grade Dropdown in Class performance report
-                            if (data.data.grades_list !== undefined) {
+                            if (
+                                data.data.grades_list !== undefined &&
+                                data.data.class_list.length != 0
+                            ) {
                                 $(".class-performance-class-section").show();
                                 var ClassList = "";
                                 $.each(
                                     data.data.class_list,
                                     function (index, value) {
+                                        console.log(data.data.class_list);
                                         ClassList +=
                                             "<option value=" +
                                             data.data.class_list[index].id +
@@ -4640,7 +4689,10 @@ OnClickEvent = {
                         }
 
                         // Set Grade Dropdown in Class performance report
-                        if (data.data.grades_list !== undefined) {
+                        if (
+                            data.data.grades_list !== undefined &&
+                            data.data.grades_list.length != 0
+                        ) {
                             if (
                                 isAdmin == 1 ||
                                 isSchoolLogin == 1 ||
@@ -4671,32 +4723,10 @@ OnClickEvent = {
                         } else {
                             $(".class-performance-grade-section").hide();
                         }
-                        //Comment on Date 30-11-2022 because of class id not selected shown on teacher and school panel to fix this issue.
-                        // Set Grade Dropdown in Class performance report
-                        // if (data.data.grades_list !== undefined) {
-                        //     $(".class-performance-class-section").show();
-                        //     var ClassList = "";
-                        //     $.each(
-                        //         data.data.class_list,
-                        //         function (index, value) {
-                        //             ClassList +=
-                        //                 "<option value=" +
-                        //                 data.data.class_list[index].id +
-                        //                 ">" +
-                        //                 value.grade.name +
-                        //                 "-" +
-                        //                 data.data.class_list[index].name +
-                        //                 "</option>";
-                        //         }
-                        //     );
-                        //     $("#classType-select-option").html(ClassList);
-                        //     $("#classType-select-option").multiselect(
-                        //         "rebuild"
-                        //     );
-                        // } else {
-                        //     $(".class-performance-class-section").hide();
-                        // }
-                        if (data.data.grades_list !== undefined) {
+                        if (
+                            data.data.grades_list !== undefined &&
+                            data.data.class_list.length != 0
+                        ) {
                             $(".class-performance-class-section").show();
                             var ClassList = "";
                             $.each(
@@ -7047,7 +7077,7 @@ Validation = {
                 },
                 user_file: {
                     required: true,
-                    extension: "xls|csv",
+                    extension: "csv",
                 },
             },
             messages: {
@@ -7076,7 +7106,7 @@ Validation = {
                 },
                 user_file: {
                     required: true,
-                    extension: "xls|csv",
+                    extension: "csv",
                 },
             },
             messages: {

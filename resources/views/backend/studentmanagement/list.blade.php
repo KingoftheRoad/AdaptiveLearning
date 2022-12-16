@@ -27,9 +27,9 @@
 									<a href="{{ route('Student.create') }}" class="dark-blue-btn btn btn-primary mb-4">{{__('languages.student_management.add_new_student')}}</a>
 								@endif
 								{{-- <a href="{{ url('school/class/assign-students',auth()->user()->school_id) }}" class="dark-blue-btn btn btn-primary mb-4">{{__('languages.student_management.assign_students')}}</a> --}}
-								<a href="{{ route('ImportStudents') }}" class="dark-blue-btn btn btn-primary mb-4">{{__('languages.student_management.assign_student_with_import')}}</a>
+								<a href="{{ route('ImportStudents') }}" class="dark-blue-btn btn btn-primary mb-4">{{__('languages.import_student')}}</a>
 								<a href="{{ route('students-export') }}" class="dark-blue-btn btn btn-primary mb-4">{{__('languages.export_students')}}</a>
-								<a href="{{ route('student.import.upgrade-school-year') }}" class="dark-blue-btn btn btn-primary mb-4">{{__('languages.upgrade_year_via_csv')}}</a>
+								{{-- <a href="{{ route('student.import.upgrade-school-year') }}" class="dark-blue-btn btn btn-primary mb-4">{{__('languages.upgrade_year_via_csv')}}</a> --}}
 							</div>
 							<hr class="blue-line">
 						</div>
@@ -165,15 +165,14 @@
 											<td>{{ ($User->name_en) ? App\Helpers\Helper::decrypt($User->name_en) : $User->name }}</td>
 											<td>{{ ($User->name_ch) ? App\Helpers\Helper::decrypt($User->name_ch) : 'N/A' }}</td>
 											<td>{{ $User->email }}</td>
-											<td class="gradesname_{{$User->id}}">{{$User->grades->name ?? 'N/A'}}</td>
-											<td class="classname_{{$User->id}}">{{ $User->getClassname($User->id) }}</td>
+											<td class="gradesname_{{$User->id}}">{{($User->CurriculumYearData->grade_id) ? \App\Helpers\Helper::getGradeName($User->CurriculumYearData->grade_id) : 'N/A'}}</td>
+											<td class="classname_{{$User->id}}">{{($User->CurriculumYearData->class_id) ? \App\Helpers\Helper::getSingleClassName($User->CurriculumYearData->class_id) : 'N/A'}}</td>
 											<td>
 												{{ ($User->class_student_number) ? $User->class_student_number : 'N/A'}}
 											</td>
-											
 											<td>{{ ($User->permanent_reference_number) ? $User->permanent_reference_number : 'N/A'}}</td>
-											<td>{{ ($User->student_number_within_class) ? $User->student_number_within_class : 'N/A'}}</td>
-											<td>{{ ($User->class) ? $User->class : 'N/A'}}</td>
+											<td>{{ ($User->CurriculumYearData->student_number_within_class) ? $User->CurriculumYearData->student_number_within_class : 'N/A'}}</td>
+											<td>{{ ($User->CurriculumYearData->class) ? $User->CurriculumYearData->class : 'N/A'}}</td>
 
 											<td>
 												@if($User->status === 'pending')

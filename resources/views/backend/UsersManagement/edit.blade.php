@@ -58,53 +58,21 @@
                                     <div class="form-group col-md-6 school">
                                         <label for="users-list-role">{{ __('languages.user_management.school') }}</label>
                                         <fieldset class="form-group">
-                                            <select class="selectpicker form-control" data-show-subtext="true" data-live-search="true" name="school" id="school_id">
-                                                <option value=''>{{ __('languages.select_school') }}</option>
-                                                @if(!empty($Schools))
+                                            <select class="selectpicker form-control" data-show-subtext="true" data-live-search="true" name="school" id="school_id" disabled>
+                                            <option value=''>{{ __('languages.select_school') }}</option>
+                                            @if(!empty($Schools))
                                                 @foreach($Schools as $school)
-                                                <option value="{{$school->id}}" {{$school->id === $user->school_id ? 'selected' : ''}}>{{$school->DecryptSchoolNameEn}}</option>
+                                                <option value="{{$school->id}}" @if(old('school') == $school->id) selected @endif>{{$school->DecryptSchoolNameEn}}</option>
                                                 @endforeach
-                                                @else
+                                            @else
                                                 <option value="">{{ __('languages.no_available_school') }}</option>
-                                                @endif
+                                            @endif
                                             </select>
                                             <span id="error-school"></span>
                                             @if($errors->has('school'))<span class="validation_error">{{ $errors->first('school') }}</span>@endif
                                         </fieldset>
                                     </div>
                                 </div>
-                                <div class="form-row select-data grade">
-                                    <div class="form-group col-md-6">
-                                        <label for="users-list-role">{{ __('languages.user_management.grade') }}</label>
-                                        <fieldset class="form-group">
-                                            <select class="selectpicker form-control" data-show-subtext="true" data-live-search="true" name="grade_id" id="grade_id">
-                                            
-                                            </select>
-                                            <span id="error-grade"></span>
-                                            @if($errors->has('grade_id'))<span class="validation_error">{{ $errors->first('grade_id') }}</span>@endif
-                                        </fieldset>
-                                    </div>
-                                    <div class="form-group col-md-6 student">
-                                        <label for="users-list-role">{{ __('languages.user_management.student') }}</label>
-                                        <fieldset class="form-group">
-                                            <select class="selectpicker form-control multiplestudent_ids" data-show-subtext="true" data-live-search="true" name="student_ids[]" id="student_ids" multiple></select>
-                                        </fieldset>
-                                    </div>
-                                </div>
-
-                                <div class="form-row studentroll" style="display: none">
-                                    <div class="form-group col-md-6 mb-50">
-                                        <label class="text-bold-600" for="name_en">{{ __('languages.user_management.student_number') }}</label>
-                                        <input type="text" class="form-control" name="student_number" id="student_number" placeholder="{{ __('languages.user_management.student_number') }}" value="{{$user->student_number}}">
-                                        @if($errors->has('student_number'))<span class="validation_error">{{ $errors->first('student_number') }}</span>@endif
-                                    </div>
-                                    <div class="form-group col-md-6 mb-50">
-                                        <label class="text-bold-600" for="name_ch">{{ __('languages.user_management.class_class_number') }} {{__('(Ex: A+123456)')}}</label>
-                                        <input type="text" class="form-control" id="class_number" name="class_number" placeholder="{{ __('languages.user_management.class_class_number') }}" value= @if($user->class_id) {{ App\Helpers\Helper::getSingleClassName($user->class_id) }}+{{$user->class_class_student_number}} @endif>
-                                        @if($errors->has('class_number'))<span class="validation_error">{{ $errors->first('class_number') }}</span>@endif
-                                    </div>
-                                </div>
-
                                 <div class="form-row">
                                     <div class="form-group col-md-6 mb-50">
                                         <label class="text-bold-600" for="name_en">{{ __('languages.user_management.name_english') }}</label>
@@ -118,11 +86,6 @@
                                     </div>
                                 </div>
                                 <div class="form-row">
-                                    <!-- <div class="form-group col-md-6 mb-50">
-                                        <label class="text-bold-600" for="exampleInputUsername1">{{ __('Name') }}</label>
-                                        <input type="text" class="form-control" name="user_name" id="user_name" placeholder="Name" value="{{$user->name}}">
-                                        @if($errors->has('user_name'))<span class="validation_error">{{ $errors->first('user_name') }}</span>@endif
-                                    </div> -->
                                     <div class="form-group col-md-6 mb-50">
                                         <label class="text-bold-600" for="exampleInputUsername1">{{ __('languages.user_management.email') }}</label>
                                         <input type="email" class="form-control" id="email" name="email" placeholder="{{ __('languages.user_management.email') }}" value="{{$user->email}}">
@@ -136,76 +99,9 @@
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group col-md-6 mb-50">
-				                        <label for="id_end_time">{{ __('languages.user_management.date_of_birth') }}</label>
-				                        <div class="input-group date" id="id_4">
-                                        <input type="text" class="form-control birthdate-date-picker" name="date_of_birth" placeholder="{{__('languages.select_date')}}" value="{{ date('d/m/Y', strtotime($user->dob)) }}" >
-                                            @if($errors->has('date_of_birth'))<span class="validation_error">{{ $errors->first('date_of_birth') }}</span>@endif
-				                            <div class="input-group-addon input-group-append">
-				                                <div class="input-group-text">
-				                                    <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>
-				                                </div>
-				                            </div>
-				                        </div>
-                                        <span id="error-dateof-birth"></span>
-				                    </div>
-                                    <div class="form-group col-md-6 mb-50 gender">
-                                        <label class="text-bold-600" for="exampleInputUsername1">{{ __('languages.user_management.gender') }}</label>
-                                        <ul class="list-unstyled mb-0">
-                                            <li class="d-inline-block mt-1 mr-1 mb-1">
-                                                <fieldset>
-                                                    <div class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input" name="gender" id="male" value="male" @if($user->gender == 'male') checked @endif>
-                                                        @if($errors->has('gender'))<span class="validation_error">{{ $errors->first('gender') }}</span>@endif
-                                                        <label class="custom-control-label" for="male">{{ __('languages.user_management.male') }}</label>
-                                                    </div>
-                                                </fieldset>
-                                            </li>
-                                            <li class="d-inline-block my-1 mr-1 mb-1">
-                                                <fieldset>
-                                                    <div class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input" name="gender" id="female" value="female" @if($user->gender == 'female') checked @endif>
-                                                        @if($errors->has('gender'))<span class="validation_error">{{ $errors->first('gender') }}</span>@endif
-                                                        <label class="custom-control-label" for="female">{{ __('languages.user_management.female') }}</label>
-                                                    </div>
-                                                </fieldset>
-                                            </li>
-                                            <li class="d-inline-block my-1 mr-1 mb-1">
-                                                <fieldset>
-                                                    <div class="custom-control custom-radio">
-                                                        <input type="radio" class="custom-control-input" name="gender" id="other" value="other" @if($user->gender == 'other') checked @endif>
-                                                        @if($errors->has('gender'))<span class="validation_error">{{ $errors->first('gender') }}</span>@endif
-                                                        <label class="custom-control-label" for="other">{{ __('languages.user_management.other') }}</label>
-                                                    </div>
-                                                </fieldset>
-                                            </li>
-                                        </ul>
-                                        <span class="gender-select-err"></span>
-                                    </div>
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group col-md-6 mb-50">
                                          <label class="text-bold-600" for="exampleInputUsername1">{{ __('languages.user_management.city') }}</label>
                                         <input type="text" class="form-control" name="city" id="city" placeholder="{{__('languages.user_management.enter_the_city')}}" value="{{App\Helpers\Helper::decrypt($user->city)}}">
                                         @if($errors->has('city'))<span class="validation_error">{{ $errors->first('city') }}</span>@endif
-                                    </div>
-                                    <div class="form-group col-md-6 mb-50">
-                                        <label class="text-bold-600" for="exampleInputUsername1">{{ __('languages.user_management.address') }}</label>
-                                        <textarea class="form-control" name="address" id="address" placeholder="{{__('languages.user_management.enter_the_address')}}" value="" rows=5>{{App\Helpers\Helper::decrypt($user->address)}}</textarea>
-                                        @if($errors->has('address'))<span class="validation_error">{{ $errors->first('address') }}</span>@endif
-                                    </div>
-                                </div>
-                                <div class="form-row">
-                                    @php
-                                    $existingOtherRoleIds = ($user->other_roles_id) ? explode(',',$user->other_roles_id) : [];
-                                    @endphp
-                                    <div class="form-group col-md-6 mb-50">
-                                        <label for="multi_select_option">{{ __('languages.user_management.other_roles') }}</label>
-                                        <select name="other_role[]" class="form-control select-option" id="other-roles-select-option" multiple>
-                                            @foreach($SubRoleList as $subRole)
-                                            <option value="{{$subRole->id}}" @if(in_array($subRole->id,$existingOtherRoleIds)) selected @endif>{{$subRole->role_name}}</option>
-                                            @endforeach
-                                        </select>
-                                        @if($errors->has('other_role'))<span class="validation_error">{{ $errors->first('other_role') }}</span>@endif
                                     </div>
                                     <div class="form-group col-md-6 mb-50">
                                         <label for="id_end_time">{{ __('languages.status') }}</label>

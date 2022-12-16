@@ -3736,6 +3736,9 @@ ul.multiselect-container {
 .question-generator-option-headings .form-tab .student-self-learning-tab {
     width: 50%;
 }
+.question-generator-option-headings .form-tab .student-self-learning-preview-tab{
+    width: 33.33% !important;
+}
 .question-generator-option-headings .form-tab li.tab_active {
     background: #f7bfbf;
 }
@@ -4728,6 +4731,40 @@ form .classPerformanceReportInline {
     position: static !important;
     width: auto !important;
 }
+
+/*13/12/2022 import student from school panel (check dublication in csv && check in curriculum year student mapping)csv table layout Mukesh Mahanto*/
+.styled-table {
+    border-collapse: separate;
+    overflow: hidden;
+    font-size: 0.9em;
+    font-family: sans-serif;
+    min-width: 400px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+    border: solid black 1px;
+    border-radius: 6px;
+}
+.styled-table thead tr {
+    background-color: #009879;
+    color: #ffffff;
+    text-align: left;
+}
+.styled-table th,
+.styled-table td {
+    padding: 12px 15px;
+    border: none !important;
+}
+.styled-table tbody tr {
+    border-bottom: 1px solid #dddddd;
+}
+
+.styled-table tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
+
+.styled-table tbody tr:last-of-type {
+    border-bottom: 2px solid #009879;
+}
+/*13/12/2022 import student from school panel (check dublication in csv && check in curriculum year student mapping)csv table layout Mukesh Mahanto*/
 
 /* Responsive - css */
 @media only screen and (max-width: 1280px) {

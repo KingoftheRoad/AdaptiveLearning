@@ -13,3 +13,9 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+
+Route::group(['middleware' => ['json.response']], function () {
+    Route::group(['namespace' => 'Api'], function () {
+        Route::get('student/credit-points','StudentController@GetStudentCreditPoints')->name('student.credit-points');
+    });
+});

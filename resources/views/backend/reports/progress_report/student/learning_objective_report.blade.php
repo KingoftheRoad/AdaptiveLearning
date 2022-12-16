@@ -130,7 +130,12 @@
 												<tbody>
 													<tr>
 														<td style="width: 12%;min-width: 12%;">
-															{{ (auth()->user()->name_en) ? App\Helpers\Helper::decrypt(auth()->user()->name_en) : auth()->user()->name }}
+															<!-- {{ (auth()->user()->name_en) ? App\Helpers\Helper::decrypt(auth()->user()->name_en) : auth()->user()->name }} -->
+															@if(app()->getLocale()=='en')
+																{{$studentData->DecryptNameEn}}
+															@else
+																{{$studentData->DecryptNameCh}}
+															@endif
 														</td>
 														<td>
 															<div class="progress objectives-report-progress">

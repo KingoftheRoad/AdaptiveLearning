@@ -226,11 +226,17 @@
                                                 </a>
 
                                                 @php
-                                                    if(isset($selflearningTest->grade_with_class) && !empty($selflearningTest->grade_with_class)){
-                                                        $gradesClass=explode('-',$selflearningTest->grade_with_class);
-                                                    }
+                                                if(isset($selflearningTest->grade_with_class) && !empty($selflearningTest->grade_with_class)){
+                                                    $gradesClass=explode('-',$selflearningTest->grade_with_class);
+                                                }
                                                 @endphp
-                                                <a href="javascript:void(0);" class="exam_info ml-2" data-examid="{{$selflearningTest->exam_id}}" data-grade-id="{{ $gradesClass[0] }}" title="{{__('languages.config')}}"><i class="fa fa-gear" aria-hidden="true"></i></a>
+                                                
+                                                @if(isset($selfLearningTest->learning_objectives_configuration) && !empty($selfLearningTest->learning_objectives_configuration))
+                                                <a href="{{route('self_learning.preview',$selfLearningTest->id)}}" class="ml-2" title="{{__('languages.config')}}">
+                                                    <i class="fa fa-gear" aria-hidden="true"></i>
+                                                </a>
+                                                @endif
+
                                                 <a href="javascript:void(0);" class="exam_questions-info ml-2" data-examid="{{$selflearningTest->exam_id}}" title="{{__('languages.preview')}}"><i class="fa fa-book" aria-hidden="true"></i></a>
                                                 <a href="javascript:void(0);" class="result_summary ml-2" data-examid="{{$selflearningTest->exam_id}}" data-studentids="{{$selflearningTest->student_ids}}" title="{{__('languages.result_summary')}}"><i class="fa fa-bar-chart" aria-hidden="true"></i></a>
                                             </td>
@@ -287,25 +293,7 @@
 	</div>
 </div>
 
-<!-- Student Result Summary Report -->
-<div class="modal" id="StudentSummaryReportModal" tabindex="-1" aria-labelledby="StudentSummaryReportModal" aria-hidden="true" data-backdrop="static">
-	<div class="modal-dialog modal-lg">
-		<div class="modal-content">
-			<form method="post">
-				<div class="modal-header embed-responsive">
-					<h4 class="modal-title w-100">{{__('languages.student_summary_report')}}</h4>
-				</div>
-				<div class="modal-body student-report-summary-data">
-					
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-default close-student-report-summary-popup" data-dismiss="modal">{{__('languages.close')}}</button>
-				</div>
-			</form>
-		</div>
-	</div>
-</div>
-<!-- End Result Summary Popup -->
+
 
 <!-- Start Performance Analysis Popup -->
 <div class="modal" id="class-ability-analysis-report" tabindex="-1" aria-labelledby="class-ability-analysis-report" aria-hidden="true" data-backdrop="static">
@@ -373,45 +361,6 @@ $(function(){
     document.getElementById('pagination').onchange = function() {
         window.location = "{!! $SelfLearningTestList->url(1) !!}&items=" + this.value;
     };
-
-    /**
-     * USE : Display on graph Get Class APerformance Analysis
-     * Trigger : On click Performance graph icon into exams list action table
-     * **/
-    // $(document).on('click', '.getClassAbilityAnalysisReport', function(e) {
-    //     $("#cover-spin").show();
-    //     $('#class-ability-analysis-report').modal('show');
-    //     $studentIds = $(this).attr('data-studentids');
-    //     $examId = $(this).attr('data-examid');
-    //     $('#exam_ids').val($examId);
-    //     $('#student_ids').val($studentIds);
-    //     if($studentIds && $examId){
-    //         $.ajax({
-    //             url: BASE_URL + '/my-teaching/get-class-ability-analysis-report',
-    //             type: 'post',
-    //             data : {
-    //                 '_token': $('meta[name="csrf-token"]').attr('content'),
-    //                 'examid' : $examId,
-    //                 'studentIds' : $studentIds,
-    //                 'graph_type' : 'my-class'
-    //             },
-    //             success: function(response) {
-    //                 var ResposnseData = JSON.parse(JSON.stringify(response));
-    //                 if(ResposnseData.data != 0){
-    //                     // Append image src attribute with base64 encode image
-    //                     $('#class-ability-analysis-report-image').attr('src','data:image/jpg;base64,'+ ResposnseData.data);
-    //                     $('#class-ability-analysis-report').modal('show');
-    //                 }else{
-    //                     toastr.error(DATA_NOT_FOUND);
-    //                 }
-    //                 $("#cover-spin").hide();
-    //             },
-    //             error: function(response) {
-    //                 ErrorHandlingMessage(response);
-    //             }
-    //         });
-    //     }
-    // });
     
     /**
      * USE : Click on the diffrent button like this 'my-class', 'my-school', 'all-school'

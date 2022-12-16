@@ -799,7 +799,6 @@ class CommonController extends Controller
         TeachersClassSubjectAssign::query()->update([cn::TEACHER_CLASS_SUBJECT_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
         MyTeachingReport::query()->update([cn::TEACHING_REPORT_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
         UploadDocuments::query()->update([cn::UPLOAD_DOCUMENTS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
-        UserCreditPoints::query()->update([cn::USER_CREDIT_POINTS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
         UserCreditPointHistory::query()->update([cn::USER_CREDIT_POINT_HISTORY_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
         Exam::query()->Update([cn::EXAM_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);
         User::query()->Update([cn::USERS_CURRICULUM_YEAR_ID_COL => cn::DEFAULT_CURRICULUM_YEAR_ID]);

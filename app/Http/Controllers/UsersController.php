@@ -26,15 +26,17 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use App\Rules\MatchOldPassword;
 use App\Helpers\Helper;
+use App\Http\Repositories\CSVFileRepository;
 
 class UsersController extends Controller
 {
     use Common, ResponseFormat;
 
-    protected $UsersRepository;
+    protected $UsersRepository, $CSVFileRepository;
 
     public function __construct(){
         $this->UsersRepository = new UsersRepository();
+        $this->CSVFileRepository = new CSVFileRepository();
     }
 
     public function index(Request $request){
@@ -51,7 +53,12 @@ class UsersController extends Controller
             $gradeList = Grades::all();
             $roleList = Role::all();
             if(isset($request->filter)){
-                $Query = User::select('*');
+                
+                $Query = User::select('*')
+                        ->where(function($q){
+                            $q->whereIn('role_id',[2,5,7,8])
+                            ->orWhereIn('id',$this->curriculum_year_mapping_student_ids());
+                        });
                 //search by school
                 if(isset($request->school_id) && !empty($request->school_id)){
                     $Query->where(cn::USERS_SCHOOL_ID_COL,$request->school_id);
@@ -91,11 +98,11 @@ class UsersController extends Controller
             if(!in_array('user_management_create', Helper::getPermissions(Auth::user()->{cn::USERS_ID_COL}))) {
                return  redirect(Helper::redirectRoleBasedDashboard(Auth::user()->{cn::USERS_ID_COL}));
             }
-            $Grades = Grades::where(cn::GRADES_STATUS_COL,1)->get();
+            //$Grades = Grades::where(cn::GRADES_STATUS_COL,1)->get();
             $Schools = School::where(cn::SCHOOL_SCHOOL_STATUS,'active')->get();
-            $Roles = Role::where(cn::ROLES_STATUS_COL,'active')->get();
-            $SubRoleList = OtherRoles::where(cn::OTHER_ROLE_ACTIVE_STATUS_COL,'active')->get();
-            return view('backend.UsersManagement.add',compact('Grades','Schools','Roles','SubRoleList'));
+            $Roles = Role::where(cn::ROLES_STATUS_COL,'active')->whereNotIn('id',[1,2,3,4,6,7])->get();
+            //$SubRoleList = OtherRoles::where(cn::OTHER_ROLE_ACTIVE_STATUS_COL,'active')->get();
+            return view('backend.UsersManagement.add',compact('Roles','Schools'));
         } catch (\Exception $exception) {
             return back()->withError($exception->getMessage())->withInput();
         }
@@ -141,16 +148,16 @@ class UsersController extends Controller
                 return redirect("/");
             }
             $user = User::find($id);
-            $Grades = Grades::where(cn::GRADES_STATUS_COL,1)->get();
+            //$Grades = Grades::where(cn::GRADES_STATUS_COL,1)->get();
             $Schools = School::where(cn::SCHOOL_SCHOOL_STATUS,'active')->get();
-            $Roles = Role::where(cn::ROLES_STATUS_COL,'active')->get();
-            $SubRoleList = OtherRoles::where(cn::OTHER_ROLE_ACTIVE_STATUS_COL,'active')->get();
-            $ParentChildMapping = ParentChildMapping::where(cn::PARANT_CHILD_MAPPING_PARENT_ID_COL,$id)->get()->toArray();
-            if(!empty($ParentChildMapping)){
-                $ParentChildMapping = array_column($ParentChildMapping,cn::PARANT_CHILD_MAPPING_STUDENT_ID_COL);
-            }
-            return view('backend.UsersManagement.edit',compact('user','Grades','Schools','Roles','ParentChildMapping','SubRoleList'));
-           
+            $Roles = Role::where(cn::ROLES_STATUS_COL,'active')->whereNotIn('id',[1,2,3,4,6,7])->get();
+            //$SubRoleList = OtherRoles::where(cn::OTHER_ROLE_ACTIVE_STATUS_COL,'active')->get();
+            //$ParentChildMapping = ParentChildMapping::where(cn::PARANT_CHILD_MAPPING_PARENT_ID_COL,$id)->get()->toArray();
+            // if(!empty($ParentChildMapping)){
+            //     $ParentChildMapping = array_column($ParentChildMapping,cn::PARANT_CHILD_MAPPING_STUDENT_ID_COL);
+            // }
+            //return view('backend.UsersManagement.edit',compact('user','Grades','Schools','Roles','ParentChildMapping','SubRoleList'));
+            return view('backend.UsersManagement.edit',compact('user','Roles','Schools'));
         }catch(\Exception $exception){
             return back()->withError($exception->getMessage())->withInput();
         }
@@ -223,196 +230,53 @@ class UsersController extends Controller
     /**
      * USE : Import user using upload csv file
      */
-    public function importUsers(Request $request){
+    public function importSchoolData(Request $request){
         try{
             ini_set('max_execution_time', 1800); // 30 Minutes
             if($request->isMethod('get')){
-                $Roles = Role::whereNotIn(cn::ROLES_ROLE_SLUG_COL,['admin'])->get();
+                //$Roles = Role::whereNotIn(cn::ROLES_ROLE_SLUG_COL,['admin'])->get();
+                $Roles = Role::whereIn('id',[5])->get();
                 return view('backend.UsersManagement.import_users',compact('Roles'));
             }
             if($request->isMethod('post')){
-                $file = $request->file('user_file');
-                
-                // File Details 
-                $filename = $file->getClientOriginalName();
-                $fileName_without_ext = \pathinfo($filename, PATHINFO_FILENAME);
-                $fileName_with_ext = \pathinfo($filename, PATHINFO_EXTENSION);      
-                $filename = $fileName_without_ext.time().'.'.$fileName_with_ext;
+                // Read the CSV file and get the CSV data
+                $FileData = $this->CSVFileRepository->GetCSVfileData($request, 'user_file','uploads/import_schools');
+                if(isset($FileData) && !empty($FileData) && $FileData['status']){
+                    if(isset($FileData['CSVData']) && !empty($FileData['CSVData'])){
+                        foreach($FileData['CSVData'] as $importData){
+                            if(isset($importData[0]) && !empty($importData[0])){
+                                if(School::where('school_email',$importData[0])->doesntExist()){                                    
+                                    $SchoolData = array(
+                                        cn::SCHOOL_SCHOOL_NAME_COL      => $this->encrypt($importData[2]),
+                                        cn::SCHOOL_SCHOOL_NAME_EN_COL   => $this->encrypt($importData[2]),
+                                        cn::SCHOOL_SCHOOL_NAME_CH_COL   => $this->encrypt($importData[3]),
+                                        cn::SCHOOL_SCHOOL_EMAIL_COL     => $importData[0]
+                                    );
+                                    $School = School::create($SchoolData);
+                                    if($School){
+                                        $schoolId = $School->id;
+                                    }
 
-                $extension = $file->getClientOriginalExtension();
-                $tempPath = $file->getRealPath();
-                $fileSize = $file->getSize();
-                $mimeType = $file->getMimeType();
-
-                // Valid File Extensions
-                $valid_extension = array("csv");
-
-                // 2MB in Bytes
-                $maxFileSize = 2097152;
-                
-                // Check file extension
-                if(in_array(strtolower($extension),$valid_extension)){
-                    // Check file size
-                    if($fileSize <= $maxFileSize){
-                        // File upload location
-                        $location = 'uploads/import_users';
-                        
-                        // Upload file
-                        $file->move(public_path($location), $filename);
-
-                        // Import CSV to Database
-                        $filepath = public_path($location."/".$filename);
-                                                                    
-                        // Reading file
-                        $file = fopen($filepath,"r");
-                        $importData_arr = array();
-                        $i = 0;
-                        
-                        while (($filedata = fgetcsv($file, 1000, ",")) !== FALSE) {
-                            $num = count($filedata );
-                            // Skip first row (Remove below comment if you want to skip the first row)
-                            if($i != 0){
-                                for ($c=0; $c < $num; $c++) {
-                                    $importData_arr[$i][] = $filedata [$c];
-                                }   
-                            }
-                            $i++;
-                        }
-                        fclose($file);
-                        if(isset($importData_arr) && !empty($importData_arr)){
-                            // Insert to MySQL database      
-                            $school = '';//for school data store
-                            $mappingGradeId ='';                    
-                            foreach($importData_arr as $importData){
-                                if(!empty($importData[4])){
-                                    $school = School::where(cn::SCHOOL_SCHOOL_NAME_COL, $this->encrypt($importData[4]))->first(); //$importData[4] = school id (filteration on School Name.)
-                                }
-                                if(empty($school)){
-                                    return back()->with('error_msg', 'No Any School Found');
-                                }
-                                // Find grade id
-                                $gradeId = null;
-                                $gradeData = null;
-                                $classStudentNumber = '';
-                                if(isset($importData[7]) && !empty($importData[7])){
-                                    // $classdata = explode('+',$importData[7]); // $importData[7] = class + class student number
-                                    $className = $importData[7] ?? null;
-                                    $classStudentNumber =  $importData[8] ?? null;
-                                }
-                                if(!empty($importData[5])){
-                                    $getGradeID = Grades::where([cn::GRADES_NAME_COL => $importData[5]])->first();
-                                    
-                                    if(isset($getGradeID) && !empty($getGradeID)){
-                                        $gradeData = GradeSchoolMappings::where([
-                                                                                    cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                                                                    cn::GRADES_MAPPING_GRADE_ID_COL=>$getGradeID->id,
-                                                                                    cn::GRADES_MAPPING_SCHOOL_ID_COL => $school->id
-                                                                                ])->first();
-                                                                                
-                                        if(!empty($gradeData)){
-                                            $mappingGradeId = $gradeData->grade_id;
-                                            
-                                        }
-                                        else{
-                                            $gradeData = GradeSchoolMappings::create([
-                                                cn::GRADES_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                                cn::GRADES_MAPPING_GRADE_ID_COL=>$getGradeID->id,
-                                                cn::GRADES_MAPPING_SCHOOL_ID_COL => $school->id
-                                            ]);
-                                        }
+                                    if(User::where('email',$importData[0])->doesntExist() && !empty($schoolId)){
+                                        $UserModel = new User;
+                                        $UserModel->{cn::USERS_ROLE_ID_COL}         = $request->role;
+                                        $UserModel->{cn::USERS_SCHOOL_ID_COL}       = $schoolId;
+                                        $UserModel->{cn::USERS_NAME_EN_COL}         = $this->encrypt($importData[2]);
+                                        $UserModel->{cn::USERS_NAME_CH_COL}         = $this->encrypt($importData[3]);
+                                        $UserModel->{cn::USERS_EMAIL_COL}           = $importData[0];
+                                        $UserModel->{cn::USERS_PASSWORD_COL}        = Hash::make($importData[1]);
+                                        $UserModel->{cn::USERS_STATUS_COL}          = 'active';
+                                        $UserModel->{cn::USERS_CREATED_BY_COL}      = auth()->user()->id;
+                                        $Users = $UserModel->save();
                                     }
                                 }
-                                // Check class is already available in this school
-                                $ClassData = GradeClassMapping::where(cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL,$school->id)
-                                ->where(cn::GRADE_CLASS_MAPPING_GRADE_ID_COL,$getGradeID->id)
-                                ->where(cn::GRADE_CLASS_MAPPING_NAME_COL,strtoupper($importData[7]))
-                                ->first();
-                                if(isset($ClassData) && !empty($ClassData)){
-                                    $classId = $ClassData->id;
-                                }else{
-                                    $ClassData = GradeClassMapping::create([
-                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                        cn::GRADE_CLASS_MAPPING_GRADE_ID_COL =>$getGradeID->id,
-                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL   => $school->id,
-                                        cn::GRADE_CLASS_MAPPING_NAME_COL => strtoupper(trim(substr($importData[7],0,1)))
-                                    ]);
-                                    $classId = $ClassData->id;
-                                }
-                                
-                                // Check users already exists or not
-                                $checkUserExists = User::where(cn::USERS_EMAIL_COL,$importData[0])->first();
-                                if(empty($checkUserExists)){
-                                    User::create([
-                                        cn::USERS_CURRICULUM_YEAR_ID_COL    => $this->GetCurriculumYear(),
-                                        cn::USERS_ROLE_ID_COL => $request->role,
-                                        cn::USERS_NAME_EN_COL => ($importData[2]) ? $this->encrypt(trim($importData[2])) : null,
-                                        cn::USERS_NAME_CH_COL => ($importData[3]) ? $this->encrypt(trim($importData[3])) : null,
-                                        cn::USERS_EMAIL_COL =>   ($importData[0]) ? trim($importData[0]) :null,
-                                        cn::USERS_PASSWORD_COL => ($importData[1]) ? Hash::make($this->setPassword(trim($importData[1]))) : null,
-                                        cn::USERS_SCHOOL_ID_COL => $school->id,
-                                        cn::USERS_GRADE_ID_COL => $mappingGradeId,
-                                        cn::USERS_PERMANENT_REFERENCE_NUMBER => ($importData[6]) ? $importData[6] : null,
-                                        cn::USERS_CLASS_ID_COL     => $classId,
-                                        cn::USERS_CLASS         => $mappingGradeId.ucfirst($className),
-                                        cn::STUDENT_NUMBER_WITHIN_CLASS => ($classStudentNumber) ? $classStudentNumber : null,
-                                        cn::USERS_CLASS_STUDENT_NUMBER => ($classStudentNumber) ? $mappingGradeId.ucfirst($className).$classStudentNumber : null,
-                                        cn::USERS_STATUS_COL => 'active'
-                                    ]);
-                                }else{
-                                    User::where(cn::USERS_ID_COL,$checkUserExists->id)->update([
-                                        cn::USERS_ROLE_ID_COL => $request->role,
-                                        cn::USERS_NAME_EN_COL => $this->encrypt(trim($importData[2])),
-                                        cn::USERS_NAME_CH_COL => $this->encrypt(trim($importData[3])),
-                                        cn::USERS_EMAIL_COL => trim($importData[0]),
-                                        cn::USERS_PASSWORD_COL => Hash::make($this->setPassword(trim($importData[1]))),
-                                        cn::USERS_SCHOOL_ID_COL => $school->id,
-                                        cn::USERS_GRADE_ID_COL => $mappingGradeId,
-                                        cn::USERS_PERMANENT_REFERENCE_NUMBER => ($importData[6]) ? $importData[6] : null,
-                                        cn::USERS_CLASS_ID_COL     => $classId,
-                                        cn::USERS_CLASS         => $mappingGradeId.ucfirst($className),
-                                        cn::STUDENT_NUMBER_WITHIN_CLASS => ($classStudentNumber) ? $classStudentNumber : null,
-                                        cn::USERS_CLASS_STUDENT_NUMBER => ($classStudentNumber) ? $mappingGradeId.ucfirst($className).$classStudentNumber : null,
-                                        cn::USERS_STATUS_COL => 'active'
-                                    ]);
-                                }
-
-                                if(CurriculumYearStudentMappings::where([
-                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
-                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => $school->id
-                                    ])->exists()){
-                                        CurriculumYearStudentMappings::where([
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL =>$school->id
-                                        ])
-                                        ->Update([
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $mappingGradeId,
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL =>$school->id,
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId,
-                                            cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => ($classStudentNumber) ? $classStudentNumber : null,
-                                            cn::CURRICULUM_YEAR_STUDENT_CLASS => $mappingGradeId.ucfirst($className),
-                                            cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => ($classStudentNumber) ? $mappingGradeId.ucfirst($className).$classStudentNumber : null,
-                                        ]);
-                                    }else{
-                                        CurriculumYearStudentMappings::create([
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $mappingGradeId,
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => $school->id,
-                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId,
-                                            cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => ($classStudentNumber) ? $classStudentNumber : null,
-                                            cn::CURRICULUM_YEAR_STUDENT_CLASS => $mappingGradeId.ucfirst($className),
-                                            cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => ($classStudentNumber) ? $mappingGradeId.ucfirst($className).$classStudentNumber : null,
-                                        ]);
-                                    }
                             }
                         }
-                        $this->StoreAuditLogFunction('','User','','','User Imported successfully. file name '.$filepath,cn::USERS_TABLE_NAME,'');
+                        //$this->StoreAuditLogFunction('','User','','','User Imported successfully. file name '.$filepath,cn::USERS_TABLE_NAME,'');
                         return redirect('users')->with('success_msg', __('languages.user_import_successfully'));
                     }
+                }else{
+                    return redirect('users')->with('error_msg', $FileData['error']);
                 }
             }
         } catch (\Exception $exception) {
@@ -451,6 +315,146 @@ class UsersController extends Controller
     }
 
     /**
+     * USE : Check Duplication Csv File
+     *  For the First Stage Check CSV validations
+     */
+    public function CheckDuplicationCsvFile(Request $request){
+        try{
+            $Grades = '';
+            $file = $request->file('user_file');
+            // File Details 
+            $filename = $file->getClientOriginalName();
+            $fileName_without_ext = \pathinfo($filename, PATHINFO_FILENAME);
+            $fileName_with_ext = \pathinfo($filename, PATHINFO_EXTENSION);      
+            $filename = $fileName_without_ext.time().'.'.$fileName_with_ext;
+    
+            $extension = $file->getClientOriginalExtension();
+            $tempPath = $file->getRealPath();
+            $fileSize = $file->getSize();
+            $mimeType = $file->getMimeType();
+    
+            // Valid File Extensions
+            $valid_extension = array("csv");
+    
+            // 2MB in Bytes
+            $maxFileSize = 2097152;
+            
+            // Check file extension
+            if(in_array(strtolower($extension),$valid_extension)){
+                // Check file size
+                if($fileSize <= $maxFileSize){
+                    // File upload location
+                    $location = 'uploads/import_students';
+                    
+                    // Upload file
+                    $file->move(public_path($location), $filename);
+    
+                    // Import CSV to Database
+                    $filepath = public_path($location."/".$filename);
+                                                                
+                    // Reading file
+                    $file = fopen($filepath,"r");
+                    $importData_arr = array();
+                    $i = 0;
+                    
+                    while (($filedata = fgetcsv($file, 1000, ",")) !== FALSE) {
+                        $num = count($filedata );
+                        // Skip first row (Remove below comment if you want to skip the first row)
+                        if($i != 0){
+                            for ($c=0; $c < $num; $c++) {
+                                $importData_arr[$i][] = $filedata [$c];
+                            }   
+                        }
+                        $i++;
+                    }
+                    fclose($file);
+    
+                    $html = '';
+                    $finalDuplicateEntries =array();
+    
+                    $emailArray = array_column($importData_arr,0);
+                    $uniqueEmailArray = array_unique($emailArray);
+                    $duplicatesArray[] = array_diff_assoc($emailArray, $uniqueEmailArray);
+                    
+                    $permanentReferenceArray = array_column($importData_arr,4);
+                    $uniquePermanentReferenceArray = array_unique($permanentReferenceArray);
+                    $duplicatesArray[] = array_diff_assoc($permanentReferenceArray, $uniquePermanentReferenceArray);
+    
+                    $studentWithinClassArray;
+                    foreach($importData_arr as $importData){
+                        if(strlen($importData[7]) == 1){
+                            $studentNumberWithInClass = '0'.$importData[7];
+                        }else{
+                            $studentNumberWithInClass = $importData[7];
+                        } 
+                        $studentWithinClassArray[] = $importData[5].$importData[6].$studentNumberWithInClass;
+                    }
+                    $uniqueStudentWithinClassArray = array_unique($studentWithinClassArray);
+                    $duplicatesArray[] = array_diff_assoc($studentWithinClassArray, $uniqueStudentWithinClassArray);
+                    $convertDuplicateSingleArray = $this->arrayFlatten($duplicatesArray); 
+                    foreach($importData_arr as $importDataKey=>  $importData){
+                        if(strlen($importData[7]) == 1){
+                            $studentNumberWithInClass = '0'.$importData[7];
+                        }else{
+                            $studentNumberWithInClass = $importData[7];
+                        }
+                        $studentNumberWithInClassCombine = $importData[5].$importData[6].$studentNumberWithInClass;
+                        if(in_array($importData[0],$convertDuplicateSingleArray) || in_array($importData[4],$convertDuplicateSingleArray) || in_array($studentNumberWithInClassCombine,$convertDuplicateSingleArray) ){
+                            $finalDuplicateEntries[$importDataKey][] = $importData[0]; 
+                            $finalDuplicateEntries[$importDataKey][] = $importData[1]; 
+                            $finalDuplicateEntries[$importDataKey][] = $importData[2]; 
+                            $finalDuplicateEntries[$importDataKey][] = $importData[3]; 
+                            $finalDuplicateEntries[$importDataKey][] = $importData[4]; 
+                            $finalDuplicateEntries[$importDataKey][] = $importData[5]; 
+                            $finalDuplicateEntries[$importDataKey][] = $importData[6];
+                                
+                            $finalDuplicateEntries[$importDataKey][] = $importData[5].$importData[6].$studentNumberWithInClass;
+                        }
+                    }
+                    
+                    if(!empty($finalDuplicateEntries)){
+                        $html = '<h5>'.__("Stage 1").'</h5><span class="badge badge-warning col-md-12 mb-2">'.__('languages.error_msg_for_duplication_csv_import_student').'</span>
+                                <table border=1 width=100% class="styled-table">
+                                    <thead>
+                                        <tr>
+                                            <th>'.__('languages.email').'</th>
+                                            <th>'.__('languages.english_name').'</th>
+                                            <th>'.__('languages.chinese_name').'</th>
+                                            <th>'.__('languages.permanent_reference_number').'</th>
+                                            <th>'.__('languages.grade').'</th>
+                                            <th>'.__('languages.class').'</th>
+                                            <th>'.__('languages.student_number_with_class').'</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>';
+                        foreach($finalDuplicateEntries as $rowData){
+                            $html .= '<tr>';
+                            foreach($rowData as $rowDataKey => $ColumData){
+                                $isDuplicateError = '';
+                                if($rowDataKey == 0 || $rowDataKey==4 || $rowDataKey ==7){                                
+                                    if(in_array($ColumData,$convertDuplicateSingleArray)){
+                                        $isDuplicateError = 'background-color: yellow;';
+                                    }
+                                }
+                                if($rowDataKey != 1){
+                                    $html .= '<td style="'.$isDuplicateError.'">'.$ColumData.'</td>';
+                                }
+                            }
+                            $html .= '</tr>';
+                        }
+                        $html .='</tbody></table>';
+                    }
+                    return $this->sendResponse(['success_msg'=>'','data'=>$html]);
+                }else{
+                    return $this->sendResponse(['error_msg'=>'Please file max size is 2MB']);
+                }
+            }
+        }catch(Exception $exception){
+            return $this->sendError($exception->getMessage(), 404);
+        }
+    }
+
+    /**
     * USE : Import Assign Student view page
     */
     public function ImportStudents(Request $request){
@@ -463,7 +467,7 @@ class UsersController extends Controller
                     $Grades = Grades::whereIn(cn::GRADES_ID_COL, $getMappingGradeId)->get();
                 }
                 // return view('backend.student.import_student',compact('Grades','CurriculumYears'));
-                return view('backend.student.import_student',compact('Grades'));
+                return view('backend.student.import_student',compact('Grades','request'));
             }
             
             if($request->isMethod('post')){
@@ -712,10 +716,32 @@ class UsersController extends Controller
                     $PostRefrenceNumbers = array_column($importData_arr,'4');
                     $PostEmail = array_column($importData_arr,'0');
                     $dataExitsList='';
+                    $checkUserExists = '';
                     $dataAllList='';
-                    $dataList='<div class="row">';
-                    foreach($importData_arr as $importData){
-                        $oldRecode=0;
+                    
+                    $duplicateArray = [];
+                    
+
+                    // $dataList='<div class="row">';
+                    $dataset = '<h5>'.__("Stage 2").'</h5><span class="badge badge-warning col-md-12 mb-2">'.__('languages.please_correct_the_below_highlighted_data_conflict_with_the_current_system_data').'</span>
+                                <table border=1 width=100% class="styled-table">
+                                <thead>
+                                    <tr>
+                                        <th>'.__('languages.email').'</th>
+                                        <th>'.__('languages.english_name').'</th>
+                                        <th>'.__('languages.chinese_name').'</th>
+                                        <th>'.__('languages.permanent_reference_number').'</th>
+                                        <th>'.__('languages.grade').'</th>
+                                        <th>'.__('languages.class').'</th>
+                                        <th>'.__('languages.student_number_with_class').'</th>
+                                    </tr>
+                                </thead><tbody>';
+                    $isDuplicateCount = 0;
+                    foreach($importData_arr as $importDataKey => $importData){
+                        $oldRecode = 0;
+                        $duplicateEmailError = '';
+                        $duplicateClassStudentNumberError = '';
+                        $duplicatePermanentReferenceNumberError = '';
                         if(isset($importData[5]) && !empty($importData[5])){
                             // Check grade is already available or not
                             $Grade = Grades::where(cn::GRADES_NAME_COL,$importData[5])->first();
@@ -777,7 +803,6 @@ class UsersController extends Controller
                                 }
                             }
                         }
-
                         // store one variable into studentNumberWithInClass
                         $studentNumberWithInClass = '';
                         if(isset($importData[7]) && !empty($importData[7])){
@@ -788,41 +813,85 @@ class UsersController extends Controller
                             }
                         }
                         $usersClassStudentNumber=$Grade->name.$ClassData->name.$studentNumberWithInClass;
-                        $checkUserExists=User::where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})->where(function ($query) use($importData,$usersClassStudentNumber){
-                                    $query->where(cn::USERS_PERMANENT_REFERENCE_NUMBER,$importData[4])
-                                          ->orWhere(cn::USERS_EMAIL_COL,$importData[0])
-                                          ->orWhere(cn::USERS_CLASS_STUDENT_NUMBER,$usersClassStudentNumber);
-                                })->first();
-                        if(!empty($checkUserExists)){
-                            $oldRecode=1;
-                        }
-                        $dataSet='<table class="table table-bordered '.($oldRecode==1 ? 'bg-warning' : '').'">
-                                    <tr>
-                                        <td>Email:'.$importData[0].'</td>
-                                    <tr>
-                                    </tr>
-                                        <td>Password:'.$importData[1].'</td>
-                                    <tr>
-                                    </tr>
-                                        <td>English Name:'.$importData[2].'</td>
-                                    <tr>
-                                    </tr>
-                                        <td>Chinese Name:'.$importData[3].'</td>
-                                    <tr>
-                                    </tr>
-                                        <td>Permanent Number:'.$importData[4].'</td>
-                                    <tr>
-                                    </tr>
-                                        <td>Grade:'.$importData[5].'</td>
-                                    </tr>
-                                    </table>';
-                        $dataAllList.=$dataSet;
-                        if($oldRecode==1){
-                            $dataExitsList.=$dataSet;
+                                                
+                        switch($request->mode){
+                            case 1: 
+                                    $checkUserExists =  User::where(function ($query) use($importData,$usersClassStudentNumber){
+                                                            $query->where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                                                                ->where(function ($q) use($importData,$usersClassStudentNumber){
+                                                            $q->orWhere(cn::USERS_PERMANENT_REFERENCE_NUMBER,$importData[4])
+                                                                ->orWhere(cn::USERS_CLASS_STUDENT_NUMBER,$usersClassStudentNumber);
+                                                            });
+                                                        })
+                                                        ->orWhere(cn::USERS_EMAIL_COL,$importData[0])
+                                                        ->exists();
+                                    if(!empty($checkUserExists)){
+                                        if($this->CheckUserInDataExists('email',$importData[0])){
+                                            $isDuplicateCount++;
+                                            $duplicateEmailError = 'style="background-color: yellow;"';
+                                        }
+                                        if($this->CheckUserInDataExists('permanent_reference_number',$importData[4],Auth::user()->school_id)){
+                                            $isDuplicateCount++;
+                                            $duplicatePermanentReferenceNumberError = 'style="background-color: yellow;"';
+                                        }
+                                        if($this->CheckUserInDataExists('class_student_number',$usersClassStudentNumber,Auth::user()->school_id)){
+                                            $isDuplicateCount++;
+                                            $duplicateClassStudentNumberError = 'style="background-color: yellow;"';
+                                        }
+                                       
+                                        $dataset .=  '<tr>
+                                                        <td '.$duplicateEmailError.'>'.$importData[0].'</td>
+                                                        <td> '.$importData[2].'</td>
+                                                        <td >'.$importData[3].'</td>
+                                                        <td '.$duplicatePermanentReferenceNumberError.'>'.$importData[4].'</td>
+                                                        <td>'.$importData[5].'</td>
+                                                        <td>'.$ClassData->name.'</td>
+                                                        <td ' .$duplicateClassStudentNumberError.'>'.$usersClassStudentNumber.'</td>
+                                                    </tr>';
+                                    }
+                                    break;
+                            case 2:
+                                $isClassStudentNumberExists = false;
+                                $isEmailUnMatched = false;
+                                    // Manoj added
+                                    // Check duplicate class student number with class
+                                    if(CurriculumYearStudentMappings::where([
+                                        cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                        'curriculum_year_id' => $request->curriculum_year_id,
+                                        'class_student_number' => $usersClassStudentNumber
+                                    ])                                    
+                                    ->exists()){
+                                        $isDuplicateCount++;
+                                        $isClassStudentNumberExists = true;
+                                        $duplicateClassStudentNumberError = 'style="background-color: yellow;"';
+                                    }
+
+                                    if(User::where('email',$importData[0])->doesntExist()){
+                                        $isDuplicateCount++;
+                                        $isEmailUnMatched = true;
+                                        $duplicateEmailError = 'style="background-color: yellow;"';
+                                    }
+                                    // Check un-matched emails
+                                    if($isClassStudentNumberExists || $isEmailUnMatched){
+                                        $dataset .=  '<tr>
+                                                        <td '.$duplicateEmailError.'>'.$importData[0].'</td>
+                                                        <td> '.$importData[2].'</td>
+                                                        <td >'.$importData[3].'</td>
+                                                        <td '.$duplicatePermanentReferenceNumberError.'>'.$importData[4].'</td>
+                                                        <td>'.$importData[5].'</td>
+                                                        <td>'.$ClassData->name.'</td>
+                                                        <td ' .$duplicateClassStudentNumberError.'>'.$usersClassStudentNumber.'</td>
+                                                    </tr>';
+                                    }
+                                break;
                         }
                     }
-                    $dataList.='<div class="col-md-6 border-right"><h4>New Records</h4>'.$dataAllList.'</div><div class="col-md-6"><h4>Update Records</h4>'.$dataExitsList.'</div></div>';
-                    return $this->sendResponse(['error_msg'=>'','data'=>$dataList]);
+                    if($isDuplicateCount){
+                        $dataset .= "</tbody></table>";
+                    }else{
+                        $dataset = '';
+                    }
+                    return $this->sendResponse(['error_msg'=>'','data'=>$dataset]);
                 }else{
                     return $this->sendResponse(['error_msg'=>'Please file max size is 2MB']);
                 }
@@ -836,7 +905,7 @@ class UsersController extends Controller
     * USE : Import Assign Student Data
     */
     public function ImportStudentsData(Request $request){
-        // try{
+        try{
             $filepath = "";
             $Grades = '';
             if(isset($request->old_file) && $request->old_file!=""){
@@ -955,12 +1024,11 @@ class UsersController extends Controller
                                 }else{
                                     // If the class is not available into this school then create new class
                                     $ClassData = GradeClassMapping::create([
-                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL=>$request->curriculum_year_id,
-                                        // cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL => $this->isSchoolLogin(),
-                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL=>Auth::user()->school_id,
-                                        cn::GRADE_CLASS_MAPPING_GRADE_ID_COL  => $gradeId,
-                                        cn::GRADE_CLASS_MAPPING_NAME_COL      => $importData[6],
-                                        cn::GRADE_CLASS_MAPPING_STATUS_COL    => 'active'
+                                        cn::GRADE_CLASS_MAPPING_CURRICULUM_YEAR_ID_COL  =>$request->curriculum_year_id,                                        
+                                        cn::GRADE_CLASS_MAPPING_SCHOOL_ID_COL           =>Auth::user()->school_id,
+                                        cn::GRADE_CLASS_MAPPING_GRADE_ID_COL            => $gradeId,
+                                        cn::GRADE_CLASS_MAPPING_NAME_COL                => $importData[6],
+                                        cn::GRADE_CLASS_MAPPING_STATUS_COL              => 'active'
                                     ]);
                                     
                                     if($ClassData){
@@ -969,7 +1037,7 @@ class UsersController extends Controller
                                     }
                                 }
                             }
-                            // Stire one variable into studentNumberWithInClass
+                            // Store one variable into studentNumberWithInClass
                             $studentNumberWithInClass = '';
                             if(isset($importData[7]) && !empty($importData[7])){
                                 if(strlen($importData[7]) == 1){
@@ -979,14 +1047,19 @@ class UsersController extends Controller
                                 }
                             }
                             $usersClassStudentNumber = $Grade->name.$ClassData->name.$studentNumberWithInClass;
-                            $checkUserExists = User::where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
-                                                ->where(function ($query) use($importData,$usersClassStudentNumber){
-                                                    $query->where(cn::USERS_PERMANENT_REFERENCE_NUMBER,$importData[4])
-                                                    ->orWhere(cn::USERS_EMAIL_COL,$importData[0])
-                                                    ->orWhere(cn::USERS_CLASS_STUDENT_NUMBER,$usersClassStudentNumber);
-                                                })->first();
-                            if(isset($request->action) && $request->action == 2){
+
+                            if($request->mode==1){ // If 1 = new student import
+                                $checkUserExists = User::where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                                                    ->where(function ($query) use($importData,$usersClassStudentNumber){
+                                                        $query->where(cn::USERS_PERMANENT_REFERENCE_NUMBER,$importData[4])
+                                                        ->orWhere(cn::USERS_EMAIL_COL,$importData[0])
+                                                        ->orWhere(cn::USERS_CLASS_STUDENT_NUMBER,$usersClassStudentNumber);
+                                                    })->first();                                                                            
                                 if(!empty($checkUserExists)){
+                                    // user Exist then class promotion history manage.
+                                    
+                                    $this->ClassPromotionHistoryCreateOrUpdateRecord($request->curriculum_year_id,$checkUserExists,$gradeId,$classId);
+
                                     User::where(cn::USERS_ID_COL,$checkUserExists->id)->update([
                                         cn::USERS_PASSWORD_COL => ($importData[1]) ? Hash::make($this->setPassword(trim($importData[1]))) : null,
                                         cn::USERS_NAME_EN_COL => ($importData[2]) ? $this->encrypt(trim($importData[2])) : null,
@@ -1002,7 +1075,8 @@ class UsersController extends Controller
                                         cn::USERS_IMPORT_DATE_COL => Carbon::now(),
                                         cn::USERS_CREATED_BY_COL => Auth::user()->{cn::USERS_ID_COL}
                                     ]);
-
+                                    
+                                    // Check in Curriculum Year Student Mapping in Student Record is available or not if Exists then update otherwise Create
                                     if(CurriculumYearStudentMappings::where([
                                         cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
                                         cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
@@ -1036,48 +1110,146 @@ class UsersController extends Controller
                                         ]);
                                     }
                                 }
+                                
+                                if(empty($checkUserExists)){
+                                    // If user is not exists then create new student
+                                    $newUserData = User::create([
+                                        cn::USERS_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
+                                        cn::USERS_EMAIL_COL =>   ($importData[0]) ? trim($importData[0]) :null,
+                                        cn::USERS_PASSWORD_COL => ($importData[1]) ? Hash::make($this->setPassword(trim($importData[1]))) : null,
+                                        cn::USERS_NAME_EN_COL => ($importData[2]) ? $this->encrypt(trim($importData[2])) : null,
+                                        cn::USERS_NAME_CH_COL => ($importData[3]) ? $this->encrypt(trim($importData[3])) : null,
+                                        cn::USERS_PERMANENT_REFERENCE_NUMBER => ($importData[4]) ? trim($importData[4]) : null,
+                                        cn::USERS_GRADE_ID_COL => $gradeId,
+                                        cn::USERS_CLASS_ID_COL => $classId,
+                                        cn::STUDENT_NUMBER_WITHIN_CLASS => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
+                                        cn::USERS_CLASS => $Grade->name.''.$ClassData->name,
+                                        cn::USERS_CLASS_STUDENT_NUMBER => $usersClassStudentNumber,
+                                        cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                                        cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                        cn::USERS_STATUS_COL => 'active',
+                                        cn::USERS_IMPORT_DATE_COL => Carbon::now(),
+                                        cn::USERS_CREATED_BY_COL => Auth::user()->{cn::USERS_ID_COL}
+                                    ]);
+
+                                    $curriculumStudentMapping = CurriculumYearStudentMappings::create([
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $newUserData->id,
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $gradeId,
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId,
+                                        cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
+                                        cn::CURRICULUM_YEAR_STUDENT_CLASS => $gradeId.$className,
+                                        cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => $usersClassStudentNumber    
+                                    ]);
+
+                                    $this->ClassPromotionHistoryCreateOrUpdateRecord($request->curriculum_year_id,$newUserData,$gradeId,$classId);
+                                }
                             }
 
-                            if(empty($checkUserExists)){
-                                // If user is not exists then create new student
-                                $newUserData = User::create([
-                                    cn::USERS_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
-                                    cn::USERS_EMAIL_COL =>   ($importData[0]) ? trim($importData[0]) :null,
-                                    cn::USERS_PASSWORD_COL => ($importData[1]) ? Hash::make($this->setPassword(trim($importData[1]))) : null,
-                                    cn::USERS_NAME_EN_COL => ($importData[2]) ? $this->encrypt(trim($importData[2])) : null,
-                                    cn::USERS_NAME_CH_COL => ($importData[3]) ? $this->encrypt(trim($importData[3])) : null,
-                                    cn::USERS_PERMANENT_REFERENCE_NUMBER => ($importData[4]) ? trim($importData[4]) : null,
-                                    cn::USERS_GRADE_ID_COL => $gradeId,
-                                    cn::USERS_CLASS_ID_COL => $classId,
-                                    cn::STUDENT_NUMBER_WITHIN_CLASS => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
-                                    cn::USERS_CLASS => $Grade->name.''.$ClassData->name,
-                                    cn::USERS_CLASS_STUDENT_NUMBER => $usersClassStudentNumber,
-                                    cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
-                                    cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                                    cn::USERS_STATUS_COL => 'active',
-                                    cn::USERS_IMPORT_DATE_COL => Carbon::now(),
-                                    cn::USERS_CREATED_BY_COL => Auth::user()->{cn::USERS_ID_COL}
-                                ]);
+                            if($request->mode==2){ // If 2 = promotion student to next year
+                                $checkUserExists =  User::where(cn::USERS_SCHOOL_ID_COL,Auth::user()->{cn::USERS_SCHOOL_ID_COL})
+                                                    ->where(cn::USERS_EMAIL_COL,$importData[0])
+                                                    ->first();
+                                if(!empty($checkUserExists)){
+                                    // user Exist then class promotion history manage.
+                                    
+                                    $this->ClassPromotionHistoryCreateOrUpdateRecord($request->curriculum_year_id,$checkUserExists,$gradeId,$classId);
 
-                               $curriculumStudentMapping = CurriculumYearStudentMappings::create([
-                                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
-                                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $newUserData->id,
-                                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
-                                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $gradeId,
-                                    cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId,
-                                    cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
-                                    cn::CURRICULUM_YEAR_STUDENT_CLASS => $gradeId.$className,
-                                    cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => $usersClassStudentNumber    
-                                ]);
+                                    User::where(cn::USERS_ID_COL,$checkUserExists->id)->update([
+                                        // cn::USERS_PASSWORD_COL => ($importData[1]) ? Hash::make($this->setPassword(trim($importData[1]))) : null,
+                                        // cn::USERS_NAME_EN_COL => ($importData[2]) ? $this->encrypt(trim($importData[2])) : null,
+                                        // cn::USERS_NAME_CH_COL => ($importData[3]) ? $this->encrypt(trim($importData[3])) : null,
+                                        //cn::USERS_PERMANENT_REFERENCE_NUMBER => ($importData[4]) ? trim($importData[4]) : null,
+                                        cn::USERS_GRADE_ID_COL => $gradeId,
+                                        cn::USERS_CLASS_ID_COL => $classId,
+                                        cn::STUDENT_NUMBER_WITHIN_CLASS => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
+                                        cn::USERS_CLASS => $Grade->name.''.$ClassData->name,
+                                        cn::USERS_CLASS_STUDENT_NUMBER => $usersClassStudentNumber,
+                                        cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                        cn::USERS_STATUS_COL => 'active',
+                                        cn::USERS_IMPORT_DATE_COL => Carbon::now(),
+                                        cn::USERS_CREATED_BY_COL => Auth::user()->{cn::USERS_ID_COL}
+                                    ]);
+                                    
+                                    // Check in Curriculum Year Student Mapping in Student Record is available or not if Exists then update otherwise Create
+                                    if(CurriculumYearStudentMappings::where([
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}
+                                    ])->exists()){
+                                        CurriculumYearStudentMappings::where([
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL}
+                                        ])
+                                        ->Update([
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $gradeId,
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId,
+                                            cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
+                                            cn::CURRICULUM_YEAR_STUDENT_CLASS => $gradeId.$className,
+                                            cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => $usersClassStudentNumber
+                                        ]);
+                                    }else{
+                                        CurriculumYearStudentMappings::create([
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $checkUserExists->id,
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $gradeId,
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                            cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId,
+                                            cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
+                                            cn::CURRICULUM_YEAR_STUDENT_CLASS => $gradeId.$className,
+                                            cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => $usersClassStudentNumber
+                                        ]);
+                                    }
+                                }
+
+                                if(empty($checkUserExists)){
+                                    // If user is not exists then create new student
+                                    $newUserData = User::create([
+                                        cn::USERS_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
+                                        cn::USERS_EMAIL_COL =>   ($importData[0]) ? trim($importData[0]) :null,
+                                        cn::USERS_PASSWORD_COL => ($importData[1]) ? Hash::make($this->setPassword(trim($importData[1]))) : null,
+                                        cn::USERS_NAME_EN_COL => ($importData[2]) ? $this->encrypt(trim($importData[2])) : null,
+                                        cn::USERS_NAME_CH_COL => ($importData[3]) ? $this->encrypt(trim($importData[3])) : null,
+                                        cn::USERS_PERMANENT_REFERENCE_NUMBER => ($importData[4]) ? trim($importData[4]) : null,
+                                        cn::USERS_GRADE_ID_COL => $gradeId,
+                                        cn::USERS_CLASS_ID_COL => $classId,
+                                        cn::STUDENT_NUMBER_WITHIN_CLASS => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
+                                        cn::USERS_CLASS => $Grade->name.''.$ClassData->name,
+                                        cn::USERS_CLASS_STUDENT_NUMBER => $usersClassStudentNumber,
+                                        cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
+                                        cn::USERS_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                        cn::USERS_STATUS_COL => 'active',
+                                        cn::USERS_IMPORT_DATE_COL => Carbon::now(),
+                                        cn::USERS_CREATED_BY_COL => Auth::user()->{cn::USERS_ID_COL}
+                                    ]);
+
+                                    $curriculumStudentMapping = CurriculumYearStudentMappings::create([
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $request->curriculum_year_id,
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL => $newUserData->id,
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_GRADE_ID_COL => $gradeId,
+                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CLASS_ID_COL => $classId,
+                                        cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => ($studentNumberWithInClass) ? $studentNumberWithInClass : null,
+                                        cn::CURRICULUM_YEAR_STUDENT_CLASS => $gradeId.$className,
+                                        cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER => $usersClassStudentNumber    
+                                    ]);
+
+                                    $this->ClassPromotionHistoryCreateOrUpdateRecord($request->curriculum_year_id,$newUserData,$gradeId,$classId);
+                                }
                             }
                         }
                     }
                     $this->StoreAuditLogFunction('','User','','','Student Imported successfully. file name '.$filepath,cn::USERS_TABLE_NAME,'');
-                    return redirect('Student')->with('success_msg', __('languages.user_import_successfully'));
+                    return redirect()->route('ImportStudents',['mode' => $request->mode,'curriculum_year_id' => $request->curriculum_year_id])->with('success_msg', __('languages.data_imported_successfully'));
             }
-        // }catch(Exception $exception){
-        //     return $this->sendError($exception->getMessage(), 404);
-        // }
+        }catch(Exception $exception){
+            return $this->sendError($exception->getMessage(), 404);
+        }
     }
 
     /**

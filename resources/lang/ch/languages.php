@@ -1305,6 +1305,15 @@ return [
     'show_more'                                         => '顯示更多',
     'having_question'                                   => '有問題?',
     'video_player'                                      => '視頻播放器',
+    'cancel'                                            => '取消',
+    'duplicate_csv_file_records'                        => '重複的 Csv 文件記錄',
+    'error_msg_for_duplication_csv_import_student'      =>'檢測到錯誤請更正突出顯示的記錄並重新上傳',
+    'new_students_import'                               => '新生導入',
+    'promote_students_import'                           => '促進學生進口',
+    'exam_configurations'                               => '考試配置',
+    'commit'                                            => '提交',
+    'please_correct_the_below_highlighted_data_conflict_with_the_current_system_data'=>'請更正以下與現時系統衝突的數據。',
+    'data_imported_successfully'                        =>  '數據匯入成功',
 
     'aiapi_label'=> [
         'Plot_Analyze_Question' =>[
@@ -1417,4 +1426,5 @@ return [
     'please_select_class_type' =>'請選擇班級類型',
     'std_number'            => '標準號',
     'remainder'             => '餘',
+    'exam_configurations' => 'Exam Configurations',
 ];

@@ -325,36 +325,6 @@ class MyTeachingController extends Controller
                                     $q->where(cn::EXAM_CURRICULUM_YEAR_ID_COL, $this->GetCurriculumYear());
                                 })
                                 ->orderBy(cn::TEACHING_REPORT_EXAM_ID_COL,'DESC')->paginate($items);
-
-        // Get Current student grade id wise strand list
-        // $strandsList = StrandUnitsObjectivesMappings::where([cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL => 1])->pluck(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL);
-        // if($strandsList->isNotEmpty()){
-        //     $strandsIds = array_unique($strandsList->toArray());
-        //     $strandsList = Strands::whereIn(cn::STRANDS_ID_COL, $strandsIds)->get();
-
-        //     // Get The learning units based on first Strands
-        //     $learningUnitsIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,Auth::user()->{cn::USERS_GRADE_ID_COL})
-        //                 ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
-        //                 ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strandsList[0]->id)
-        //                 ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL);
-        //     if(!empty($learningUnitsIds)){
-        //         $learningUnitsIds = array_unique($learningUnitsIds->toArray());
-        //         $LearningUnits = LearningsUnits::whereIn(cn::LEARNING_UNITS_ID_COL, $learningUnitsIds)->get();
-
-        //         // Get the Learning objectives based on first learning units
-        //         $learningObjectivesIds = StrandUnitsObjectivesMappings::where(cn::OBJECTIVES_MAPPINGS_GRADE_ID_COL,Auth::user()->{cn::USERS_GRADE_ID_COL})
-        //                 ->where(cn::OBJECTIVES_MAPPINGS_SUBJECT_ID_COL,1)
-        //                 ->where(cn::OBJECTIVES_MAPPINGS_STRAND_ID_COL,$strandsList[0]->id)
-        //                 ->whereIn(cn::OBJECTIVES_MAPPINGS_LEARNING_UNIT_ID_COL,$LearningUnits->pluck(cn::LEARNING_UNITS_ID_COL))
-        //                 ->pluck(cn::OBJECTIVES_MAPPINGS_LEARNING_OBJECTIVES_ID_COL);
-        //         if(!empty($learningObjectivesIds)){
-        //             $learningObjectivesIds = array_unique($learningObjectivesIds->toArray());
-        //             // $LearningObjectives = LearningsObjectives::whereIn(cn::LEARNING_OBJECTIVES_ID_COL, $learningObjectivesIds)->get();
-        //             $LearningObjectives = LearningsObjectives::IsAvailableQuestion()->whereIn(cn::LEARNING_OBJECTIVES_ID_COL, $learningObjectivesIds)->get();
-        //         }
-        //     }
-        // }
-
         if(isset($request->filter) && !empty($request->filter)){
             $grade_id = $request->grade_id; //For Filtration Selection
             $class_type_id = $request->class_type_id;
@@ -385,7 +355,6 @@ class MyTeachingController extends Controller
                 }
             }
         }
-        //return view('backend/MyTeachingReports/self_learning_exercise',compact('SelfLearningTestList','difficultyLevels','items','schoolId','gradesList','grade_id','class_type_id','GradeClassListData','strandsList','LearningUnits','LearningObjectives'));
         return view('backend/MyTeachingReports/self_learning_exercise',compact('SelfLearningTestList','difficultyLevels','items','schoolId','gradesList','grade_id','class_type_id','GradeClassListData'));
     }
 

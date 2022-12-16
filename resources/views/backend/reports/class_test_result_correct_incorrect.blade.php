@@ -140,11 +140,24 @@
 						<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
 							<button class="btn-search getTestDifficultyAnalysisReport w-100" data-examid="{{$ExamData->id}}">{{__('languages.question_difficulty_analysis')}}</button>
 						</div>
-						<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
-							<a href="{{route('exam-configuration-preview',$ExamData->id)}}" class="ml-2" title="{{__('languages.config')}}">
-								<button class="btn-search w-100">{{__('Exam Configurations')}}</button>
-							</a>
-						</div>
+						
+						@if($ExamData->exam_type == 1)
+							<!-- Self Learning Exam Configuration -->
+							<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+								<a href="{{route('self_learning.preview',$ExamData->id)}}" class="ml-2" title="{{__('languages.config')}}">
+									<button class="btn-search w-100">{{__('languages.exam_configurations')}}</button>
+								</a>
+							</div>
+							
+						@else
+							<!-- If Exam Not Self Learning Exam Configuration -->
+							<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
+								<a href="{{route('exam-configuration-preview',$ExamData->id)}}" class="ml-2" title="{{__('languages.config')}}">
+									<button class="btn-search w-100">{{__('languages.exam_configurations')}}</button>
+								</a>
+							</div>
+						@endif
+
 						<div class="col-lg-2 col-md-2 col-sm-2 col-xs-2">
 							<button class="btn-search class-performance-student-summary-report w-100" data-examid="{{$ExamData->id}}">{{__('languages.student_summary_report')}}</button>
 						</div>
@@ -214,7 +227,7 @@
 											<thead>
 												<tr>
 													<!-- <th class="first-head"><span>{{__('Class-Student No')}}</span></th> -->
-													  <th class="first-head sorting_column" data-sort-type="student_name" data-sort="<?php if(isset($_GET['sort_by_type']) && $_GET['sort_by_type'] == 'student_name'){ echo $_GET['sort_by_value'];}?>">
+													<th class="first-head sorting_column" data-sort-type="student_name" data-sort="<?php if(isset($_GET['sort_by_type']) && $_GET['sort_by_type'] == 'student_name'){ echo $_GET['sort_by_value'];}?>">
 														<span>{{__('languages.report.student_name')}}</span>
 														<span class="student-name-sorting-icon">
 														@if(isset($_GET['sort_by_type']) && $_GET['sort_by_type'] == 'student_name')
@@ -674,26 +687,6 @@
 			</div>
 		</div>
 		<!-- End list of difficulties of the questions in the test Analysis Popup -->
-
-		<!-- Student Result Summary Report -->
-		<div class="modal" id="StudentSummaryReportModal" tabindex="-1" aria-labelledby="StudentSummaryReportModal" aria-hidden="true" data-backdrop="static">
-			<div class="modal-dialog modal-lg">
-				<div class="modal-content">
-					<form method="post">
-						<div class="modal-header embed-responsive">
-							<h4 class="modal-title w-100">{{__('languages.student_summary_report')}}</h4>
-						</div>
-						<div class="modal-body student-report-summary-data">
-							
-						</div>
-						<div class="modal-footer">
-							<button type="button" class="btn btn-default close-student-report-summary-popup" data-dismiss="modal">{{__('languages.close')}}</button>
-						</div>
-					</form>
-				</div>
-			</div>
-		</div>
-		<!-- End Result Summary Popup -->
 
 		<!-- End Admin Export Performance Report -->
 		<script type="text/javascript">

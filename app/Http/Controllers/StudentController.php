@@ -74,7 +74,7 @@ class StudentController extends Controller
                             cn::USERS_SCHOOL_ID_COL => auth()->user()->school_id,
                             cn::USERS_ROLE_ID_COL => cn::STUDENT_ROLE_ID,
                         ])
-                        ->whereIn('id',$this->curriculum_year_mapping_student_ids('','',auth()->user()->school_id))
+                        ->whereIn('id',$this->curriculum_year_mapping_student_ids('','',auth()->user()->school_id,$this->GetCurriculumYear()))
                         ->sortable()
                         ->orderBy(cn::USERS_ID_COL,'DESC')
                         ->paginate($items);
@@ -123,7 +123,6 @@ class StudentController extends Controller
                             ->sortable()->paginate($items);
                 $this->StoreAuditLogFunction($request->all(),'User',cn::USERS_ID_COL,'','Student Details Filter',cn::USERS_TABLE_NAME,'');
             }
-            //echo '<pre>';print_r($UsersList->toArray());die;
             return view('backend.studentmanagement.list',compact('UsersList','items','countUserData','gradeList','TotalFilterData','classTypeOptions'));
         }catch(Exception $exception){
             return redirect('Student')->withError($exception->getMessage())->withInput();
@@ -462,7 +461,7 @@ class StudentController extends Controller
             }
         }
         $examData = [
-            cn::EXAM_CURRICULUM_YEAR_ID_COL     => $this->CurrentCurriculumYearId, // "CurrentCurriculumYearId" Get value from Global Configuration
+            cn::EXAM_CURRICULUM_YEAR_ID_COL     => $this->GetCurriculumYear(), // "CurrentCurriculumYearId" Get value from Global Configuration
             cn::EXAM_TYPE_COLS                  => 1,
             cn::EXAM_REFERENCE_NO_COL           => $this->GetMaxReferenceNumberExam(1,$request['self_learning_test_type']),
             cn::EXAM_TABLE_TITLE_COLS           => $this->createTestTitle(),
@@ -476,6 +475,7 @@ class StudentController extends Controller
             cn::EXAM_TABLE_SCHOOL_COLS          => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
             cn::EXAM_TABLE_IS_UNLIMITED         => ($request['self_learning_test_type'] == 1) ? 1 : 0,
             cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL => $request['self_learning_test_type'],
+            cn::EXAM_TABLE_LEARNING_OBJECTIVES_CONFIGURATIONS_COL => json_encode($request),
             cn::EXAM_TABLE_CREATED_BY_COL       => $this->LoggedUserId(),
             cn::EXAM_TABLE_CREATED_BY_USER_COL  => 'student',
             cn::EXAM_TABLE_STATUS_COLS          => 'publish'
@@ -484,7 +484,12 @@ class StudentController extends Controller
         $exams = Exam::create($examData);
         if($exams){
             // Create exam school mapping
-            ExamSchoolMapping::create(['school_id' => Auth::user()->{cn::USERS_SCHOOL_ID_COL},'exam_id' => $exams->id, 'status' => 'publish']);
+            ExamSchoolMapping::create([
+                cn::EXAM_SCHOOL_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                cn::EXAM_SCHOOL_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                cn::EXAM_SCHOOL_MAPPING_EXAM_ID_COL => $exams->id,
+                cn::EXAM_SCHOOL_MAPPING_STATUS_COL => 'publish'
+            ]);
             $strand_id = '';
             $learning_unit_id = '';
             $learning_objectives_id = '';
@@ -509,19 +514,19 @@ class StudentController extends Controller
             if(isset($request['test_time_duration']) && !empty($request['test_time_duration'])){
                 $test_time_duration = $request['test_time_duration'];
             }
-            $examData = [
-                cn::EXAM_TYPE_COLS => 1,
-                cn::EXAM_CONFIGURATIONS_DETAILS_EXAM_ID_COL => $exams->id,
-                cn::EXAM_CONFIGURATIONS_DETAILS_CREATED_BY_USER_ID_COL => $this->LoggedUserId(),
-                cn::EXAM_CONFIGURATIONS_DETAILS_STRAND_IDS_COL => $strand_id,
-                cn::EXAM_CONFIGURATIONS_DETAILS_LEARNING_UNIT_IDS_COL => $learning_unit_id,
-                cn::EXAM_CONFIGURATIONS_DETAILS_LEARNING_OBJECTIVES_IDS_COL => $learning_objectives_id,
-                cn::EXAM_CONFIGURATIONS_DETAILS_DIFFICULTY_MODE_COL => $difficulty_lvl,
-                cn::EXAM_CONFIGURATIONS_DETAILS_DIFFICULTY_LEVELS_COL => $difficulty_mode,
-                cn::EXAM_CONFIGURATIONS_DETAILS_NO_OF_QUESTIONS_COL => ($request['questionIds']) ?  count(explode(",",$request['questionIds'])) : null,
-                //cn::EXAM_CONFIGURATIONS_DETAILS_TIME_DURATION_COL => $test_time_duration
-            ];
-            ExamConfigurationsDetails::create($examData);
+            // $examData = [
+            //     cn::EXAM_TYPE_COLS => 1,
+            //     cn::EXAM_CONFIGURATIONS_DETAILS_EXAM_ID_COL => $exams->id,
+            //     cn::EXAM_CONFIGURATIONS_DETAILS_CREATED_BY_USER_ID_COL => $this->LoggedUserId(),
+            //     cn::EXAM_CONFIGURATIONS_DETAILS_STRAND_IDS_COL => $strand_id,
+            //     cn::EXAM_CONFIGURATIONS_DETAILS_LEARNING_UNIT_IDS_COL => $learning_unit_id,
+            //     cn::EXAM_CONFIGURATIONS_DETAILS_LEARNING_OBJECTIVES_IDS_COL => $learning_objectives_id,
+            //     cn::EXAM_CONFIGURATIONS_DETAILS_DIFFICULTY_MODE_COL => $difficulty_lvl,
+            //     cn::EXAM_CONFIGURATIONS_DETAILS_DIFFICULTY_LEVELS_COL => $difficulty_mode,
+            //     cn::EXAM_CONFIGURATIONS_DETAILS_NO_OF_QUESTIONS_COL => ($request['questionIds']) ?  count(explode(",",$request['questionIds'])) : null,
+            //     //cn::EXAM_CONFIGURATIONS_DETAILS_TIME_DURATION_COL => $test_time_duration
+            // ];
+            // ExamConfigurationsDetails::create($examData);
             $response['redirectUrl'] = 'student/exam/'.$exams->id;
             $response['self_learning_type'] = $request['self_learning_test_type'];
         }

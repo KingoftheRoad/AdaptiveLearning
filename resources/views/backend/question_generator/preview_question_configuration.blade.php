@@ -526,7 +526,7 @@
                                         <div class="sm-btn-sec form-row">
                                             <div class="form-group mb-50 btn-sec">
                                                 <button type="button" class="blue-btn btn btn-primary previous-button previous_btn_step_3" data-stepid="3">{{ __('languages.question_generators_menu.previous') }}</button>
-                                                <button type="button" class="blue-btn btn btn-primary next-button next_btn_step_3" data-stepid="3">{{ __('languages.question_generators_menu.next') }}</button>                                                
+                                                <button type="button" class="blue-btn btn btn-primary next-button next_btn_step_3" data-stepid="3">{{ __('languages.question_generators_menu.next') }}</button>
                                             </div>
                                         </div>
                                     </div>

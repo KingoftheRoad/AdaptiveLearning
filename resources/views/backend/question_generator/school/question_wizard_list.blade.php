@@ -263,7 +263,14 @@
 													@endif
 
 													@if($exam->created_by_user == 'super_admin' || $exam->created_by_user == 'school_admin' || $exam->created_by_user == 'principal' || $exam->created_by_user == "teacher")
-													<a href="{{route('exam-configuration-preview',$exam->id)}}" class="pl-2 btn-delete" id="configExam" data-id="{{$exam->id}}" title="{{__('languages.config')}}">
+													@php
+													if($exam->exam_type==1){
+														$previewUrl = route('self_learning.preview',$exam->id);
+													}else{
+														$previewUrl = route('exam-configuration-preview',$exam->id);
+													}
+													@endphp
+													<a href="{{$previewUrl}}" class="pl-2 btn-delete" id="configExam" data-id="{{$exam->id}}" title="{{__('languages.config')}}">
 														<i class="fa fa-gear" aria-hidden="true"></i>
 													</a>
 													@endif

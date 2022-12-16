@@ -87,6 +87,7 @@ class RealTimeAIQuestionGeneratorController extends Controller
             if(!isset($request->learning_unit)){
                 return $this->sendError('Please select learning objectives', 404);
             }
+            $examConfigurationsData = json_encode($request->all());
             $examLanguage = (isset($request->language)) ? $request->language : 'en';
             $difficultyLevels = PreConfigurationDiffiltyLevel::all();
             $result = array();
@@ -200,7 +201,7 @@ class RealTimeAIQuestionGeneratorController extends Controller
                                 $assigned_questions_list = json_encode($assigned_questions_list);
                                 $result_list = json_encode($result_list);
                                 $QuestionNo = 1;
-                                $QuestionResponse['question_html'] = (string)View::make('backend.student.real_time_generate_question.question_html',compact('request','Question','examLanguage','assigned_questions_list','encodedMainSkillArray','result_list','QuestionNo','countMainSkillArray'));
+                                $QuestionResponse['question_html'] = (string)View::make('backend.student.real_time_generate_question.question_html',compact('request','examConfigurationsData','Question','examLanguage','assigned_questions_list','encodedMainSkillArray','result_list','QuestionNo','countMainSkillArray'));
                                 return $this->sendResponse($QuestionResponse);exit;
                             }
                         }
@@ -348,6 +349,7 @@ class RealTimeAIQuestionGeneratorController extends Controller
             cn::EXAM_TABLE_QUESTION_IDS_COL                 => ($questionIds) ?  $questionIds : null,
             cn::EXAM_TABLE_STUDENT_IDS_COL                  => $this->LoggedUserId(),
             cn::EXAM_TABLE_SCHOOL_COLS                      => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+            cn::EXAM_TABLE_LEARNING_OBJECTIVES_CONFIGURATIONS_COL => $request->examConfigurationsData ?? null,
             cn::EXAM_TABLE_IS_UNLIMITED                     => ($request->self_learning_test_type == 1) ? 1 : 0,
             cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL      => $request->self_learning_test_type,
             cn::EXAM_TABLE_CREATED_BY_COL                   => $this->LoggedUserId(),
@@ -357,7 +359,12 @@ class RealTimeAIQuestionGeneratorController extends Controller
         $exams = Exam::create($examData);
         if($exams){
             // Create exam school mapping
-            ExamSchoolMapping::create(['school_id' => Auth::user()->{cn::USERS_SCHOOL_ID_COL},'exam_id' => $exams->id, 'status' => 'publish']);
+            ExamSchoolMapping::create([
+                cn::EXAM_SCHOOL_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                cn::EXAM_SCHOOL_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                cn::EXAM_SCHOOL_MAPPING_EXAM_ID_COL => $exams->id,
+                cn::EXAM_SCHOOL_MAPPING_STATUS_COL => 'publish'
+            ]);
 
             // find student overall ability from AI-API
             if(isset($AttemptedQuestionAnswers) && !empty($AttemptedQuestionAnswers)){
@@ -510,6 +517,7 @@ class RealTimeAIQuestionGeneratorController extends Controller
             if(!isset($request->learning_unit)){
                 return $this->sendError('Please select learning objectives', 404);
             }
+            $examConfigurationsData = json_encode($request->all());
             $examLanguage = (isset($request->language)) ? $request->language : 'en';
             $difficultyLevels = PreConfigurationDiffiltyLevel::all();
             $result = array();
@@ -618,7 +626,7 @@ class RealTimeAIQuestionGeneratorController extends Controller
                                 // Get General Hints current question
                                 $UploadDocumentsData = $this->GetGeneralHintsData($Question->id,$examLanguage);
 
-                                $QuestionResponse['question_html'] = (string)View::make('backend.student.real_time_generate_question.self_learning_exercise.question_html',compact('request','Question','examLanguage','assigned_questions_list','encodedMainSkillArray','result_list','QuestionNo','countMainSkillArray','UploadDocumentsData'));
+                                $QuestionResponse['question_html'] = (string)View::make('backend.student.real_time_generate_question.self_learning_exercise.question_html',compact('request','examConfigurationsData','Question','examLanguage','assigned_questions_list','encodedMainSkillArray','result_list','QuestionNo','countMainSkillArray','UploadDocumentsData'));
                                 return $this->sendResponse($QuestionResponse);exit;
                             }
                         }
@@ -743,8 +751,9 @@ class RealTimeAIQuestionGeneratorController extends Controller
         }
 
         $examData = [
-            cn::EXAM_CURRICULUM_YEAR_ID_COL                 => $this->CurrentCurriculumYearId, // "CurrentCurriculumYearId" Get value from Global Configuration
+            cn::EXAM_CURRICULUM_YEAR_ID_COL                 => $this->GetCurriculumYear(), // "CurrentCurriculumYearId" Get value from Global Configuration
             cn::EXAM_TYPE_COLS                              => 1,
+            cn::EXAM_REFERENCE_NO_COL                       => $this->GetMaxReferenceNumberExam(1,$request->self_learning_test_type),
             cn::EXAM_TABLE_TITLE_COLS                       => $this->createTestTitle(),
             cn::EXAM_TABLE_FROM_DATE_COLS                   => Carbon::now(),
             cn::EXAM_TABLE_TO_DATE_COLS                     => Carbon::now(),
@@ -756,6 +765,7 @@ class RealTimeAIQuestionGeneratorController extends Controller
             cn::EXAM_TABLE_SCHOOL_COLS                      => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
             cn::EXAM_TABLE_IS_UNLIMITED                     => ($request->self_learning_test_type == 1) ? 1 : 0,
             cn::EXAM_TABLE_SELF_LEARNING_TEST_TYPE_COL      => $request->self_learning_test_type,
+            cn::EXAM_TABLE_LEARNING_OBJECTIVES_CONFIGURATIONS_COL => $request->examConfigurationsData ?? null,
             cn::EXAM_TABLE_CREATED_BY_COL                   => $this->LoggedUserId(),
             cn::EXAM_TABLE_CREATED_BY_USER_COL              => 'student',
             cn::EXAM_TABLE_STATUS_COLS                      => 'publish'
@@ -763,7 +773,12 @@ class RealTimeAIQuestionGeneratorController extends Controller
         $exams = Exam::create($examData);
         if($exams){
             // Create exam school mapping
-            ExamSchoolMapping::create(['school_id' => Auth::user()->{cn::USERS_SCHOOL_ID_COL},'exam_id' => $exams->id, 'status' => 'publish']);
+            ExamSchoolMapping::create([
+                cn::EXAM_SCHOOL_MAPPING_CURRICULUM_YEAR_ID_COL => $this->GetCurriculumYear(),
+                cn::EXAM_SCHOOL_MAPPING_SCHOOL_ID_COL => Auth::user()->{cn::USERS_SCHOOL_ID_COL},
+                cn::EXAM_SCHOOL_MAPPING_EXAM_ID_COL => $exams->id,
+                cn::EXAM_SCHOOL_MAPPING_STATUS_COL => 'publish'
+            ]);
 
             // find student overall ability from AI-API
             if(isset($AttemptedQuestionAnswers) && !empty($AttemptedQuestionAnswers)){
@@ -796,6 +811,7 @@ class RealTimeAIQuestionGeneratorController extends Controller
             }
 
             $PostData = [
+                cn::ATTEMPT_EXAMS_CURRICULUM_YEAR_ID_COL        => $this->GetCurriculumYear(),
                 cn::ATTEMPT_EXAMS_EXAM_ID                       => $exams->id,
                 cn::ATTEMPT_EXAMS_STUDENT_STUDENT_ID            => $this->LoggedUserId(),
                 cn::ATTEMPT_EXAMS_STUDENT_GRADE_ID              => Auth::user()->grade_id,
@@ -905,5 +921,41 @@ class RealTimeAIQuestionGeneratorController extends Controller
             }
         }
         return $UploadDocumentsData;
+    }
+
+    /**
+     * USE : Preview Self-learning configurations
+     */
+    public function PreviewSelfLearningConfigurations($examId, Request $request){
+        $ExamData = Exam::where('id',$examId)->first();
+        if(isset($ExamData) && !empty($ExamData)){
+            $difficultyLevels = PreConfigurationDiffiltyLevel::all();
+            // Decode test configurations
+            if(isset($ExamData->learning_objectives_configuration) && !empty($ExamData->learning_objectives_configuration)){
+                $LearningObjectiveConfigurations = json_decode($ExamData->learning_objectives_configuration);
+            }
+            
+            // Get Strand List
+            $strandsList = Strands::all();
+            $learningObjectivesConfiguration = array();
+            if(!empty($strandsList)){
+                $LearningUnits = LearningsUnits::whereIn(cn::LEARNING_UNITS_STRANDID_COL,$LearningObjectiveConfigurations->strand_id)->get();
+                if(!empty($LearningUnits)){
+                    $LearningObjectives = LearningsObjectives::IsAvailableQuestion()->whereIn(cn::LEARNING_OBJECTIVES_LEARNING_UNITID_COL,$LearningObjectiveConfigurations->learning_unit_id)->get();
+                }
+            }
+
+            // Find the question list for review of the questions
+            $questionListHtml = '';
+            $question_list = Question::with(['answers','PreConfigurationDifficultyLevel','objectiveMapping'])
+                                ->whereIn(cn::QUESTION_TABLE_ID_COL,explode(',',$ExamData->question_ids))
+                                ->get();
+            $questionListHtml = (string)View::make('backend.question_generator.school.question_list_preview',compact('question_list','difficultyLevels'));
+
+            // Set the page title : 1 = Exercise, 2 = Testing Zone
+            $pageTitle = ($ExamData->self_learning_test_type == 1) ? __('languages.preview').' '.__('languages.self_learning_exercise') : __('languages.preview').' '.__('languages.self_learning_test');
+
+            return view('backend.student.self_learning.preview_self_learning',compact('pageTitle','LearningObjectiveConfigurations','difficultyLevels','strandsList','LearningUnits','LearningObjectives','questionListHtml','learningObjectivesConfiguration'));
+        }
     }
 }

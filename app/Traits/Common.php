@@ -21,6 +21,7 @@ use App\Models\Nodes;
 use App\Models\GradeSchoolMappings;
 use App\Models\School;
 use App\Models\GradeClassMapping;
+use App\Models\ClassPromotionHistory;
 use App\Models\GlobalConfiguration;
 use App\Models\Question;
 use App\Models\Answer;
@@ -1545,7 +1546,7 @@ trait Common {
     /**
      * USE : Get Global Configuration value using key name
      */
-    public function getGlobalConfiguration($key){
+    public static function getGlobalConfiguration($key){
         $configuration = GlobalConfiguration::where(cn::GLOBAL_CONFIGURATION_KEY_COL,$key)->first();
         if(isset($configuration) && !empty($configuration)){
             return $configuration->{cn::GLOBAL_CONFIGURATION_VALUE_COL} ?? null;
@@ -2190,10 +2191,15 @@ trait Common {
         $records = [];
         $QuestionHeaders = [];
         $totalStudent = 0;
-        
+    
         //Get Exam ID
         $examId = $request->examId;
-        $GetStudentIds = ($request->studentIds) ? explode(',',$request->studentIds) : [];
+        if(is_array($request->studentIds)){
+            $GetStudentIds = ($request->studentIds) ? $request->studentIds : [];
+        }else{
+            $GetStudentIds = ($request->studentIds) ? explode(',',$request->studentIds) : [];
+        }
+        //$GetStudentIds = ($request->studentIds) ? explode(',',$request->studentIds) : [];
         $classIds = $request->classIds;
         $groupIds = $request->groupIds;
 
@@ -2216,6 +2222,10 @@ trait Common {
         ];
         $ExamData = Exam::find($examId);
         if(!empty($ExamData)){
+            if($ExamData->exam_type == 1){
+                $userData = User::find($request->studentIds[0]);
+                $classIds = array($userData->CurriculumYearClassId);
+            }
             //Get Questions in Exam Assigns
             if(!empty($ExamData->{cn::EXAM_TABLE_QUESTION_IDS_COL})){
                 $questionIds = explode(',',$ExamData->{cn::EXAM_TABLE_QUESTION_IDS_COL});
@@ -2232,7 +2242,7 @@ trait Common {
                 $header[] = 'Q'.($questionKey + 1);
                 $QuestionHeaders[] = ($questionKey + 1);
                 $correctAnswerArray[] = SELF::setOptionBasedAlphabet($question->answers->correct_answer_en);
-            }
+            }           
             //Set Heading
             $records['heading'] = $header;
             // Store in first row headings
@@ -2245,7 +2255,8 @@ trait Common {
             if(SELF::isAdmin()){
                 if(!empty($classIds)){
                     // $getStudentsFromClassIds = User::whereIn(cn::USERS_CLASS_ID_COL,$classIds)->pluck(cn::USERS_ID_COL)->toArray();
-                    $getStudentsFromClassIds = User::whereIn(cn::USERS_ID_COL,Self::curriculum_year_mapping_student_ids('',$classIds,''))->pluck(cn::USERS_ID_COL)->toArray();
+                    $CommonObject = new Self;
+                    $getStudentsFromClassIds = User::whereIn(cn::USERS_ID_COL,$CommonObject->curriculum_year_mapping_student_ids('',$classIds,''))->pluck(cn::USERS_ID_COL)->toArray();
                 }
                 if(!empty($groupIds)){
                     $getStudentFromGroupIds =  PeerGroupMember::where(cn::PEER_GROUP_MEMBERS_CURRICULUM_YEAR_ID_COL,Self::GetCurriculumYear())
@@ -2358,7 +2369,6 @@ trait Common {
                     //$rowArray[] = $attemptedExam->user->class;
                     //$rowArray[] = ($attemptedExam->user->class_student_number!='') ? $attemptedExam->user->class_student_number : SELF::decrypt($attemptedExam->user->name_en);
                     //$ClassStudentNumber = Helper::GetCurriculumDataById($attemptedExam->user->id,Self::GetCurriculumYear(),'class_student_number');
-                    $rowArray[] = $attemptedExam->user->CurriculumYearData[cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER] ?? '';
                     $rowArray[] = ($attemptedExam->user->CurriculumYearData[cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER]!='') ? $attemptedExam->user->CurriculumYearData[cn::CURRICULUM_YEAR_CLASS_STUDENT_NUMBER] : Self::decrypt($attemptedExam->user->name_en);
                     
                     foreach($QuestionList as $questionKey => $questions){
@@ -2409,18 +2419,18 @@ trait Common {
                     }
                     $records[] = $rowArray;
                 }
+                
                 //Set Selected Answers Row On Based Question
                 $HeadingIndexArray = ['A','B','C','D','A%','B%','C%','D%','Correct %'];
                 for($row = 1;$row <= count($HeadingIndexArray);$row++){
                     $rowArray = [];
                     if($row == 1){
                         $rowArray[] = 'Total Students : '.$totalStudent;
-                        $rowArray[] = ($HeadingIndexArray[$row-1]);
+                        $rowArray[] = ($HeadingIndexArray[$row-1]);                        
                     }else{
                         $rowArray[] = '';
                         $rowArray[] = ($HeadingIndexArray[$row-1]);
                     }
-
                     foreach($QuestionList as $questionKey => $question){
                         switch($row){
                             case 1 :    //Case 1 : is used For Display Row  of A = No. of Student Selected Answer A
@@ -2456,7 +2466,7 @@ trait Common {
                                 $rowArray[] =  round((($value * 100) / $totalStudent),2);
                                 break;
                         }
-                    }
+                    }                    
                     //Total Attempted Student + Sub Main Heading + row // Maintain Rows(with Sub Heading)
                     $records[(count($ExamData->attempt_exams) +1)+$row] =  $rowArray;
                 }
@@ -2613,6 +2623,17 @@ trait Common {
         return [];
     }
 
+    /***
+     * USE : Get From Enter Year to 1 Year Future Year
+     */
+    public static function GetCurriculumCurrentFutureYear($Date){
+        $PresentYearCurriculumId = CurriculumYear::find($Date+1);
+        if(!empty($PresentYearCurriculumId)){
+            return CurriculumYear::whereBetween(cn::CURRICULUM_YEAR_ID_COL, [1, $PresentYearCurriculumId->id])->orderBy(cn::CURRICULUM_YEAR_ID_COL,'DESC')->get();
+        }
+        return [];
+    }
+
     /**
      * USE : Get Student detail by Curriculum Year
      */
@@ -2707,5 +2728,86 @@ trait Common {
     public function getGradeLists(){
         $GradeList = Grades::where(cn::GRADES_STATUS_COL,1)->whereIn(cn::GRADES_ID_COL,[1,2,3,4,5,6])->get();
         return $GradeList ?? [];
+    }
+
+    public function ClassPromotionHistoryCreateOrUpdateRecord($CurriculumYearId,$userData,$gradeId ='',$classId=''){
+        if(ClassPromotionHistory::where([
+            cn::CLASS_PROMOTION_HISTORY_CURRICULUM_YEAR_ID_COL => $CurriculumYearId,
+            cn::CLASS_PROMOTION_HISTORY_SCHOOL_ID_COL          => auth()->user()->{cn::CLASS_PROMOTION_HISTORY_SCHOOL_ID_COL},
+            cn::CLASS_PROMOTION_HISTORY_STUDENT_ID_COL         => $userData->id,
+            cn::CLASS_PROMOTION_HISTORY_CURRENT_GRADE_ID_COL    =>  $userData->grade_id,
+            cn::CLASS_PROMOTION_HISTORY_CURRENT_CLASS_ID_COL    =>  $userData->class_id,
+        ])
+        ->exists()){
+            ClassPromotionHistory::where([
+                cn::CLASS_PROMOTION_HISTORY_CURRICULUM_YEAR_ID_COL  => $CurriculumYearId,
+                cn::CLASS_PROMOTION_HISTORY_SCHOOL_ID_COL           => auth()->user()->{cn::CLASS_PROMOTION_HISTORY_SCHOOL_ID_COL},
+                cn::CLASS_PROMOTION_HISTORY_STUDENT_ID_COL          => $userData->id,
+                cn::CLASS_PROMOTION_HISTORY_CURRENT_GRADE_ID_COL    =>  $userData->grade_id,
+            cn::CLASS_PROMOTION_HISTORY_CURRENT_CLASS_ID_COL        =>  $userData->class_id
+            ])
+            ->update([
+                cn::CLASS_PROMOTION_HISTORY_CURRENT_GRADE_ID_COL    =>  $userData->grade_id,
+                cn::CLASS_PROMOTION_HISTORY_CURRENT_CLASS_ID_COL    =>  $userData->class_id,
+                cn::CLASS_PROMOTION_HISTORY_PROMOTED_GRADE_ID_COL   =>  $gradeId,
+                cn::CLASS_PROMOTION_HISTORY_PROMOTED_CLASS_ID_COL   =>  $classId,
+                cn::CLASS_PROMOTION_HISTORY_PROMOTED_BY_USER_ID_COL =>  Auth::user()->id,
+            ]);
+        }else{
+            ClassPromotionHistory::create([
+                cn::CLASS_PROMOTION_HISTORY_CURRICULUM_YEAR_ID_COL => $CurriculumYearId,
+                cn::CLASS_PROMOTION_HISTORY_SCHOOL_ID_COL          => auth()->user()->{cn::CLASS_PROMOTION_HISTORY_SCHOOL_ID_COL},
+                cn::CLASS_PROMOTION_HISTORY_STUDENT_ID_COL         => $userData->id,
+                cn::CLASS_PROMOTION_HISTORY_CURRENT_GRADE_ID_COL    =>  NULL,
+                cn::CLASS_PROMOTION_HISTORY_CURRENT_CLASS_ID_COL    =>  NULL,
+                cn::CLASS_PROMOTION_HISTORY_PROMOTED_GRADE_ID_COL   =>  $gradeId,
+                cn::CLASS_PROMOTION_HISTORY_PROMOTED_CLASS_ID_COL   =>  $classId,
+                cn::CLASS_PROMOTION_HISTORY_PROMOTED_BY_USER_ID_COL =>  Auth::user()->id,
+            ]);   
+        }
+    }
+
+    /**
+     * USE : Array Flatten Convert in Single Array
+     */
+    function arrayFlatten(array $array) {
+        $flatten = array();
+        array_walk_recursive($array, function($value) use(&$flatten) {
+            $flatten[] = $value;
+        });
+        return $flatten;
+    }
+
+    /**
+     * USE : Check Duplication Curriculum Student Mapping Table
+     */
+    public function CheckDuplicationRecordCurriculumStudentMapping($ignoreUserData,$usersClassStudentNumber,$curriculum_id){
+        $response = array();
+        $Query = CurriculumYearStudentMappings::where([
+                                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_CURRICULUM_YEAR_ID_COL => $curriculum_id,
+                                                        cn::CURRICULUM_YEAR_STUDENT_MAPPING_SCHOOL_ID_COL => Auth::user()->school_id,
+                                                        cn::CURRICULUM_YEAR_STUDENT_NUMBER_WITHIN_CLASS_COL => $usersClassStudentNumber
+                                                    ])
+                                                    ->where( cn::CURRICULUM_YEAR_STUDENT_MAPPING_USER_ID_COL,'<>',$ignoreUserData->id);
+        if($Query->doesntExist()){
+            $response = $Query->get();
+            if($response->isNotEmpty()){
+                return $response->toArray();
+            }
+        }
+        return $response;
+    }
+
+    /**
+     * USE : In User Table check Particular column value exists in database (main Used for check (email,permanent reference number,student with in class) when import student)
+     */
+    public function CheckUserInDataExists($columnName,$value,$school_id = ''){
+        $userExists = '';
+        if(!empty($school_id)){
+            $userExists = User::where($columnName,$value)->where('school_id',$school_id)->exists();
+        }else{
+            $userExists = User::where($columnName,$value)->exists();
+        }
+       return $userExists;
     }
 }

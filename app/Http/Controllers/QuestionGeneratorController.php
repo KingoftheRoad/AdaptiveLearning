@@ -3014,8 +3014,6 @@ class QuestionGeneratorController extends Controller {
                                             ->pluck(cn::EXAM_CREDIT_POINT_RULES_MAPPING_RULES_VALUE_COL,cn::EXAM_CREDIT_POINT_RULES_MAPPING_CREDIT_POINT_RULES_COL)
                                             ->toArray();
             }
-
-            $questionListHtml = '';
             
             $questionListHtml = '';
             $difficultyLevels = PreConfigurationDiffiltyLevel::all();

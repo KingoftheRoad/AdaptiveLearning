@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 /******************************************************************************************************************************
  *  Start Cron Job Urls **
  * ****************************************************************************************************************************/
+Route::get('UpdateAttemptExamTable', 'CronJobController@UpdateAttemptExamTable')->name('UpdateAttemptExamTable');
 Route::get('update-students-overall-ability', 'CommonController@UpdateStudentAbility')->name('update-students-overall-ability');
 Route::get('generate-math-formula-image', 'CommonController@GenerateMathFormulaImage')->name('generate-math-formula-image');
 Route::get('updateMyTeachingReports', 'CronJobController@updateMyTeachingReports')->name('updateMyTeachingReports');
@@ -32,9 +33,16 @@ Route::get('UpdateGlobalConfigurationNextCurriculumYear','CronJobController@Upda
 // Send remainder upgrade student in next curriculum year
 Route::get('SendRemainderUploadStudentNewSchoolCurriculumYear','CronJobController@SendRemainderUploadStudentNewSchoolCurriculumYear')->name('SendRemainderUploadStudentNewSchoolCurriculumYear');
 
+// Assign to credit points manually via cron job
+Route::get('AssignCreditPointsManually', 'CronJobController@AssignCreditPointsManually')->name('AssignCreditPointsManually');
+
 /******************************************************************************************************************************
  *  End Cron Job Urls **
  * ****************************************************************************************************************************/
+
+
+ 
+Route::get('demo-progress-report', 'Reports\StudentLearningReportsController@StudentLearningReport')->name('StudentLearningReport');
 
 
 Route::get('update_in_all_table_curriculum_year_id','CommonController@UpdateInAllTableCurriculumYearId');
@@ -133,7 +141,7 @@ Route::group(['middleware'=>['auth']], function () {
     /** Strat User Manage Module Route **/
     Route::get('user/delete/{id}', 'UsersController@destroy')->middleware(['admin'])->name('user.destroy');
     Route::post('user/grade/{id}','UsersController@getGrades')->middleware(['admin'])->name('user.grade');//for get grade       
-    Route::match(['GET', 'POST'], 'users/import', 'UsersController@importUsers')->name('users.import');
+    Route::match(['GET', 'POST'], 'users/import', 'UsersController@importSchoolData')->name('users.import');
     Route::get('users/export','ExportController@exportUsers')->name('users.export');
     Route::resource('users','UsersController')->middleware(['admin']);
     Route::post('getstudentdata', 'UsersController@getstudentdata')->name('getstudentdata')->middleware('admin');
@@ -340,6 +348,9 @@ Route::group(['middleware'=>['auth']], function () {
     Route::post('generate-question/self-learning/exercise/next-question', 'RealTimeAIQuestionGeneratorController@GenerateQuestionSelfLearningExerciseNextQuestion');
     Route::post('self-learning/exercise/save', 'RealTimeAIQuestionGeneratorController@SaveSelfLearningExercise');
     Route::post('generate-question/self-learning/exercise/change-language', 'RealTimeAIQuestionGeneratorController@GenerateQuestionSelfLearningExerciseChangeLanguage');
+    
+    // Preview self-learning test configurations
+    Route::get('self_learning/preview/{exam_id}', 'RealTimeAIQuestionGeneratorController@PreviewSelfLearningConfigurations')->name('self_learning.preview');
       
 
 
@@ -400,6 +411,7 @@ Route::group(['middleware'=>['auth']], function () {
     Route::match(['GET', 'POST'], 'school/class/importStudent', 'UsersController@ImportStudents')->name('ImportStudents');
     Route::match('POST', 'school/class/ImportStudentsDataCheck', 'UsersController@ImportStudentsDataCheck')->name('ImportStudentsDataCheck');
     Route::match('POST', 'school/class/ImportStudentsData', 'UsersController@ImportStudentsData')->name('ImportStudentsData');
+    Route::post('school/class/DuplicateCsvRecords','UsersController@CheckDuplicationCsvFile')->name('DuplicateCsvRecords');
 
     Route::match(['GET', 'POST'],'school/selflearning-tests', 'PrincipalController@getSelfLearningTestList')->name('school.selflearning-tests');
     Route::match(['GET', 'POST'],'school/selflearning-exercise', 'PrincipalController@getSelfLearningExerciseList')->name('school.selflearning-exercise');
@@ -501,6 +513,3 @@ Route::group(['middleware'=>['auth']], function () {
     Route::match(['GET', 'POST'],'assign-credit-points','CreditPointController@AssignCreditPoints')->middleware(['teacher'])->name('assign-credit-points');
     Route::get('get-students-list-checkbox', 'CommonController@getStudentListByGradeClassGroup');
 });
-
-Route::get('demo-progress-report', 'Reports\StudentLearningReportsController@StudentLearningReport')->name('StudentLearningReport');
-Route::get('AssignCreditPointsManually', 'CronJobController@AssignCreditPointsManually')->name('AssignCreditPointsManually');

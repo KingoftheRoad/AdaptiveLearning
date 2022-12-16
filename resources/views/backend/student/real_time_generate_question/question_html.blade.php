@@ -28,8 +28,9 @@
                     </div>
                 </div>
             </div>
-        </div>        
-        <div id="nextquestionarea"  class="">
+        </div>
+        <input type="hidden" name="examConfigurationsData" value="{{$examConfigurationsData}}">
+        <div id="nextquestionarea" class="">
         <input type="hidden" name="encodedMainSkillArray" value="{{$encodedMainSkillArray}}">
         <input type="hidden" name="assigned_questions_list" value="{{$assigned_questions_list}}">
         <input type="hidden" name="currentQuestion" value="{{$Question->id}}">

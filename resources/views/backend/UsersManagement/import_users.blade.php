@@ -19,7 +19,7 @@
                     <div class="row">
 						<div class="col-md-12">
 							<div class="sec-title">
-                            <a href="javascript:void(0);" class="btn-back" id="backButton">{{__('languages.back')}}</a>
+                                <a href="javascript:void(0);" class="btn-back" id="backButton">{{__('languages.back')}}</a>
 							</div>
 							<hr class="blue-line">
 						</div>
@@ -73,7 +73,7 @@
                             <div id="csv-instructions">
                                 <h2 class="wv-heading--subtitle">{{__('languages.student_csv_template_file')}}</h2>
                                 <p class="wv-text--body imp-info">
-                                    <a class="wv-text--link" href="{{asset('uploads/Student-Import.csv')}}">
+                                    <a class="wv-text--link" href="{{asset('Schools-Import.csv')}}">
                                         <i class="fa fa-download" aria-hidden="true"></i>
                                         {{ __('languages.download_and_view_student_csv')}}
                                     </a>

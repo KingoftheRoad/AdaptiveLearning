@@ -43,8 +43,10 @@ class SchoolController extends Controller
             //Filteration on School code and School Name
             $Query = School::select('*');
             if(isset($request->filter)){
-                if(isset($request->SchoolName) && !empty($request->SchoolName)){
-                    $Query->where(cn::SCHOOL_SCHOOL_NAME_COL,'Like','%'.$this->encrypt($request->SchoolName).'%');
+                if(isset($request->searchtext) && !empty($request->searchtext)){
+                    $Query->where(cn::SCHOOL_SCHOOL_NAME_COL,'Like','%'.$this->encrypt($request->searchtext).'%')
+                    ->orWhere('school_email','LIKE','%'.$request->searchtext.'%')
+                    ->orWhere('school_code','LIKE','%'.$request->searchtext.'%');
                 }
                 if(isset($request->SchoolCode) && !empty($request->SchoolCode)){
                     $Query->where(cn::SCHOOL_SCHOOL_CODE_COL,$request->SchoolCode);
